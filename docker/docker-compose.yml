@@ -1,0 +1,37 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: airdrop
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qweqwe123
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "8603:5432"
+    networks:
+      - nft-minting-services_net
+    restart: always
+
+  node_worker:
+    image: saltict/nft-minting-backend:0.1.1
+    depends_on:
+      - postgres
+    ports:
+      - "8608:3000"
+    volumes:
+      - ./.env:/app/.env
+    working_dir: /app
+    command: yarn start
+    networks:
+      - nft-minting-services_net
+    restart: always
+
+networks:
+  nft-minting-services_net:
+volumes:
+  postgres:
+  redis:
+  mongo:

@@ -1,0 +1,68 @@
+version: '3.8'
+services:
+#  redis:
+#    image: redis:latest
+#    ports:
+#      - "8001:6379"
+#    volumes:
+#      - redis:/data
+#    networks:
+#      - nft-minting-services_net
+#    restart: always
+#
+#  mongo:
+#    image: mongo:latest
+#    ports:
+#      - "8002:27017"
+#    environment:
+#      - MONGO_INITDB_ROOT_USERNAME=mongo
+#      - MONGO_INITDB_ROOT_PASSWORD=qweqwe123
+#    volumes:
+#      - mongo:/data/db
+#    networks:
+#      - nft-minting-services_net
+#    restart: always
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: airdrop
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qweqwe123
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - "8003:5432"
+    networks:
+      - nft-minting-services_net
+    restart: always
+
+  node_worker:
+    image: node:18-slim
+    depends_on:
+      - postgres
+    ports:
+      - "8008:3000"
+    secrets:
+      - source: environment-config
+        target: /app/.env
+        mode: 0444
+    volumes:
+      - ./:/app
+    working_dir: /app
+    command: npm run start
+    networks:
+      - nft-minting-services_net
+    restart: always
+
+networks:
+  nft-minting-services_net:
+
+volumes:
+  postgres:
+
+secrets:
+  environment-config:
+    file: ./.env
+

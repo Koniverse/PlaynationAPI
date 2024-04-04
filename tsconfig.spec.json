@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": false,
+    "removeComments": true,
+    "paths": {
+      "@src/*": ["src/*"]
+    }
+  },
+  "exclude": [
+    "src/public/",
+    "build.ts"
+  ]
+}
