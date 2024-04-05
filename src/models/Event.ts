@@ -5,7 +5,7 @@ import Account from '@src/models/Account';
 
 export class Event extends Model<InferAttributes<Event>, InferCreationAttributes<Event>> {
   declare id: CreationOptional<number>; // id on db
-  declare accountId: Account;
+  declare accountId: number;
   declare eventTypeId: EventType;
   declare timestamp: number;
   declare eventTime: Date;
@@ -35,7 +35,7 @@ Event.init({
     },
   },
   timestamp: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.INTEGER,
   },
   eventTime: {
     type: DataTypes.DATE,
@@ -44,7 +44,7 @@ Event.init({
     type: DataTypes.INTEGER,
   },
   point: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.INTEGER,
   },
 }, {
   indexes: [{unique: true, fields: ['id']}],

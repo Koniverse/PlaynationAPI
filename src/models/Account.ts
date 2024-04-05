@@ -1,6 +1,6 @@
 import {
   CreationOptional,
-  DataTypes,
+  DataTypes, HasManyCreateAssociationMixin,
   HasOneCreateAssociationMixin,
   InferAttributes,
   InferCreationAttributes,
@@ -8,6 +8,7 @@ import {
 } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import AccountAttribute from '@src/models/AccountAttribute';
+import Wallet from '@src/models/Wallet';
 
 export interface ITelegramParams {
   telegramId: number;
@@ -34,6 +35,11 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   
   // Account information
   declare getAccountAttribute: HasOneCreateAssociationMixin<AccountAttribute>;
+  declare getWallets: HasManyCreateAssociationMixin<Wallet>;
+  // createdAt can be undefined during creation
+  declare createdAt: CreationOptional<Date>;
+  // updatedAt can be undefined during creation
+  declare updatedAt: CreationOptional<Date>;
 }
 
 Account.init({
@@ -63,10 +69,14 @@ Account.init({
   languageCode: {
     type: DataTypes.STRING,
   },
+  createdAt: DataTypes.DATE,
+  updatedAt: DataTypes.DATE,
 }, {
   indexes: [{unique: true, fields: ['telegramId']}],
   tableName: 'account',
   sequelize: SequelizeServiceImpl.sequelize,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export default Account;

@@ -18,7 +18,10 @@ module.exports = async () => {
     moduleNameMapper: {
       ...pathsToModuleNameMapper(compilerOptions.paths, { prefix: '<rootDir>/' })
     },
-    testTimeout: 30000,
+    setupFilesAfterEnv: [
+      "<rootDir>/src/setup/setupTest.ts" // Path to your setup file
+    ],
+    testTimeout: 60000,
     verbose: false,
   };
 };

@@ -1,6 +1,5 @@
 import {QueryTypes, Sequelize} from 'sequelize';
 import EnvVars from '@src/constants/EnvVars';
-import envVars from '@src/constants/EnvVars';
 import {createPromise} from '@src/utils';
 
 export class SequelizeService {
@@ -13,8 +12,10 @@ export class SequelizeService {
   public constructor(connectionString?: string) {
     const {promise, resolve, reject} = createPromise<Sequelize>();
     this.isReady = promise;
-    this.sequelize = new Sequelize(connectionString || EnvVars.SEQUELIZE_DB, {
-      logging: envVars.NodeEnv === 'development' ? console.log : false,
+    const dbUrl = connectionString || EnvVars.SEQUELIZE_DB;
+
+    this.sequelize = new Sequelize(dbUrl, {
+      logging: EnvVars.NodeEnv === 'development' ? console.log : false,
     });
 
     this.sequelize.authenticate()

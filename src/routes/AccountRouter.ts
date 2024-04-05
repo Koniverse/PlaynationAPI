@@ -4,7 +4,7 @@ import {Query} from 'express-serve-static-core';
 import {ITelegramParams} from '@src/models';
 
 type GetAccountQuery = {
-  telegramId: number;
+  telegramId: bigint;
 } & Query;
 type CreateAccountQuery = ITelegramParams & Query;
 type LinkWalletQuery = Query;

@@ -13,9 +13,13 @@ import * as process from 'process';
 // **** Types **** //
 
 // Set the env file
-const environmentConfig = dotenv.config({
-  path: path.resolve(process.cwd(), './.env-test'),
-});
-if (environmentConfig.error) {
-  throw environmentConfig.error;
+try {
+  const environmentConfig = dotenv.config({
+    path: path.resolve(process.cwd(), './.env-test'),
+  });
+  if (environmentConfig.error) {
+    throw environmentConfig.error;
+  }
+} catch (e) {
+  console.error(e);
 }

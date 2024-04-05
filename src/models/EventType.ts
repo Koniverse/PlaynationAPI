@@ -22,9 +22,9 @@ export class EventType extends Model<InferAttributes<EventType>, InferCreationAt
   declare banner: string;
 
   declare energy: number;
-  declare point: bigint;
-  declare minPoint: bigint;
-  declare maxPoint: bigint;
+  declare point: number;
+  declare minPoint: number;
+  declare maxPoint: number;
 }
 
 EventType.init({

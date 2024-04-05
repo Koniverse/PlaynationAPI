@@ -6,7 +6,7 @@ export class AccountAttribute extends Model<InferAttributes<AccountAttribute>, I
   declare id: CreationOptional<number>; // id on db
   
   // Telegram information
-  declare accountId: Account;
+  declare accountId: number;
 
   // Account information
   declare energy: number;
@@ -30,7 +30,7 @@ AccountAttribute.init({
     type: DataTypes.INTEGER,
   },
   point: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.INTEGER,
   },
 }, {
   indexes: [{unique: true, fields: ['id']}],

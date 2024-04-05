@@ -1,4 +1,3 @@
-import '../setup/setupTestEnvironment';
 import {AccountType, NetworkType, NftMintRequestStatus} from '@src/types';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {NftCampaign, NftCollection, NftMintRequest, User} from '@src/models';
