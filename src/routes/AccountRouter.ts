@@ -1,62 +1,82 @@
 import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
-import {ITelegramParams} from '@src/models';
+import {AccountService, syncAccountInfo} from '@src/services/AccountService';
 
 type GetAccountQuery = {
-  telegramId: bigint;
+  telegramId: number;
 } & Query;
-type CreateAccountQuery = ITelegramParams & Query;
-type LinkWalletQuery = Query;
+type SyncAccountQuery = syncAccountInfo & Query;
 
 const AccountRouter = Router();
 
 const routerMap = {
-  //Todo: Fetch account details
   get: async (req: IReq<GetAccountQuery>, res: IRes) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return res.status(200).json({
-      success: true,
-    });
+    // Todo: Validate with signature
+    const telegramId = req.query.telegramId;
+
+    if (!telegramId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing telegramId',
+      });
+    } else if (typeof telegramId !== 'number') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid telegramId',
+      });
+    }
+
+    const accountService = AccountService.instance;
+    const account = await accountService.findByTelegramId(telegramId);
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        message: 'Account not found',
+      });
+    }
+
+    const accountDetails = await accountService.fetchAccountWithDetails(account.id);
+
+    return res.status(200).json(accountDetails);
   },
 
-  //Todo: Create new account from telegram
-  create: async (req: IReq<CreateAccountQuery>, res: IRes) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return res.status(200).json({
-      success: true,
-    });
+  // Sync account data and fetch account details
+  sync: async (req: IReq<SyncAccountQuery>, res: IRes) => {
+    // Todo: Validate with signature
+    const data = req.body;
+    const account = await AccountService.instance.syncAccountData(data);
+    const accountDetails = await AccountService.instance.fetchAccountWithDetails(account.id);
+    return res.status(200).json(accountDetails);
   },
 
-  //Todo: Update new account from telegram
-  update: async (req: IReq<CreateAccountQuery>, res: IRes) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return res.status(200).json({
-      success: true,
-    });
-  },
+  // //Todo: Create new account from telegram
+  // create: async (req: IReq<CreateAccountQuery>, res: IRes) => {
+  //   await new Promise((resolve) => setTimeout(resolve, 1000));
+  //   return res.status(200).json({
+  //     success: true,
+  //   });
+  // },
 
-  //Todo: Sync account data and fetch account details
-  sync: async (req: IReq<CreateAccountQuery>, res: IRes) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return res.status(200).json({
-      success: true,
-    });
-  },
+  // //Todo: Update new account from telegram
+  // update: async (req: IReq<CreateAccountQuery>, res: IRes) => {
+  //   await new Promise((resolve) => setTimeout(resolve, 1000));
+  //   return res.status(200).json({
+  //     success: true,
+  //   });
+  // },
 
-  // Todo: Link wallet with account
-  linkWallet: async (req: IReq<LinkWalletQuery>, res: IRes) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return res.status(200).json({
-      success: true,
-    });
-  },
+  // // Todo: Link wallet with account
+  // linkWallet: async (req: IReq<LinkWalletQuery>, res: IRes) => {
+  //   await new Promise((resolve) => setTimeout(resolve, 1000));
+  //   return res.status(200).json({
+  //     success: true,
+  //   });
+  // },
 };
 
-AccountRouter.get('/fetch', routerMap.get);
-AccountRouter.post('/create', routerMap.create);
-AccountRouter.post('/update', routerMap.update);
-AccountRouter.get('/sync', routerMap.sync);
-AccountRouter.post('/link-wallet', routerMap.linkWallet);
+AccountRouter.post('/get', routerMap.get);
+AccountRouter.post('/sync', routerMap.sync);
 
 export default AccountRouter;

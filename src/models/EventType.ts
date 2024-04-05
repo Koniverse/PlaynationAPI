@@ -9,6 +9,7 @@ export enum EventTypeEnum {
 
 export class EventType extends Model<InferAttributes<EventType>, InferCreationAttributes<EventType>> {
   declare id: CreationOptional<number>; // id on db
+  declare slug: string;
   declare name: string;
   declare description: string;
   declare type: EventTypeEnum;
@@ -22,9 +23,9 @@ export class EventType extends Model<InferAttributes<EventType>, InferCreationAt
   declare banner: string;
 
   declare energy: number;
-  declare point: number;
-  declare minPoint: number;
-  declare maxPoint: number;
+  declare point: CreationOptional<number>;
+  declare minPoint: CreationOptional<number>;
+  declare maxPoint: CreationOptional<number>;
 }
 
 EventType.init({
@@ -32,6 +33,9 @@ EventType.init({
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
+  },
+  slug: {
+    type: DataTypes.STRING,
   },
   name: {
     type: DataTypes.STRING,
@@ -77,7 +81,7 @@ EventType.init({
     type: DataTypes.INTEGER,
   },
 }, {
-  indexes: [{unique: true, fields: ['id']}],
+  indexes: [{unique: true, fields: ['id']}, {unique: true, fields: ['slug']}],
   tableName: 'event_type',
   sequelize: SequelizeServiceImpl.sequelize,
 });

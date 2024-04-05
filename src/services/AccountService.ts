@@ -10,6 +10,11 @@ export interface AccountDetails {
   wallets: string[],
 }
 
+export interface syncAccountInfo {
+  info: ITelegramParams;
+  walletAddresses: string[];
+}
+
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
 
@@ -91,23 +96,8 @@ export class AccountService {
     return wallet;
   }
 
-  // Update account energy and points
-  public async changeAccountAttributes(accountId: number, data: {energyChange: number, pointsChange: number}) {
-    const attributes = await AccountAttribute.findOne({ where: { accountId } });
-    if (!attributes) {
-      throw new Error('Account attributes not found');
-    }
-
-    attributes.energy += data.energyChange;
-    attributes.point += data.pointsChange;
-    await attributes.save();
-
-    return attributes;
-  }
-
-
   // Sync account data with Telegram data
-  public async syncAccountData(info: ITelegramParams, walletAddresses: string[]) {
+  public async syncAccountData({info, walletAddresses}: syncAccountInfo) {
     const {telegramId} = info;
 
     // Create account if not exists
@@ -121,6 +111,7 @@ export class AccountService {
       account.firstName !== info.firstName ||
         account.lastName !== info.lastName ||
         account.photoUrl !== info.photoUrl ||
+        account.addedToAttachMenu !== info.addedToAttachMenu ||
         account.languageCode !== info.languageCode
     ) {
       await account.update(info);

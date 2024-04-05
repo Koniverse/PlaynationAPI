@@ -1,15 +1,13 @@
 import {AccountService} from '@src/services/AccountService';
 import {ITelegramParams} from '@src/models/Account';
-import SequelizeServiceImpl from '@src/services/SequelizeService';
 
 
 describe('AccountServiceTest', () => {
   const accountService = AccountService.instance;
-  const walletAddressList = ['0xbB1A97c896d428486bd7bbd74963631cbF157769', '5EHhonxwirTubHcziT59rma7ZHtzeqHejz8vELQVLgX29o8q'];
+  const walletAddresses = ['0xbB1A97c896d428486bd7bbd74963631cbF157769', '5EHhonxwirTubHcziT59rma7ZHtzeqHejz8vELQVLgX29o8q'];
   const info: ITelegramParams = {
     telegramId: 12345699909987,
     telegramUsername: 'join_doe',
-    isBot: false,
     firstName: 'John',
     lastName: 'Doe',
     photoUrl: 'https://via.placeholder.com/300x300',
@@ -35,15 +33,8 @@ describe('AccountServiceTest', () => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     
     // Link account with wallet
-    const wallet1 = await accountService.linkWallet(account.id, walletAddressList[0]);
-    const wallet2 = await accountService.linkWallet(account.id, walletAddressList[1]);
-
-    // Update attribute
-    const att = await accountService.changeAccountAttributes(account.id, {energyChange: -5, pointsChange: 100});
-    // Att should be updated
-    expect(att.energy).toBe(95);
-    expect(att.point).toBe(100);
-
+    const wallet1 = await accountService.linkWallet(account.id, walletAddresses[0]);
+    const wallet2 = await accountService.linkWallet(account.id, walletAddresses[1]);
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const accountDetails = await accountService.fetchAccountWithDetails(account.id);
@@ -63,7 +54,7 @@ describe('AccountServiceTest', () => {
     info.telegramUsername = 'jane_doe';
 
     // Sync on create
-    let account = await accountService.syncAccountData(info, walletAddressList);
+    let account = await accountService.syncAccountData({info, walletAddresses});
     await new Promise((resolve) => setTimeout(resolve, 1000));
     expect(account.firstName).toEqual('John');
     expect(account.lastName).toEqual('Doe');
@@ -74,9 +65,9 @@ describe('AccountServiceTest', () => {
     info.firstName = 'Jane';
     info.lastName = 'Nano';
     info.photoUrl = 'https://via.placeholder.com/360x360';
-    walletAddressList.push('0x4199325C4230500370f3A3A1989BbFDDB46f22b8');
+    walletAddresses.push('0x4199325C4230500370f3A3A1989BbFDDB46f22b8');
 
-    account = await accountService.syncAccountData(info, walletAddressList);
+    account = await accountService.syncAccountData({info, walletAddresses});
 
     expect(account.updatedAt).not.toEqual(updatedAt1);
 
@@ -86,7 +77,7 @@ describe('AccountServiceTest', () => {
 
     //Do not change anything
     const updatedAt2 = account.updatedAt;
-    account = await accountService.syncAccountData(info, walletAddressList);
+    account = await accountService.syncAccountData({info, walletAddresses});
 
     expect(account.updatedAt).toEqual(updatedAt2);
   });

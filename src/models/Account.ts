@@ -13,13 +13,13 @@ import Wallet from '@src/models/Wallet';
 export interface ITelegramParams {
   telegramId: number;
   telegramUsername: string;
-  isBot: boolean;
-  firstName: string;
-  lastName: string;
-  photoUrl: string;
-  languageCode: string;
+  isBot?: boolean;
+  addedToAttachMenu?: boolean;
+  firstName?: string;
+  lastName?: string;
+  photoUrl?: string;
+  languageCode?: string;
 }
-
 
 export class Account extends Model<InferAttributes<Account>, InferCreationAttributes<Account>> implements ITelegramParams {
   declare id: CreationOptional<number>; // id on db
@@ -27,11 +27,12 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   // Telegram information
   declare telegramId: number;
   declare telegramUsername: string;
-  declare isBot: boolean;
-  declare firstName: string;
-  declare lastName: string;
-  declare photoUrl: string;
-  declare languageCode: string;
+  declare isBot: CreationOptional<boolean>;
+  declare addedToAttachMenu: CreationOptional<boolean>;
+  declare firstName: CreationOptional<string>;
+  declare lastName: CreationOptional<string>;
+  declare photoUrl: CreationOptional<string>;
+  declare languageCode: CreationOptional<string>;
   
   // Account information
   declare getAccountAttribute: HasOneCreateAssociationMixin<AccountAttribute>;
@@ -56,18 +57,27 @@ Account.init({
   },
   isBot: {
     type: DataTypes.BOOLEAN,
+    allowNull: true,
+  },
+  addedToAttachMenu: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
   },
   firstName: {
     type: DataTypes.STRING,
+    allowNull: true,
   },
   lastName: {
     type: DataTypes.STRING,
+    allowNull: true,
   },
   photoUrl: {
     type: DataTypes.STRING,
+    allowNull: true,
   },
   languageCode: {
     type: DataTypes.STRING,
+    allowNull: true,
   },
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
