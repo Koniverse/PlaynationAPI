@@ -14,41 +14,18 @@ import HttpStatusCodes from '@src/constants/HttpStatusCodes';
 import {NodeEnvs} from '@src/constants/misc';
 import {RouteError} from '@src/other/classes';
 
-import session from 'express-session';
-import RedisStore from 'connect-redis';
-import {createClient} from 'redis';
-
-
 
 export async function startServer() {
   // **** Express **** //
   const app = express();
+
+  await Promise.resolve();
 
   // CORS
   app.use(cors({
     origin: EnvVars.CORS_ORIGIN,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  }));
-
-  // Session
-  const redisClient = createClient({
-    url: `redis://${EnvVars.Redis.Host}:${EnvVars.Redis.Port}/0`,
-  });
-  await redisClient.connect();
-
-  const redisStore = new RedisStore({client: redisClient});
-
-  app.use(session({
-    secret: EnvVars.Session.Secret,
-    store: redisStore,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false,
-      httpOnly: true,
-      maxAge: Number(EnvVars.Session.Exp),
-    },
   }));
 
 

@@ -43,6 +43,7 @@ AccountAttribute.belongsTo(Account, {foreignKey: 'accountId'});
 Account.hasOne(AccountAttribute, {foreignKey: 'accountId'});
 Account.hasMany(Event, {foreignKey: 'accountId'});
 
+Event.belongsTo(Account, {foreignKey: 'accountId'});
 Event.belongsTo(EventType, {foreignKey: 'eventTypeId'});
 
 // Sync all models

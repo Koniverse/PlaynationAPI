@@ -1,8 +1,9 @@
-import 'express-session';
+import 'express';
 
-declare module 'express-session' {
-  interface SessionData {
-    address: string; // Make it optional to ensure compatibility with sessions that might not have a userId set.
-    time: Date;
+declare module 'express' {
+  interface Request {
+    user?: {
+      address: string;
+    };
   }
 }

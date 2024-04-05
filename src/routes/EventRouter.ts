@@ -37,7 +37,7 @@ const routerMap = {
 
   // Join an event
   join: async (req: IReq<JoinEventQuery>, res: IRes) => {
-    const address = req.session.address || '';
+    const address = req.user?.address || '';
     const {slug} = req.body;
 
     const event = await EventService.instance.joinEvent(address, slug);
