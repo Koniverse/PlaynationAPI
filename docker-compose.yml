@@ -26,24 +26,24 @@ services:
   postgres:
     image: postgres:latest
     environment:
-      POSTGRES_DB: airdrop
+      POSTGRES_DB: booka
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: qweqwe123
       PGDATA: /data/postgres
     volumes:
       - postgres:/data/postgres
     ports:
-      - "8003:5432"
+      - "8102:5432"
     networks:
       - nft-minting-services_net
     restart: always
 
   node_worker:
-    image: node:18-slim
+    build: .
     depends_on:
       - postgres
     ports:
-      - "8008:3000"
+      - "8108:3000"
     secrets:
       - source: environment-config
         target: /app/.env
@@ -64,5 +64,5 @@ volumes:
 
 secrets:
   environment-config:
-    file: ./.env
+    file: ./.env-docker
 

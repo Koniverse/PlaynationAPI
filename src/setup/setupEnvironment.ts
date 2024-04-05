@@ -31,7 +31,7 @@ const args = parse<IArgs>({
 try {
   // Set the env file
   const environmentConfig = dotenv.config({
-    path: path.resolve(process.cwd(), args.env === 'development' ? './.env-development': './.env'),
+    path: path.resolve(process.cwd(), args.env === 'development' ? './.env-dev': './.env'),
   });
   if (environmentConfig.error) {
     throw environmentConfig.error;

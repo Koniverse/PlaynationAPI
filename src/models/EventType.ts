@@ -12,7 +12,8 @@ export class EventType extends Model<InferAttributes<EventType>, InferCreationAt
   declare name: string;
   declare description: string;
   declare type: EventTypeEnum;
-  declare canRepeat: number;
+  declare requireValidate: boolean;
+  declare canRepeat: boolean;
   declare repeatInterval: number; // in seconds
 
   declare startTime: Date;
@@ -43,7 +44,10 @@ EventType.init({
     values: [EventTypeEnum.GAMEPLAY, EventTypeEnum.TASK, EventTypeEnum.EVENT],
   },
   canRepeat: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BOOLEAN,
+  },
+  requireValidate: {
+    type: DataTypes.BOOLEAN,
   },
   repeatInterval: {
     type: DataTypes.INTEGER,
