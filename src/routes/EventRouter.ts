@@ -6,7 +6,7 @@ import {requireLogin} from '@src/routes/helper';
 
 const EventRouter = Router();
 type JoinEventQuery = {
-  eventTypeSlug: string;
+  slug: string;
 } & Query;
 
 const routerMap = {
@@ -38,9 +38,9 @@ const routerMap = {
   // Join an event
   join: async (req: IReq<JoinEventQuery>, res: IRes) => {
     const address = req.session.address || '';
-    const {eventTypeSlug} = req.body;
+    const {slug} = req.body;
 
-    const event = await EventService.instance.joinEvent(address, eventTypeSlug);
+    const event = await EventService.instance.joinEvent(address, slug);
 
     return res.status(200).json(event);
   },

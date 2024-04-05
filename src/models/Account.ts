@@ -114,7 +114,7 @@ Account.init({
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
 }, {
-  indexes: [{unique: true, fields: ['telegramId']}],
+  indexes: [{unique: true, fields: ['address']}],
   tableName: 'account',
   sequelize: SequelizeServiceImpl.sequelize,
   createdAt: true,

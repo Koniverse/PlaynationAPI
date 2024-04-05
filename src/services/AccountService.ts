@@ -26,6 +26,9 @@ export class AccountService {
 
   public async fetchAccountWithDetails(id: number) {
     const account = await this.findById(id);
+    if(account) {
+      account.signature = '___';
+    }
     const attribute = await AccountAttribute.findOne({ where: { accountId: id } });
 
     return {

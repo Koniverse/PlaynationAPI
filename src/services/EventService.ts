@@ -7,7 +7,7 @@ import {v4} from 'uuid';
 export interface SubmitEventParams {
   eventId: number;
   signature: string;
-  point: any;
+  point: number;
 }
 
 export class EventService {

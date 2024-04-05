@@ -8,7 +8,7 @@ import express, {Request, Response, NextFunction} from 'express';
 import logger from 'jet-logger';
 import 'express-async-errors';
 import cors from 'cors';
-import BaseApiRouter from '@src/routes/api';
+import ApiRouter from '@src/routes/api';
 import EnvVars from '@src/constants/EnvVars';
 import HttpStatusCodes from '@src/constants/HttpStatusCodes';
 import {NodeEnvs} from '@src/constants/misc';
@@ -27,6 +27,7 @@ export async function startServer() {
   // CORS
   app.use(cors({
     origin: EnvVars.CORS_ORIGIN,
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   }));
 
@@ -67,7 +68,7 @@ export async function startServer() {
   }
 
   // Add APIs, must be after middleware
-  app.use('/api', BaseApiRouter);
+  app.use('/api', ApiRouter);
 
   // Add error handler
   app.use((
