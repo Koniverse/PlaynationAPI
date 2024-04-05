@@ -1,4 +1,4 @@
-import EventType from '@src/models/EventType';
+import EventType, {EventTypeEnum} from '@src/models/EventType';
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Event from '../models/Event';
 import {AccountService} from '@src/services/AccountService';
@@ -15,6 +15,30 @@ export class EventService {
 
   }
 
+  async generateDefaultEventType() {
+    const existed = await EventType.findOne({ where: { slug: 'play_booka' } });
+    if (existed) {
+      return existed;
+    }
+
+    return await EventType.create({
+      slug: 'play_booka',
+      name: 'Play Booka Game',
+      description: 'Default event type',
+      type: EventTypeEnum.GAMEPLAY,
+      requireValidate: false,
+      canRepeat: true,
+      repeatInterval: 0,
+      energy: 0,
+      maxPoint: 0,
+      minPoint: 100,
+      icon: 'https://via.placeholder.com/150',
+      banner: 'https://via.placeholder.com/1200x600',
+      startTime: new Date('2024-01-01T00:00:00Z'),
+      stopTime: new Date('2029-01-01T00:00:00Z'),
+    });
+  }
+
   async getEventTypes() {
     return await EventType.findAll();
   }
@@ -23,8 +47,8 @@ export class EventService {
     return await EventType.findOne({ where: { slug } });
   }
 
-  async joinEvent(telegramId: number, eventTypeSlug: string) {
-    const account = await AccountService.instance.findByTelegramId(telegramId);
+  async joinEvent(address: string, eventTypeSlug: string) {
+    const account = await AccountService.instance.findByAddress(address);
 
     if (!account) {
       throw new Error('Account not found');

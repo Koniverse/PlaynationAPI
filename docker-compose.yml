@@ -1,15 +1,15 @@
 version: '3.8'
 services:
-#  redis:
-#    image: redis:latest
-#    ports:
-#      - "8001:6379"
-#    volumes:
-#      - redis:/data
-#    networks:
-#      - nft-minting-services_net
-#    restart: always
-#
+  redis:
+    image: redis:latest
+    ports:
+      - "8101:6379"
+    volumes:
+      - redis:/data
+    networks:
+      - nft-minting-services_net
+    restart: always
+
 #  mongo:
 #    image: mongo:latest
 #    ports:

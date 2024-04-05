@@ -2,10 +2,10 @@ import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {EventService, SubmitEventParams} from '@src/services/EventService';
+import {requireLogin} from '@src/routes/helper';
 
 const EventRouter = Router();
 type JoinEventQuery = {
-  telegramId: number;
   eventTypeSlug: string;
 } & Query;
 
@@ -37,9 +37,10 @@ const routerMap = {
 
   // Join an event
   join: async (req: IReq<JoinEventQuery>, res: IRes) => {
-    const {telegramId, eventTypeSlug} = req.body;
+    const address = req.session.address || '';
+    const {eventTypeSlug} = req.body;
 
-    const event = await EventService.instance.joinEvent(telegramId, eventTypeSlug);
+    const event = await EventService.instance.joinEvent(address, eventTypeSlug);
 
     return res.status(200).json(event);
   },
@@ -56,10 +57,10 @@ const routerMap = {
   },
 };
 
-EventRouter.get('/event-types', routerMap.getEventTypes);
+EventRouter.get('/event-types', requireLogin, routerMap.getEventTypes);
 // EventRouter.get('/histories', routerMap.getHistories);
 // EventRouter.get('/leader-board', routerMap.getLeaderBoard);
-EventRouter.post('/join', routerMap.join);
-EventRouter.post('/submit', routerMap.submit);
+EventRouter.post('/join', requireLogin, routerMap.join);
+EventRouter.post('/submit', requireLogin, routerMap.submit);
 
 export default EventRouter;

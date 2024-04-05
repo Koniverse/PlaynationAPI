@@ -62,6 +62,10 @@ const Environments = {
     Secret: (process.env.JWT_SECRET ?? ''),
     Exp: (process.env.COOKIE_EXP ?? ''), // exp at the same time as the cookie
   },
+  Session: {
+    Secret: (process.env.SESSION_SECRET ?? 'xxxxxxxxx'),
+    Exp: (process.env.SESSION_EXP ?? 259200000),
+  },
 };
 
 export default Environments;

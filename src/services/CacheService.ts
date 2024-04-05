@@ -4,13 +4,13 @@ import {createPromise, PromiseObject} from '@src/utils';
 
 
 export class CacheService {
-  public readonly redisClient;
   private initPromise: PromiseObject<RedisClientType>;
+  public readonly redisClient;
   public readonly isReady : Promise<RedisClientType>;
 
   public constructor() {
     const {Host, Port} = EnvVars.Redis;
-    const url = `redis://${Host}:${Port}`;
+    const url = `redis://${Host}:${Port}/1`;
 
     const initPromise = createPromise<RedisClientType>();
     this.initPromise = initPromise;
@@ -29,7 +29,13 @@ export class CacheService {
 
     this.redisClient.connect();
   }
-}
 
-const CacheServiceImpl =  new CacheService();
-export default CacheServiceImpl;
+  // Singleton
+  private static _instance: CacheService;
+  public static get instance(): CacheService {
+    if (!this._instance) {
+      this._instance = new CacheService();
+    }
+    return this._instance;
+  }
+}

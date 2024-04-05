@@ -8,7 +8,6 @@ import {
 } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import AccountAttribute from '@src/models/AccountAttribute';
-import Wallet from '@src/models/Wallet';
 
 export interface ITelegramParams {
   telegramId: number;
@@ -21,9 +20,28 @@ export interface ITelegramParams {
   languageCode?: string;
 }
 
-export class Account extends Model<InferAttributes<Account>, InferCreationAttributes<Account>> implements ITelegramParams {
+export enum WalletTypeEnum {
+  EVM = 'EVM',
+  SUBSTRATE = 'SUBSTRATE',
+}
+
+export interface WalletParams {
+  address: string;
+  signature: string;
+  type?: WalletTypeEnum;
+}
+
+export type AccountParams = ITelegramParams & WalletParams;
+
+export class Account extends Model<InferAttributes<Account>, InferCreationAttributes<Account>> implements ITelegramParams, WalletParams {
   declare id: CreationOptional<number>; // id on db
-  
+
+  // Login information
+  declare address: string;
+  declare type: CreationOptional<WalletTypeEnum>;
+  declare signature: CreationOptional<string>;
+  declare sessionTime: CreationOptional<Date>;
+
   // Telegram information
   declare telegramId: number;
   declare telegramUsername: string;
@@ -36,7 +54,6 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   
   // Account information
   declare getAccountAttribute: HasOneCreateAssociationMixin<AccountAttribute>;
-  declare getWallets: HasManyCreateAssociationMixin<Wallet>;
   // createdAt can be undefined during creation
   declare createdAt: CreationOptional<Date>;
   // updatedAt can be undefined during creation
@@ -48,6 +65,21 @@ Account.init({
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
+  },
+  address: {
+    type: DataTypes.STRING,
+  },
+  type: {
+    type: DataTypes.ENUM,
+    values: [WalletTypeEnum.EVM, WalletTypeEnum.SUBSTRATE],
+  },
+  signature: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  sessionTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
   telegramId: {
     type: DataTypes.BIGINT,

@@ -74,7 +74,7 @@ Event.init({
   },
 }, {
   indexes: [{unique: true, fields: ['id']}],
-  tableName: 'account_attribute',
+  tableName: 'event',
   sequelize: SequelizeServiceImpl.sequelize,
 });
 

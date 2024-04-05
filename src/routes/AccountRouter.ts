@@ -1,53 +1,22 @@
 import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
-import {AccountService, syncAccountInfo} from '@src/services/AccountService';
+import {AccountService} from '@src/services/AccountService';
+import {AccountParams} from '@src/models';
 
-type GetAccountQuery = {
-  telegramId: number;
-} & Query;
-type SyncAccountQuery = syncAccountInfo & Query;
+type SyncAccountQuery = AccountParams & Query;
 
 const AccountRouter = Router();
 
 const routerMap = {
-  get: async (req: IReq<GetAccountQuery>, res: IRes) => {
-    // Todo: Validate with signature
-    const telegramId = req.query.telegramId;
-
-    if (!telegramId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing telegramId',
-      });
-    } else if (typeof telegramId !== 'number') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid telegramId',
-      });
-    }
-
-    const accountService = AccountService.instance;
-    const account = await accountService.findByTelegramId(telegramId);
-
-    if (!account) {
-      return res.status(404).json({
-        success: false,
-        message: 'Account not found',
-      });
-    }
-
-    const accountDetails = await accountService.fetchAccountWithDetails(account.id);
-
-    return res.status(200).json(accountDetails);
-  },
-
   // Sync account data and fetch account details
   sync: async (req: IReq<SyncAccountQuery>, res: IRes) => {
-    // Todo: Validate with signature
     const data = req.body;
     const account = await AccountService.instance.syncAccountData(data);
     const accountDetails = await AccountService.instance.fetchAccountWithDetails(account.id);
+
+    req.session.address = account.address;
+    req.session.time = account.sessionTime;
     return res.status(200).json(accountDetails);
   },
 
@@ -76,7 +45,6 @@ const routerMap = {
   // },
 };
 
-AccountRouter.post('/get', routerMap.get);
 AccountRouter.post('/sync', routerMap.sync);
 
 export default AccountRouter;

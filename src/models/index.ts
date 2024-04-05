@@ -8,7 +8,6 @@ import AccountAttribute from '@src/models/AccountAttribute';
 import Account from '@src/models/Account';
 import Event from '@src/models/Event';
 import EventType from '@src/models/EventType';
-import Wallet from '@src/models/Wallet';
 
 // NFT Campaign relationship
 NftCollection.hasMany(NftCampaign, {
@@ -41,10 +40,8 @@ nftMintRequest.belongsTo(User, {
 });
 
 AccountAttribute.belongsTo(Account, {foreignKey: 'accountId'});
-Wallet.belongsTo(Account, {foreignKey: 'accountId'});
 Account.hasOne(AccountAttribute, {foreignKey: 'accountId'});
 Account.hasMany(Event, {foreignKey: 'accountId'});
-Account.hasMany(Wallet, {foreignKey: 'accountId'});
 
 Event.belongsTo(EventType, {foreignKey: 'eventTypeId'});
 
@@ -53,7 +50,6 @@ Event.belongsTo(EventType, {foreignKey: 'eventTypeId'});
 SequelizeServiceImpl.addSync((async () => {
   await Account.sync();
   await AccountAttribute.sync();
-  await Wallet.sync();
   await EventType.sync();
   await Event.sync();
   await User.sync();

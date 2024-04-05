@@ -6,7 +6,10 @@
 
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import '../models';
+import {EventService} from '@src/services/EventService';
 
 // MongooseServiceImpl.isReady.catch(console.error);
 // CacheServiceImpl.isReady.catch(console.error);
-SequelizeServiceImpl.syncAll().catch(console.error);
+SequelizeServiceImpl.syncAll().then(() => {
+  EventService.instance.generateDefaultEventType().catch(console.error);
+}).catch(console.error);
