@@ -3,7 +3,7 @@ import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {requireSecret} from '@src/routes/helper';
 
-const ShopRouter = Router();
+const TaskRouter = Router();
 
 const routerMap = {
   sync: async (req: IReq<Query>, res: IRes) => {
@@ -12,6 +12,6 @@ const routerMap = {
   },
 };
 
-ShopRouter.get('/sync', requireSecret, routerMap.sync);
+TaskRouter.get('/sync', requireSecret, routerMap.sync);
 
-export default ShopRouter;
+export default TaskRouter;

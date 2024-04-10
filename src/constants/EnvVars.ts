@@ -58,6 +58,9 @@ const Environments = {
       secure: (process.env.SECURE_COOKIE === 'true'),
     },
   },
+  Secret: {
+    Token: (process.env.SECRET_TOKEN ?? '')
+  },
   Jwt: {
     Secret: (process.env.JWT_SECRET ?? ''),
     Exp: (process.env.COOKIE_EXP ?? ''), // exp at the same time as the cookie

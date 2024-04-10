@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import EnvVars from '@src/constants/EnvVars';
 import {IReq} from '@src/routes/types';
@@ -19,4 +19,12 @@ export function requireLogin(req: IReq<any>, res: Response, next: NextFunction) 
     req.user = decoded as {address: string, loginTime: number};
     return next();
   });
+}
+
+export function requireSecret(req: IReq<any>, res: Response, next: NextFunction) {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (token !== EnvVars.Secret.Token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 }

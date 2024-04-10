@@ -3,11 +3,15 @@ import SequelizeServiceImpl from '@src/services/SequelizeService';
 
 export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<Game>> {
   declare id: CreationOptional<number>; // id on db
-  declare name: string;
   declare slug: string;
+  declare name: string;
+  declare description: string;
   declare url: string;
   declare icon: string;
   declare banner: string;
+  declare maxEnergy: number;
+  declare maxPoint: number;
+  declare active: boolean;
 }
 
 Game.init({
@@ -22,6 +26,9 @@ Game.init({
   name: {
     type: DataTypes.STRING,
   },
+  description: {
+    type: DataTypes.STRING,
+  },
   url: {
     type: DataTypes.STRING,
   },
@@ -30,6 +37,15 @@ Game.init({
   },
   banner: {
     type: DataTypes.STRING,
+  },
+  maxEnergy: {
+    type: DataTypes.INTEGER,
+  },
+  maxPoint: {
+    type: DataTypes.INTEGER,
+  },
+  active: {
+    type: DataTypes.BOOLEAN,
   },
 }, {
   indexes: [{unique: true, fields: ['slug']}],

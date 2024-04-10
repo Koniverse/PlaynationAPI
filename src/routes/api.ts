@@ -1,13 +1,15 @@
 import {Router} from 'express';
 import AccountRouter from '@src/routes/AccountRouter';
-import EventRouter from '@src/routes/EventRouter';
+import GameRouter from '@src/routes/GameRouter';
 import ShopRouter from '@src/routes/ShopRouter';
+import TaskRouter from '@src/routes/TaskRouter';
 
 const apiRouter = Router();
 
 apiRouter.use('/account', AccountRouter);
-apiRouter.use('/event', EventRouter);
+apiRouter.use('/game', GameRouter);
 apiRouter.use('/shop', ShopRouter);
+apiRouter.use('/task', TaskRouter);
 
 // apiRouter.use('/chain-info', ChainRouter);
 // apiRouter.use('/user', UserRouter);

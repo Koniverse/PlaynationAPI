@@ -1,10 +1,10 @@
 import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
-import {EventService, SubmitEventParams} from '@src/services/EventService';
+import {GameService, SubmitEventParams} from '@src/services/GameService';
 import {requireLogin} from '@src/routes/helper';
 
-const EventRouter = Router();
+const GameRouter = Router();
 type JoinEventQuery = {
   slug: string;
 } & Query;
@@ -14,7 +14,7 @@ const routerMap = {
   getEventTypes: async (req: IReq<Query>, res: IRes) => {
     //Get event types
     //Todo: Optimize this with caching
-    const eventTypes = await EventService.instance.getEventTypes();
+    const eventTypes = await GameService.instance.getEventTypes();
 
     return res.status(200).json(eventTypes);
   },
@@ -40,27 +40,19 @@ const routerMap = {
     const address = req.user?.address || '';
     const {slug} = req.body;
 
-    const event = await EventService.instance.joinEvent(address, slug);
-
-    return res.status(200).json(event);
+    return res.status(200).json({});
   },
 
   // Submit join session
   submit: async (req: IReq<SubmitEventParams>, res: IRes) => {
-    const {error, success, point} = await EventService.instance.submitEvent(req.body);
-
-    return res.status(200).json({
-      error,
-      success,
-      point,
-    });
+    return res.status(200).json({});
   },
 };
 
-EventRouter.get('/event-types', requireLogin, routerMap.getEventTypes);
-// EventRouter.get('/histories', routerMap.getHistories);
-// EventRouter.get('/leader-board', routerMap.getLeaderBoard);
-EventRouter.post('/join', requireLogin, routerMap.join);
-EventRouter.post('/submit', requireLogin, routerMap.submit);
+GameRouter.get('/fetch', requireLogin, routerMap.getEventTypes);
+GameRouter.get('/histories', routerMap.getHistories);
+GameRouter.get('/leader-board', routerMap.getLeaderBoard);
+GameRouter.post('/join', requireLogin, routerMap.join);
+GameRouter.post('/submit', requireLogin, routerMap.submit);
 
-export default EventRouter;
+export default GameRouter;
