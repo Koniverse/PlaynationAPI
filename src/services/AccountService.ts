@@ -57,7 +57,6 @@ export class AccountService {
 
       await AccountAttribute.create({
         accountId: newAccount.id,
-        energy: 100, // Assuming starting energy is 100
         point: 0,   // Assuming starting points is 0
       }, { transaction });
 

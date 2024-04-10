@@ -60,12 +60,12 @@ export class EventService {
     }
 
     const accountAttribute = await account.getAccountAttribute();
-    if (accountAttribute.energy < eventType.energy) {
-      throw new Error('Not enough energy');
-    }
-
-    // Deduct energy
-    accountAttribute.energy -= eventType.energy;
+    // if (accountAttribute.energy < eventType.energy) {
+    //   throw new Error('Not enough energy');
+    // }
+    //
+    // // Deduct energy
+    // accountAttribute.energy -= eventType.energy;
     await accountAttribute.save();
 
     // Create event
