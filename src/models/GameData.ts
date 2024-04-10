@@ -1,5 +1,7 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
+import Account from '@src/models/Account';
+import Game from '@src/models/Game';
 
 export class GameData extends Model<InferAttributes<GameData>, InferCreationAttributes<GameData>> {
   declare id: CreationOptional<number>; // id on db
@@ -19,9 +21,17 @@ GameData.init({
   },
   accountId: {
     type: DataTypes.INTEGER,
+    references: {
+      model: Account,
+      key: 'id',
+    },
   },
   gameId: {
     type: DataTypes.INTEGER,
+    references: {
+      model: Game,
+      key: 'id',
+    },
   },
   level: {
     type: DataTypes.INTEGER,

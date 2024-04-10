@@ -2,6 +2,7 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import {CacheService} from '@src/services/CacheService';
 import {Account, AccountAttribute, GameData, GamePlay, Game} from '@src/models';
 import { v4 } from 'uuid';
+import {AccountService} from '@src/services/AccountService';
 
 export interface newGamePlayParams {
   gameId: number;
@@ -13,9 +14,12 @@ export interface SubmitGamePlayParams {
   point: number;
 }
 
-export class GameService {
-  constructor(private sequelizeService: SequelizeService) {
+const accountService = AccountService.instance;
 
+export class GameService {
+
+  constructor(private sequelizeService: SequelizeService) {
+    
   }
 
   async generateDefaultData() {
@@ -30,8 +34,8 @@ export class GameService {
       name: 'Booka Game',
       url: 'https://booka.com',
       description: 'Default event type',
-      maxEnergy: 0,
-      energyPerGame: 0,
+      maxEnergy: 1440,
+      energyPerGame: 90,
       maxPointPerGame: 100000,
       icon: 'https://via.placeholder.com/150',
       banner: 'https://via.placeholder.com/1200x600',
@@ -82,21 +86,25 @@ export class GameService {
 
     if (existed) {
       return existed;
+    } else {
+      return GameData.create({
+        gameId,
+        accountId,
+        level: 1,
+        point: 0,
+        rank: 0,
+        dayLimit: 0,
+      });
+ 
     }
-    
-    return GameData.create({
-      gameId,
-      accountId,
-      level: 1,
-      point: 0,
-      rank: 0,
-      dayLimit: 0,
-    });
   }
 
   async newGamePlay(accountId: number, gameId: number) {
-    const gameData = await this.getGameData(accountId, 1);
-    const game = await Game.findByPk(1);
+    const gameData = await this.getGameData(accountId, gameId);
+    const game = await Game.findByPk(gameId);
+    const usedEnergy = game?.energyPerGame || 0;
+
+    await accountService.useAccountEnergy(accountId, usedEnergy);
 
     return GamePlay.create({
       accountId: gameData.accountId,
@@ -134,6 +142,8 @@ export class GameService {
       endTime: new Date(),
       success: true,
     });
+
+    await accountService.addAccountPoint(gamePlay.accountId, params.point);
 
     return gamePlay;
   }

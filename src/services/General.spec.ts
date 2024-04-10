@@ -3,6 +3,7 @@ import {Account, AccountParams} from '@src/models/Account';
 import {AccountAttribute, Game, GameData, GamePlay, Task, TaskHistory} from '@src/models';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {GameService} from '@src/services/GameService';
+import * as console from "console";
 
 
 describe('General Test', () => {
@@ -22,13 +23,13 @@ describe('General Test', () => {
 
   beforeAll(async () => {
     await SequelizeServiceImpl.syncAll();
-    await TaskHistory.truncate({cascade: true});
-    await Task.truncate({cascade: true});
-    await GamePlay.truncate({cascade: true});
-    await GameData.truncate({cascade: true});
-    await Game.truncate({cascade: true});
-    await AccountAttribute.truncate({cascade: true});
-    await Account.truncate({cascade: true});
+    await TaskHistory.truncate({cascade: true, restartIdentity: true});
+    await Task.truncate({cascade: true, restartIdentity: true});
+    await GamePlay.truncate({cascade: true, restartIdentity: true});
+    await GameData.truncate({cascade: true, restartIdentity: true});
+    await Game.truncate({cascade: true, restartIdentity: true});
+    await AccountAttribute.truncate({cascade: true, restartIdentity: true});
+    await Account.truncate({cascade: true, restartIdentity: true});
   });
 
   afterAll(async () => {
@@ -90,26 +91,43 @@ describe('General Test', () => {
   it('Play game', async function () {
     await SequelizeServiceImpl.syncAll();
     // Create new game
-    await gameService.generateDefaultData();
+    const defaultGame = await gameService.generateDefaultData();
 
     // Listing game
-    const games = await gameService.listGame();
-
-    const currentGame = games.pop();
     const currentUser = await accountService.syncAccountData(info);
 
-    const newGame = await gameService.newGamePlay(currentUser.id, currentGame?.id || 0);
-
     // Play game
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const newGame = await gameService.newGamePlay(currentUser.id, defaultGame.id);
 
     // Submit game
-    const result = await gameService.submitGameplay({
+    await gameService.submitGameplay({
       gamePlayId: newGame.id,
       signature: '0x000',
       point: 100,
     });
 
-    console.log(result.point, result.success);
+    // Play game 2
+    const newGame2 = await gameService.newGamePlay(currentUser.id, defaultGame.id);
+
+    // Submit game 2
+    await gameService.submitGameplay({
+      gamePlayId: newGame2.id,
+      signature: '0x000',
+      point: 120,
+    });
+
+    // Fetch user account data
+    const attribute = await currentUser.getAccountAttribute();
+
+    expect(attribute.point).toEqual(220);
+    expect(attribute.energy).toEqual(1260);
+  });
+
+  it('Find all account', async function () {
+    const defaultGame = await gameService.generateDefaultData();
+
+    const games = await Game.findAll();
+
+    console.log(JSON.stringify(games, null, 2));
   });
 });

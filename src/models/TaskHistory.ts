@@ -1,9 +1,12 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
+import Task from '@src/models/Task';
+import Account from '@src/models/Account';
 
 export class TaskHistory extends Model<InferAttributes<TaskHistory>, InferCreationAttributes<TaskHistory>> {
   declare id: CreationOptional<number>; // id on db
   declare taskId: number;
+  declare accountId: number;
   declare pointReward: number;
   declare inventoryId: CreationOptional<number>;
   declare createdAt: Date;
@@ -17,6 +20,17 @@ TaskHistory.init({
   },
   taskId: {
     type: DataTypes.INTEGER,
+    references: {
+      model: Task,
+      key: 'id',
+    },
+  },
+  accountId: {
+    type: DataTypes.INTEGER,
+    references: {
+      model: Account,
+      key: 'id',
+    },
   },
   pointReward: {
     type: DataTypes.INTEGER,

@@ -1,5 +1,9 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
+import Game from '@src/models/Game';
+import Account from '@src/models/Account';
+import GameData from '@src/models/GameData';
+import GameItem from '@src/models/GameItem';
 
 export enum GameInventoryItemStatus {
   READY = 'ready',
@@ -27,15 +31,31 @@ GameInventoryItem.init({
   },
   gameId: {
     type: DataTypes.INTEGER,
+    references: {
+      model: Game,
+      key: 'id',
+    },
   },
   accountId: {
     type: DataTypes.INTEGER,
+    references: {
+      model: Account,
+      key: 'id',
+    },
   },
   gameDataId: {
     type: DataTypes.INTEGER,
+    references: {
+      model: GameData,
+      key: 'id',
+    },
   },
   gameItemId: {
     type: DataTypes.INTEGER,
+    references: {
+      model: GameItem,
+      key: 'id',
+    },
   },
   buyTime: {
     type: DataTypes.DATE,

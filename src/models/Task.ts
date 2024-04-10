@@ -1,5 +1,6 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
+import Game from '@src/models/Game';
 
 export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<Task>> {
   declare id: CreationOptional<number>; // id on db
@@ -21,6 +22,10 @@ Task.init({
   },
   gameId: {
     type: DataTypes.INTEGER,
+    references: {
+      model: Game,
+      key: 'id',
+    },
   },
   slug: {
     type: DataTypes.STRING,

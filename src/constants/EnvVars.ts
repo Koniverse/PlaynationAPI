@@ -59,7 +59,7 @@ const Environments = {
     },
   },
   Secret: {
-    Token: (process.env.SECRET_TOKEN ?? '')
+    Token: (process.env.SECRET_TOKEN ?? ''),
   },
   Jwt: {
     Secret: (process.env.JWT_SECRET ?? ''),
@@ -71,6 +71,7 @@ const Environments = {
   },
   Game: {
     MaxEnergy: parseInt(process.env.GAME_MAX_ENERGY || '1440'),
+    EnergyRecoverTime: parseInt(process.env.EnergyRecoverTime || '60'),
   },
 };
 

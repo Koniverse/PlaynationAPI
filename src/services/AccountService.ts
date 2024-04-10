@@ -51,6 +51,7 @@ export class AccountService {
       await AccountAttribute.create({
         accountId: newAccount.id,
         energy: EnvVars.Game.MaxEnergy,
+        lastEnergyUpdated: new Date(),
         point: 0,   // Assuming starting points is 0
       }, { transaction });
 
@@ -103,6 +104,57 @@ export class AccountService {
 
     // Update wallet addresses
     return account;
+  }
+
+  async getAccountAttribute(accountId: number) {
+    const accountAttribute = await AccountAttribute.findOne({
+      where: {
+        accountId,
+      },
+    });
+
+    if (!accountAttribute) {
+      throw new Error('Account not found');
+    }
+
+    // Auto recover energy
+    if (accountAttribute.energy < EnvVars.Game.MaxEnergy) {
+      const now = new Date();
+      const diff = now.getTime() - accountAttribute.lastEnergyUpdated.getTime();
+      const diffInSeconds = diff / 1000;
+
+      const energyToAdd = Math.floor(diffInSeconds / EnvVars.Game.EnergyRecoverTime);
+      const energy = accountAttribute.energy + energyToAdd;
+
+      if (energy >= EnvVars.Game.MaxEnergy) {
+        accountAttribute.energy = EnvVars.Game.MaxEnergy;
+        accountAttribute.lastEnergyUpdated = now;
+
+        await accountAttribute.save();
+      }
+
+      return accountAttribute;
+    }
+
+    return accountAttribute;
+  }
+
+  async useAccountEnergy(accountId: number, energy: number) {
+    const accountAttribute = await this.getAccountAttribute(accountId);
+
+    if (accountAttribute.energy < energy) {
+      throw new Error('Not enough energy');
+    }
+
+    accountAttribute.point -= energy;
+    accountAttribute.lastEnergyUpdated = new Date();
+    await accountAttribute.save();
+  }
+
+  async addAccountPoint(accountId: number, point: number) {
+    const accountAttribute = await this.getAccountAttribute(accountId);
+    accountAttribute.point += point;
+    await accountAttribute.save();
   }
 
   // Singleton this class
