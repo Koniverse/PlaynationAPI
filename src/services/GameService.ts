@@ -17,6 +17,7 @@ export interface SubmitGamePlayParams {
 const accountService = AccountService.instance;
 
 export class GameService {
+  private gameMap: Record<string, Game> | undefined;
 
   constructor(private sequelizeService: SequelizeService) {
     
@@ -50,19 +51,27 @@ export class GameService {
     await client.del('game_list');
   }
 
-  async listGame() {
-    await CacheService.instance.isReady;
-    const client = CacheService.instance.redisClient;
-    const gameListCache = await client.get('game_list');
-    if (gameListCache) {
-      return JSON.parse(gameListCache) as Game[];
-    }
-
+  async buildGameMap() {
     const data = await Game.findAll();
+    const gameMap: Record<string, Game> = {};
+    data.forEach((game) => {
+      gameMap[game.id.toString()] = game;
+    });
 
-    client.set('game_list', JSON.stringify(data));
+    this.gameMap = gameMap;
+    return gameMap;
+  }
 
-    return data;
+  async listGame() {
+    const gameMap = !!this.gameMap ? this.gameMap : await this.buildGameMap();
+
+    return Object.values(gameMap);
+  }
+
+  async findGame(gameId: number) {
+    const gameMap = !!this.gameMap ? this.gameMap : await this.buildGameMap();
+
+    return gameMap[gameId.toString()];
   }
   
   async getGameData(accountId: number, gameId: number) {
@@ -71,7 +80,7 @@ export class GameService {
       throw new Error(`Account ${accountId} not found`);
     }
 
-    const game = await Game.findByPk(gameId);
+    const game = await this.findGame(gameId);
 
     if (!game) {
       throw new Error(`Game ${gameId} not found`);
@@ -95,13 +104,12 @@ export class GameService {
         rank: 0,
         dayLimit: 0,
       });
- 
     }
   }
 
   async newGamePlay(accountId: number, gameId: number) {
     const gameData = await this.getGameData(accountId, gameId);
-    const game = await Game.findByPk(gameId);
+    const game = await this.findGame(gameId);
     const usedEnergy = game?.energyPerGame || 0;
 
     await accountService.useAccountEnergy(accountId, usedEnergy);
@@ -124,13 +132,12 @@ export class GameService {
     }
 
     // Validate max point
-    const game = await Game.findByPk(gamePlay?.gameId || 0);
+    const game = await this.findGame(gamePlay?.gameId || 0);
     if (!game) {
       throw new Error('Game not found');
     }
 
     // Todo: Validate signature
-
     if (params.point > game.maxPointPerGame) {
       throw new Error('Point limit exceeded');
     }

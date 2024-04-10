@@ -113,21 +113,13 @@ describe('General Test', () => {
     await gameService.submitGameplay({
       gamePlayId: newGame2.id,
       signature: '0x000',
-      point: 120,
+      point: 123,
     });
 
     // Fetch user account data
-    const attribute = await currentUser.getAccountAttribute();
+    const attribute = await accountService.getAccountAttribute(currentUser.id);
 
-    expect(attribute.point).toEqual(220);
+    expect(attribute.point).toEqual(223);
     expect(attribute.energy).toEqual(1260);
-  });
-
-  it('Find all account', async function () {
-    const defaultGame = await gameService.generateDefaultData();
-
-    const games = await Game.findAll();
-
-    console.log(JSON.stringify(games, null, 2));
   });
 });

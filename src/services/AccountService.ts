@@ -106,7 +106,7 @@ export class AccountService {
     return account;
   }
 
-  async getAccountAttribute(accountId: number) {
+  async getAccountAttribute(accountId: number, autoCheckEnergy = true) {
     const accountAttribute = await AccountAttribute.findOne({
       where: {
         accountId,
@@ -118,7 +118,7 @@ export class AccountService {
     }
 
     // Auto recover energy
-    if (accountAttribute.energy < EnvVars.Game.MaxEnergy) {
+    if (autoCheckEnergy && accountAttribute.energy < EnvVars.Game.MaxEnergy) {
       const now = new Date();
       const diff = now.getTime() - accountAttribute.lastEnergyUpdated.getTime();
       const diffInSeconds = diff / 1000;
@@ -132,8 +132,6 @@ export class AccountService {
 
         await accountAttribute.save();
       }
-
-      return accountAttribute;
     }
 
     return accountAttribute;
@@ -146,14 +144,16 @@ export class AccountService {
       throw new Error('Not enough energy');
     }
 
-    accountAttribute.point -= energy;
+    accountAttribute.energy -= energy;
     accountAttribute.lastEnergyUpdated = new Date();
     await accountAttribute.save();
   }
 
   async addAccountPoint(accountId: number, point: number) {
-    const accountAttribute = await this.getAccountAttribute(accountId);
+    const accountAttribute = await this.getAccountAttribute(accountId, false);
+
     accountAttribute.point += point;
+
     await accountAttribute.save();
   }
 

@@ -35,7 +35,7 @@ AccountAttribute.init({
     type: DataTypes.INTEGER,
   },
 }, {
-  indexes: [{unique: true, fields: ['id']}],
+  indexes: [],
   tableName: 'account_attribute',
   sequelize: SequelizeServiceImpl.sequelize,
 });
