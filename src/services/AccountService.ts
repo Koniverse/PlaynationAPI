@@ -1,16 +1,9 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import Account, {AccountParams, WalletParams} from '@src/models/Account';
+import Account, {AccountParams} from '@src/models/Account';
 import AccountAttribute from '@src/models/AccountAttribute';
 import {validateSignature} from '@src/utils';
 import {checkWalletType} from '@src/utils/wallet';
-
-export interface AccountDetails {
-  info: Account,
-  attributes: AccountAttribute,
-  wallets: string[],
-}
-
-export type syncAccountInfo = WalletParams;
+import EnvVars from '@src/constants/EnvVars';
 
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
@@ -57,6 +50,7 @@ export class AccountService {
 
       await AccountAttribute.create({
         accountId: newAccount.id,
+        energy: EnvVars.Game.MaxEnergy,
         point: 0,   // Assuming starting points is 0
       }, { transaction });
 
@@ -95,10 +89,12 @@ export class AccountService {
         !!account.addedToAttachMenu !== !!info.addedToAttachMenu || // Convert to boolean
         account.languageCode !== info.languageCode
     ) {
+      console.log('Updating account info');
       await account.update(info);
     }
 
-    if (account.signature !== info.signature || account.telegramId !== info.telegramId || account.telegramUsername !== info.telegramUsername) {
+    // Update signature, telegramId, telegramUsername
+    if (account.signature !== info.signature || parseInt(account.telegramId.toString()) !== info.telegramId || account.telegramUsername !== info.telegramUsername) {
       await account.update({
         ...info,
         sessionTime: new Date(),

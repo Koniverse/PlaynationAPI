@@ -1,9 +1,14 @@
 import {AccountService} from '@src/services/AccountService';
-import {AccountParams} from '@src/models/Account';
+import {Account, AccountParams} from '@src/models/Account';
+import {AccountAttribute, Game, GameData, GamePlay, Task, TaskHistory} from '@src/models';
+import SequelizeServiceImpl from '@src/services/SequelizeService';
+import {GameService} from '@src/services/GameService';
 
 
-describe('AccountServiceTest', () => {
+describe('General Test', () => {
   const accountService = AccountService.instance;
+  const gameService = GameService.instance;
+
   const info: AccountParams = {
     address: '5Eo5BJntLSFRYGjzEedEguxVjH7dxo1iEXUCgXJEP2bFNHSo',
     signature: '0x660b13c0908541dcfdde53c0cb98e37ac47e4cd4d032941e53b51aac593ed81b8ec5c0ac6123c3c51bd08f1ae7b88afda838314d6727bb0dc6b0d1ad5b18438a',
@@ -16,7 +21,14 @@ describe('AccountServiceTest', () => {
   };
 
   beforeAll(async () => {
-    // await SequelizeServiceImpl.sequelize.truncate({cascade: true});
+    await SequelizeServiceImpl.syncAll();
+    await TaskHistory.truncate({cascade: true});
+    await Task.truncate({cascade: true});
+    await GamePlay.truncate({cascade: true});
+    await GameData.truncate({cascade: true});
+    await Game.truncate({cascade: true});
+    await AccountAttribute.truncate({cascade: true});
+    await Account.truncate({cascade: true});
   });
 
   afterAll(async () => {
@@ -38,12 +50,6 @@ describe('AccountServiceTest', () => {
 
     const accountDetails = await accountService.fetchAccountWithDetails(account.id);
     console.log(JSON.stringify(accountDetails, null, 2));
-
-    // Remove all data
-    await (await account.getAccountAttribute()).destroy();
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    await account.destroy();
   });
   
   it('Sync Account Actions', async function () {
@@ -79,5 +85,31 @@ describe('AccountServiceTest', () => {
 
     account = await accountService.syncAccountData(info);
     expect(account.updatedAt).toEqual(updatedAt2);
+  });
+
+  it('Play game', async function () {
+    await SequelizeServiceImpl.syncAll();
+    // Create new game
+    await gameService.generateDefaultData();
+
+    // Listing game
+    const games = await gameService.listGame();
+
+    const currentGame = games.pop();
+    const currentUser = await accountService.syncAccountData(info);
+
+    const newGame = await gameService.newGamePlay(currentUser.id, currentGame?.id || 0);
+
+    // Play game
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Submit game
+    const result = await gameService.submitGameplay({
+      gamePlayId: newGame.id,
+      signature: '0x000',
+      point: 100,
+    });
+
+    console.log(result.point, result.success);
   });
 });

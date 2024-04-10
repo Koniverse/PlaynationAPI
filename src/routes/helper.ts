@@ -16,7 +16,7 @@ export function requireLogin(req: IReq<any>, res: Response, next: NextFunction) 
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    req.user = decoded as {address: string, loginTime: number};
+    req.user = decoded as {id: number, address: string, loginTime: number};
     return next();
   });
 }
@@ -27,4 +27,8 @@ export function requireSecret(req: IReq<any>, res: Response, next: NextFunction)
   if (token !== EnvVars.Secret.Token) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+}
+
+export function getUserAddress(req: IReq<any>) {
+  req.user?.address;
 }

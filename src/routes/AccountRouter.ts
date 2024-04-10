@@ -20,6 +20,7 @@ const routerMap = {
       const accountDetails = await AccountService.instance.fetchAccountWithDetails(account.id);
   
       const token = jwt.sign({
+        id: account.id,
         address: account.address,
         loginTime: account.sessionTime,
       },
@@ -51,6 +52,7 @@ const routerMap = {
       });
     }
 
+    // Mask signature
     account.signature = '___';
 
     return res.status(200).json({
@@ -59,7 +61,9 @@ const routerMap = {
     });
   },
 
-  // //Todo: Update new account from telegram
+  // Todo: Invite account
+
+  // Todo: Update new account from telegram
   // update: async (req: IReq<CreateAccountQuery>, res: IRes) => {
   //   await new Promise((resolve) => setTimeout(resolve, 1000));
   //   return res.status(200).json({
@@ -67,7 +71,7 @@ const routerMap = {
   //   });
   // },
 
-  // // Todo: Link wallet with account
+  // Todo: Link wallet with account
   // linkWallet: async (req: IReq<LinkWalletQuery>, res: IRes) => {
   //   await new Promise((resolve) => setTimeout(resolve, 1000));
   //   return res.status(200).json({

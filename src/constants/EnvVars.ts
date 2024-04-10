@@ -69,6 +69,9 @@ const Environments = {
     Secret: (process.env.SESSION_SECRET ?? 'xxxxxxxxx'),
     Exp: (process.env.SESSION_EXP ?? 259200000),
   },
+  Game: {
+    MaxEnergy: parseInt(process.env.GAME_MAX_ENERGY || '1440'),
+  },
 };
 
 export default Environments;

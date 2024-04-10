@@ -1,11 +1,14 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import Game from '@src/models/Game';
 import {CacheService} from '@src/services/CacheService';
-import {Account, GameData, GamePlay} from '@src/models';
+import {Account, AccountAttribute, GameData, GamePlay, Game} from '@src/models';
 import { v4 } from 'uuid';
 
+export interface newGamePlayParams {
+  gameId: number;
+}
+
 export interface SubmitGamePlayParams {
-  eventId: number;
+  gamePlayId: number;
   signature: string;
   point: number;
 }
@@ -59,14 +62,15 @@ export class GameService {
   }
   
   async getGameData(accountId: number, gameId: number) {
-    const game = await Game.findByPk(gameId);
-    if (!game) {
-      throw new Error('Game not found');
-    }
-
     const account = await Account.findByPk(accountId);
     if (!account) {
-      throw new Error('Account not found');
+      throw new Error(`Account ${accountId} not found`);
+    }
+
+    const game = await Game.findByPk(gameId);
+
+    if (!game) {
+      throw new Error(`Game ${gameId} not found`);
     }
 
     const existed = await GameData.findOne({
@@ -90,10 +94,9 @@ export class GameService {
     });
   }
 
-  // Todo: newGame
   async newGamePlay(accountId: number, gameId: number) {
-    const gameData = await this.getGameData(accountId, gameId);
-    const game = await Game.findByPk(gameId);
+    const gameData = await this.getGameData(accountId, 1);
+    const game = await Game.findByPk(1);
 
     return GamePlay.create({
       accountId: gameData.accountId,
@@ -105,19 +108,51 @@ export class GameService {
     });
   }
 
-  // Todo: submitGameplay
   async submitGameplay(params: SubmitGamePlayParams) {
-    return {};
+    const gamePlay = await GamePlay.findByPk(params.gamePlayId);
+
+    if (!gamePlay) {
+      throw new Error('Game play not found');
+    }
+
+    // Validate max point
+    const game = await Game.findByPk(gamePlay?.gameId || 0);
+    if (!game) {
+      throw new Error('Game not found');
+    }
+
+    // Todo: Validate signature
+
+    if (params.point > game.maxPointPerGame) {
+      throw new Error('Point limit exceeded');
+    }
+
+    // Todo: Validate by time
+
+    await gamePlay.update({
+      point: params.point,
+      endTime: new Date(),
+      success: true,
+    });
+
+    return gamePlay;
   }
 
-  // Todo: getHistories
-  async getGameplayHistory(accountId: number) {
-    return {};
+  async getGameplayHistory(accountId: number, gameId?: number) {
+    return GamePlay.findAll({
+      where: {
+        accountId,
+        gameId,
+      },
+    });
   }
 
-  // Todo: getLeaderBoard
-  async getLeaderBoard(gameId: number) {
-    return {};
+  async getLeaderBoard(accountId: number, gameId?: number) {
+    // Todo: Fill more information and optimize with raw query
+    return AccountAttribute.findAll({
+      order: [['point', 'DESC']],
+      limit: 100,
+    });
   }
 
   // Singleton
