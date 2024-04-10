@@ -1,8 +1,4 @@
-import EventType, {EventTypeEnum} from '@src/models/EventType';
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import Event from '../models/Event';
-import {AccountService} from '@src/services/AccountService';
-import {v4} from 'uuid';
 import Game from '@src/models/Game';
 
 export interface SubmitEventParams {
@@ -23,6 +19,7 @@ export class GameService {
     }
 
     return await Game.create({
+      contentId: 1,
       slug: 'booka',
       name: 'Booka Game',
       url: 'https://booka.com',
@@ -31,16 +28,13 @@ export class GameService {
       maxPoint: 100000,
       icon: 'https://via.placeholder.com/150',
       banner: 'https://via.placeholder.com/1200x600',
+      rankDefinition: '{}',
       active: true,
     });
   }
 
   async getEventTypes() {
     return await Game.findAll();
-  }
-
-  async getEventTypeBySlug(slug: string) {
-    return await EventType.findOne({ where: { slug } });
   }
 
   // Singleton

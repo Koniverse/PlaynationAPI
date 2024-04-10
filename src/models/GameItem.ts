@@ -4,6 +4,7 @@ import SequelizeServiceImpl from '@src/services/SequelizeService';
 export class GameItem extends Model<InferAttributes<GameItem>, InferCreationAttributes<GameItem>> {
   declare id: CreationOptional<number>; // id on db
   declare gameId: number;
+  declare contentId: number;
   declare name: string;
   declare description: string;
   declare price: number;
@@ -16,6 +17,9 @@ GameItem.init({
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
+  },
+  contentId: {
+    type: DataTypes.INTEGER,
   },
   gameId: {
     type: DataTypes.INTEGER,
