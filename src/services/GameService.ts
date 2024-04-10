@@ -1,5 +1,6 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
+import {CacheService} from '@src/services/CacheService';
 
 export interface SubmitEventParams {
   eventId: number;
@@ -33,8 +34,25 @@ export class GameService {
     });
   }
 
-  async getEventTypes() {
-    return await Game.findAll();
+  async syncGameList() {
+    await CacheService.instance.isReady;
+    const client = CacheService.instance.redisClient;
+    await client.del('game_list');
+  }
+
+  async listGame() {
+    await CacheService.instance.isReady;
+    const client = CacheService.instance.redisClient;
+    const gameListCache = await client.get('game_list');
+    if (gameListCache) {
+      return JSON.parse(gameListCache) as Game[];
+    }
+
+    const data = await Game.findAll();
+
+    client.set('game_list', JSON.stringify(data));
+
+    return data;
   }
 
   // Singleton

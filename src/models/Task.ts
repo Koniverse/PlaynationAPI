@@ -4,6 +4,7 @@ import SequelizeServiceImpl from '@src/services/SequelizeService';
 export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<Task>> {
   declare id: CreationOptional<number>; // id on db
   declare gameId: CreationOptional<number>;
+  declare contentId: number;
   declare slug: string;
   declare pointReward: number;
   declare itemReward: CreationOptional<number>;

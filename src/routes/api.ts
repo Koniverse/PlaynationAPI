@@ -11,10 +11,4 @@ apiRouter.use('/game', GameRouter);
 apiRouter.use('/shop', ShopRouter);
 apiRouter.use('/task', TaskRouter);
 
-// apiRouter.use('/chain-info', ChainRouter);
-// apiRouter.use('/user', UserRouter);
-// apiRouter.use('/collection', CollectionRouter);
-// apiRouter.use('/mint', MintRouter);
-// apiRouter.use('/faucet',FaucetRouter);
-
 export default apiRouter;
