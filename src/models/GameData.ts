@@ -6,7 +6,6 @@ export class GameData extends Model<InferAttributes<GameData>, InferCreationAttr
   declare accountId: number;
   declare gameId: number;
   declare level: number;
-  declare energy: number;
   declare point: number;
   declare rank: number;
   declare dayLimit: number;
@@ -25,9 +24,6 @@ GameData.init({
     type: DataTypes.INTEGER,
   },
   level: {
-    type: DataTypes.INTEGER,
-  },
-  energy: {
     type: DataTypes.INTEGER,
   },
   point: {

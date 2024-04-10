@@ -11,6 +11,7 @@ export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<G
   declare icon: string;
   declare banner: string;
   declare maxEnergy: number;
+  declare energyPerGame: number;
   declare maxPoint: number;
   declare rankDefinition: string;
   declare active: boolean;
@@ -44,6 +45,9 @@ Game.init({
     type: DataTypes.STRING,
   },
   maxEnergy: {
+    type: DataTypes.INTEGER,
+  },
+  energyPerGame: {
     type: DataTypes.INTEGER,
   },
   maxPoint: {

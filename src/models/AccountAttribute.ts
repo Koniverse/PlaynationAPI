@@ -7,6 +7,7 @@ export class AccountAttribute extends Model<InferAttributes<AccountAttribute>, I
   
   // Telegram information
   declare accountId: number;
+  declare energy: number;
   declare point: number;
 }
 
@@ -22,6 +23,9 @@ AccountAttribute.init({
       model: Account,
       key: 'id',
     },
+  },
+  energy: {
+    type: DataTypes.INTEGER,
   },
   point: {
     type: DataTypes.INTEGER,
