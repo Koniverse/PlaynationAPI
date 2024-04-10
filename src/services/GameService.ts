@@ -29,7 +29,7 @@ export class GameService {
       description: 'Default event type',
       maxEnergy: 0,
       energyPerGame: 0,
-      maxPoint: 100000,
+      maxPointPerGame: 100000,
       icon: 'https://via.placeholder.com/150',
       banner: 'https://via.placeholder.com/1200x600',
       rankDefinition: '{}',
