@@ -2,6 +2,7 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import {Account, AccountAttribute, GameData, GamePlay, Game} from '@src/models';
 import { v4 } from 'uuid';
 import {AccountService} from '@src/services/AccountService';
+import * as console from "console";
 
 export interface newGamePlayParams {
   gameId: number;
@@ -66,6 +67,7 @@ export class GameService {
     const response = {
       success: true,
     };
+
     for (const item of data) {
       const itemData = {...item} as unknown as Game;
       const existed = await Game.findOne({where: {contentId: item.id}});

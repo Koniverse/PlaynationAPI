@@ -2,6 +2,7 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import Game from '@src/models/Game';
 import {CacheService} from '@src/services/CacheService';
 import {GameItem, Task} from "@src/models";
+import * as console from "node:console";
 
 
 export interface TaskContentCms {
@@ -31,15 +32,21 @@ export class TaskService {
     const response = {
       success: true,
     };
-    console.log('syncData', data)
+
     for (const item of data) {
       const itemData = {...item} as unknown as Task;
       const existed = await Task.findOne({where: {contentId: item.id}});
-      const gameData = await Game.findOne({where: {contentId: item.gameId}});
-      if (!gameData) {
-        continue;
+
+      // Check if game exists
+      if (item.gameId) {
+        const gameData = await Game.findOne({where: {contentId: item.gameId}});
+        if (!gameData) {
+          continue;
+        }
+        itemData.gameId = gameData.id;
       }
-      itemData.gameId = gameData.id;
+
+      // Sync data
       if (existed) {
         await existed.update(itemData);
       } else {
@@ -47,6 +54,7 @@ export class TaskService {
         await Task.create(itemData);
       }
     }
+
     await this.syncTaskList();
     return response;
   }
