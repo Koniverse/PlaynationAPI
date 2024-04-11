@@ -28,7 +28,7 @@ const routerMap = {
 
 TaskRouter.post('/sync', requireSecret, routerMap.sync);
 TaskRouter.get('/history', requireLogin, routerMap.history);
-TaskRouter.get('/fetch', routerMap.fetch);
+TaskRouter.get('/fetch', requireLogin, routerMap.fetch);
 TaskRouter.post('/submit', requireLogin, routerMap.submit);
 
 export default TaskRouter;

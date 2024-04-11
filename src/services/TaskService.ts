@@ -102,12 +102,13 @@ export class TaskService {
     if (tasHistory) {
       throw new Error('Task already submitted');
     }
-    const data = {
+
+    await TaskHistory.create({
       taskId: task.id,
       accountId: user.id,
       pointReward: task.pointReward,
-    } as TaskHistory;
-    await TaskHistory.create(data);
+    });
+
     await AccountService.instance.addAccountPoint(user.id, task.pointReward);
 
     return {

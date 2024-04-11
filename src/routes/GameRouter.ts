@@ -3,6 +3,7 @@ import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {GameContentCms, GameService, newGamePlayParams, SubmitGamePlayParams} from '@src/services/GameService';
 import {requireLogin, requireSecret} from '@src/routes/helper';
+import * as console from "node:console";
 
 const GameRouter = Router();
 type NewGameParams = newGamePlayParams & Query;
