@@ -38,7 +38,7 @@ TaskHistory.init({
     type: DataTypes.INTEGER,
   },
 }, {
-  indexes: [{unique: true, fields: ['taskId']}],
+  indexes: [{unique: true, fields: ['accountId', 'taskId']}, {unique: false, fields: ['accountId']}],
   tableName: 'task_history',
   sequelize: SequelizeServiceImpl.sequelize,
   createdAt: true,
