@@ -1,5 +1,4 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import {CacheService} from '@src/services/CacheService';
 import {Account, AccountAttribute, GameData, GamePlay, Game} from '@src/models';
 import { v4 } from 'uuid';
 import {AccountService} from '@src/services/AccountService';
@@ -15,6 +14,24 @@ export interface SubmitGamePlayParams {
 }
 
 const accountService = AccountService.instance;
+
+
+export interface GameContentCms {
+    id: number,
+    name: string,
+    description: string,
+    url: string,
+    maxEnergy: number,
+    slug: string,
+    active: boolean,
+    maxPoint: number,
+    energyPerGame: number,
+    maxPointPerGame: number,
+    icon: string,
+    rank_definition: string,
+    banner: string
+
+}
 
 export class GameService {
   private gameMap: Record<string, Game> | undefined;
@@ -45,10 +62,23 @@ export class GameService {
     });
   }
 
-  async syncGameList() {
-    await CacheService.instance.isReady;
-    const client = CacheService.instance.redisClient;
-    await client.del('game_list');
+  async syncData(data: GameContentCms[]) {
+    const response = {
+      success: true,
+    };
+    for (const item of data) {
+      const itemData = {...item} as unknown as Game;
+      const existed = await Game.findOne({where: {contentId: item.id}});
+      itemData.rankDefinition = JSON.stringify(item.rank_definition);
+      if (existed) {
+        await existed.update(itemData);
+      } else {
+        itemData.contentId = item.id;
+        await Game.create(itemData);
+      }
+    }
+    await this.buildGameMap();
+    return response;
   }
 
   async buildGameMap() {

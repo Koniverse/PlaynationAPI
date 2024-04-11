@@ -1,8 +1,8 @@
 import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
-import {GameService, newGamePlayParams, SubmitGamePlayParams} from '@src/services/GameService';
-import {requireLogin} from '@src/routes/helper';
+import {GameContentCms, GameService, newGamePlayParams, SubmitGamePlayParams} from '@src/services/GameService';
+import {requireLogin, requireSecret} from '@src/routes/helper';
 
 const GameRouter = Router();
 type NewGameParams = newGamePlayParams & Query;
@@ -12,7 +12,9 @@ const gameService = GameService.instance;
 const routerMap = {
   // Sync games
   sync: async (req: IReq<Query>, res: IRes) => {
-    return res.status(200).json({});
+    const data = req.body.data as unknown as GameContentCms[];
+    const response = await GameService.instance.syncData(data);
+    return res.status(200).json(response);
   },
 
   // Get event list
@@ -52,7 +54,7 @@ const routerMap = {
   },
 };
 
-GameRouter.get('/sync', requireLogin, routerMap.sync);
+GameRouter.post('/sync', requireSecret, routerMap.sync);
 GameRouter.get('/fetch', requireLogin, routerMap.fetch);
 GameRouter.get('/histories', requireLogin, routerMap.getHistories);
 GameRouter.get('/leader-board', requireLogin, routerMap.getLeaderBoard);

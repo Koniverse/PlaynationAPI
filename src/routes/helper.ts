@@ -27,6 +27,7 @@ export function requireSecret(req: IReq<any>, res: Response, next: NextFunction)
   if (token !== EnvVars.Secret.Token) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+  return next();
 }
 
 export function getUserAddress(req: IReq<any>) {
