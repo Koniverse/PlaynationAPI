@@ -1,6 +1,5 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {CacheService} from '@src/services/CacheService';
 import {Task, TaskHistory} from '@src/models';
 import {IReq} from '@src/routes/types';
 import {Query} from 'express-serve-static-core';
@@ -116,7 +115,6 @@ export class TaskService {
 
   async buildMap() {
     const data = await Task.findAll();
-    console.log('data', data)
     const dataMap: Record<string, Task> = {};
     data.forEach((item) => {
       dataMap[item.id.toString()] = item;
