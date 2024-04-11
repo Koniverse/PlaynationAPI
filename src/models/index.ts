@@ -21,7 +21,10 @@ GameInventoryItem.belongsTo(Game, {foreignKey: 'gameId'});
 GameInventoryItem.belongsTo(Account, {foreignKey: 'accountId'});
 GameInventoryItem.belongsTo(GameItem, {foreignKey: 'itemId'});
 GameInventoryItem.belongsTo(GameData, {foreignKey: 'gameDataId'});
-
+TaskHistory.belongsTo(Task, {foreignKey: 'taskId'});
+TaskHistory.belongsTo(Account, {foreignKey: 'accountId'});
+Task.belongsTo(Game, {foreignKey: 'gameId'});
+Account.hasOne(TaskHistory, {foreignKey: 'accountId'});
 // Sync all models
 SequelizeServiceImpl.addSync((async () => {
   await Account.sync();

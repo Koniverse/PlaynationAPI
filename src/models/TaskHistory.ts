@@ -9,7 +9,6 @@ export class TaskHistory extends Model<InferAttributes<TaskHistory>, InferCreati
   declare accountId: number;
   declare pointReward: number;
   declare inventoryId: CreationOptional<number>;
-  declare createdAt: Date;
 }
 
 TaskHistory.init({
@@ -36,9 +35,6 @@ TaskHistory.init({
     type: DataTypes.INTEGER,
   },
   inventoryId: {
-    type: DataTypes.INTEGER,
-  },
-  createdAt: {
     type: DataTypes.INTEGER,
   },
 }, {
