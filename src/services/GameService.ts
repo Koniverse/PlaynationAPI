@@ -197,10 +197,47 @@ export class GameService {
 
   async getLeaderBoard(accountId: number, gameId?: number) {
     // Todo: Fill more information and optimize with raw query
-    return AccountAttribute.findAll({
-      order: [['point', 'DESC']],
-      limit: 100,
-    });
+    const queryGameId = gameId ? ` and aa."gameId" = ${gameId}`  : '';
+    const sql = `
+    with leader as (SELECT a.id,
+                       a.address,
+                       a."firstName",
+                       a."lastName",
+                       aa.point
+                from game_data aa
+                         JOIN public.account a on a.id = aa."accountId"
+                where 1=1 ${queryGameId}
+                order by aa.point desc
+                limit 100),
+     mine as (SELECT a.id,
+                     a.address,
+                     a."firstName",
+                     a."lastName",
+                     aa.point
+              from game_data aa
+                  JOIN public.account a
+              on a.id = aa."accountId"
+              where a.id = ${accountId} ${queryGameId}),
+     data_all as (select *
+                  from leader
+                  union
+                  select *
+                  from mine)
+        select row_number() over (order by point desc) as rank,
+               id as accountId,
+               address,
+               "firstName",
+               "lastName",
+               point,
+               case
+                   when id = ${accountId} then true
+                   else false
+                   end                                 as mine
+        from data_all
+        order by point desc;
+    `;
+    const data = await this.sequelizeService.sequelize.query(sql);
+    return data.length > 0 ? data[0] : [];
   }
 
   // Singleton
