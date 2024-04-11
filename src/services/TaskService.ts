@@ -3,16 +3,19 @@ import Game from '@src/models/Game';
 import {Task, TaskHistory} from '@src/models';
 import {IReq} from '@src/routes/types';
 import {Query} from 'express-serve-static-core';
-import { AccountService } from './AccountService';
+import {AccountService} from '@src/services/AccountService';
 
 
 export interface TaskContentCms {
     id: number,
     tokenPrice: number,
     slug: string,
+    name: string,
+    description: string,
+    icon: string,
     itemReward: number,
     gameId: number,
-    pointReward: string
+    pointReward: number,
 }
 
 export interface TaskSubmitParams{
