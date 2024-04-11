@@ -4,6 +4,7 @@ import {CacheService} from '@src/services/CacheService';
 import {Task, TaskHistory} from '@src/models';
 import {IReq} from '@src/routes/types';
 import {Query} from 'express-serve-static-core';
+import { AccountService } from './AccountService';
 
 
 export interface TaskContentCms {
@@ -23,12 +24,6 @@ export class TaskService {
   private taskMap: Record<string, Task> | undefined;
   constructor(private sequelizeService: SequelizeService) {
 
-  }
-
-  async syncTaskList() {
-    await CacheService.instance.isReady;
-    const client = CacheService.instance.redisClient;
-    await client.del('task_list');
   }
 
   async syncData(data: TaskContentCms[]) {
@@ -58,7 +53,7 @@ export class TaskService {
       }
     }
 
-    await this.syncTaskList();
+    await this.buildMap();
     return response;
   }
 
@@ -111,6 +106,7 @@ export class TaskService {
       pointReward: task.pointReward,
     } as TaskHistory;
     await TaskHistory.create(data);
+    await AccountService.instance.addAccountPoint(user.id, task.pointReward);
 
     return {
       success: true,
@@ -120,6 +116,7 @@ export class TaskService {
 
   async buildMap() {
     const data = await Task.findAll();
+    console.log('data', data)
     const dataMap: Record<string, Task> = {};
     data.forEach((item) => {
       dataMap[item.id.toString()] = item;
