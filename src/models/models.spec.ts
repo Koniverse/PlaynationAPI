@@ -6,6 +6,6 @@ describe('NftCollection Test', () => {
   });
 
   it('Create Basic Info', async function () {
-
+    return Promise.resolve();
   });
 });

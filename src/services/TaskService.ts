@@ -1,8 +1,7 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
 import {CacheService} from '@src/services/CacheService';
-import {GameItem, Task} from "@src/models";
-import * as console from "node:console";
+import {Task} from '@src/models';
 
 
 export interface TaskContentCms {
@@ -17,9 +16,6 @@ export interface TaskContentCms {
 export class TaskService {
   constructor(private sequelizeService: SequelizeService) {
 
-  }
-
-  async generateDefaultData() {
   }
 
   async syncTaskList() {

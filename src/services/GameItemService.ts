@@ -20,9 +20,6 @@ export class GameItemService {
 
   }
 
-  async generateDefaultData() {
-  }
-
   async syncGameItemList() {
     await CacheService.instance.isReady;
     const client = CacheService.instance.redisClient;

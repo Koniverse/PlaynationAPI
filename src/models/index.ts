@@ -24,19 +24,18 @@ GameInventoryItem.belongsTo(GameData, {foreignKey: 'gameDataId'});
 
 // Sync all models
 SequelizeServiceImpl.addSync((async () => {
-  await Account.sync({force: true});
-  await AccountAttribute.sync({force: true});
+  await Account.sync();
+  await AccountAttribute.sync();
 
-  await Game.sync({force: true});
-  await GameData.sync({force: true});
-  await GamePlay.sync({force: true});
-  await GameItem.sync({force: true});
-  await GameInventoryItem.sync({force: true});
+  await Game.sync();
+  await GameData.sync();
+  await GamePlay.sync();
+  await GameItem.sync();
+  await GameInventoryItem.sync();
 
-  await Task.sync({force: true});
-  await TaskHistory.sync({force: true});
+  await Task.sync();
+  await TaskHistory.sync();
 })());
-
 
 export * from '@src/models/AccountAttribute';
 export * from '@src/models/Account';

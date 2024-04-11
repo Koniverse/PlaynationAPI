@@ -1,6 +1,6 @@
 import {
   CreationOptional,
-  DataTypes, HasManyCreateAssociationMixin,
+  DataTypes,
   HasOneCreateAssociationMixin,
   InferAttributes,
   InferCreationAttributes,

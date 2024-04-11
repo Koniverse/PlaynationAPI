@@ -2,7 +2,6 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import {Account, AccountAttribute, GameData, GamePlay, Game} from '@src/models';
 import { v4 } from 'uuid';
 import {AccountService} from '@src/services/AccountService';
-import * as console from "console";
 
 export interface newGamePlayParams {
   gameId: number;

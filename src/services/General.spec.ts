@@ -3,7 +3,6 @@ import {Account, AccountParams} from '@src/models/Account';
 import {AccountAttribute, Game, GameData, GamePlay, Task, TaskHistory} from '@src/models';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {GameService} from '@src/services/GameService';
-import * as console from "console";
 
 
 describe('General Test', () => {

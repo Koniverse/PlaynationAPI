@@ -2,7 +2,7 @@ import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {requireSecret} from '@src/routes/helper';
-import {TaskContentCms, TaskService} from "@src/services/TaskService";
+import {TaskContentCms, TaskService} from '@src/services/TaskService';
 
 const TaskRouter = Router();
 
