@@ -2,7 +2,7 @@ import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {requireLogin, requireSecret} from '@src/routes/helper';
-import {TaskContentCms, TaskService} from '@src/services/TaskService';
+import {TaskContentCms, TaskService, TaskSubmitParams} from '@src/services/TaskService';
 
 const TaskRouter = Router();
 
@@ -17,11 +17,13 @@ const routerMap = {
     return res.status(200).json(response);
   },
   history: async (req: IReq<Query>, res: IRes) => {
-    const response = await TaskService.instance.listTaskHistory(req);
+    const userId = req.user?.id || 0;
+    const response = await TaskService.instance.listTaskHistory(userId);
     return res.status(200).json(response);
   },
-  submit: async (req: IReq<Query>, res: IRes) => {
-    const response = await TaskService.instance.submit(req);
+  submit: async (req: IReq<TaskSubmitParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const response = await TaskService.instance.submit(userId, req.body);
     return res.status(200).json(response);
   },
 };

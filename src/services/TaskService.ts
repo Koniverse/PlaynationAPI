@@ -1,8 +1,6 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
 import {Task, TaskHistory} from '@src/models';
-import {IReq} from '@src/routes/types';
-import {Query} from 'express-serve-static-core';
 import {AccountService} from '@src/services/AccountService';
 
 
@@ -65,19 +63,14 @@ export class TaskService {
     return Object.values(taskMap);
   }
 
-  async listTaskHistory(req: IReq<Query>) {
-    const {user} = req;
-    if (!user) {
-      throw new Error('User not found');
-    }
+  async listTaskHistory(userId: number) {
     const sql = `
-    SELECT
-    task.*,
-    case
-        when task_history.id is not null and task_history."accountId" = ${user.id} then 1
-        else 0
-    end  as status
-    from task left join task_history on task.id = task_history."taskId"
+        SELECT t.*,
+               CASE
+                   WHEN EXISTS (SELECT 1 FROM task_history AS th WHERE th."taskId" = t.id and th."accountId" = ${userId})
+                       THEN 1
+                   ELSE 0 END AS status
+        FROM task AS t;
     `;
     const data = await this.sequelizeService.sequelize.query(sql);
     return data.length > 0 ? data[0] : [];
@@ -88,28 +81,26 @@ export class TaskService {
     return taskMap[taskId.toString()];
   }
 
-  async submit(req: IReq<Query>) {
-    const params = req.body as unknown as TaskSubmitParams;
-    const task = await this.findTask(params.taskId);
+  async submit(userId: number, data: TaskSubmitParams) {
+    const task = await this.findTask(data.taskId);
     if (!task) {
       throw new Error('Task not found');
     }
-    const {user} = req;
-    if (!user) {
+    if (!userId || userId === 0) {
       throw new Error('User not found');
     }
-    const tasHistory = await TaskHistory.findOne({where: {taskId: task.id, accountId: user.id}});
+    const tasHistory = await TaskHistory.findOne({where: {taskId: task.id, accountId: userId}});
     if (tasHistory) {
       throw new Error('Task already submitted');
     }
 
     await TaskHistory.create({
       taskId: task.id,
-      accountId: user.id,
+      accountId: userId,
       pointReward: task.pointReward,
     });
 
-    await AccountService.instance.addAccountPoint(user.id, task.pointReward);
+    await AccountService.instance.addAccountPoint(userId, task.pointReward);
 
     return {
       success: true,
