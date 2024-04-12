@@ -11,13 +11,15 @@ type SyncAccountQuery = AccountParams & Query;
 
 const AccountRouter = Router();
 
+const accountService = AccountService.instance;
+
 const routerMap = {
   // Sync account data and fetch account details
   sync: async (req: IReq<SyncAccountQuery>, res: IRes) => {
     try {
       const data = req.body;
       const account = await AccountService.instance.syncAccountData(data);
-      const accountDetails = await AccountService.instance.fetchAccountWithDetails(account.id);
+      const accountDetails = await accountService.fetchAccountWithDetails(account.id);
   
       const token = jwt.sign({
         id: account.id,
@@ -43,8 +45,8 @@ const routerMap = {
   getAttribute: async (req: IReq<Query>, res: IRes) => {
     const address = req.user?.address || '';
 
-    const account = await AccountService.instance.findByAddress(address);
-    const attributes = await account?.getAccountAttribute();
+    const account = await accountService.findByAddress(address);
+    const attributes = await accountService.getAccountAttribute(account?.id || 0);
 
     if (!account || !attributes) {
       return res.status(404).json({

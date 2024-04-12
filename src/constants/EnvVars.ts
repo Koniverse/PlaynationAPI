@@ -70,8 +70,8 @@ const Environments = {
     Exp: (process.env.SESSION_EXP ?? 259200000),
   },
   Game: {
-    MaxEnergy: parseInt(process.env.GAME_MAX_ENERGY || '1440'),
-    EnergyRecoverTime: parseInt(process.env.EnergyRecoverTime || '60'),
+    MaxEnergy: parseInt(process.env.MAX_ENERGY || '1440'),
+    EnergyRecoverTime: parseInt(process.env.ENGERY_RECOVER_TIME || '60'),
   },
 };
 

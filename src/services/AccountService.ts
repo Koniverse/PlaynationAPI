@@ -4,6 +4,7 @@ import AccountAttribute from '@src/models/AccountAttribute';
 import {validateSignature} from '@src/utils';
 import {checkWalletType} from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
+import * as console from "node:console";
 
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
@@ -22,7 +23,7 @@ export class AccountService {
     if(account) {
       account.signature = '___';
     }
-    const attribute = await AccountAttribute.findOne({ where: { accountId: id } });
+    const attribute = await this.getAccountAttribute(id);
 
     return {
       info: account,
@@ -118,19 +119,24 @@ export class AccountService {
     }
 
     // Auto recover energy
-    if (autoCheckEnergy && accountAttribute.energy < EnvVars.Game.MaxEnergy) {
+    const maxEnergy = EnvVars.Game.MaxEnergy;
+    if (autoCheckEnergy && accountAttribute.energy < maxEnergy) {
       const now = new Date();
-      const diff = now.getTime() - accountAttribute.lastEnergyUpdated.getTime();
+      const lastEnergyUpdatedTimestamp = accountAttribute.lastEnergyUpdated.getTime();
+      const diff = now.getTime() - lastEnergyUpdatedTimestamp;
       const diffInSeconds = diff / 1000;
 
       const energyToAdd = Math.floor(diffInSeconds / EnvVars.Game.EnergyRecoverTime);
-      const energy = accountAttribute.energy + energyToAdd;
+      const energy = Math.min(accountAttribute.energy + energyToAdd, maxEnergy);
 
-      if (energy >= EnvVars.Game.MaxEnergy) {
-        accountAttribute.energy = EnvVars.Game.MaxEnergy;
-        accountAttribute.lastEnergyUpdated = now;
-
-        await accountAttribute.save();
+      if (energy === maxEnergy) {
+        await accountAttribute.update({
+          energy: maxEnergy,
+          lastEnergyUpdated: now,
+        });
+      } else {
+        accountAttribute.energy = energy;
+        accountAttribute.lastEnergyUpdated = new Date(lastEnergyUpdatedTimestamp + energyToAdd * EnvVars.Game.EnergyRecoverTime * 1000);
       }
     }
 
