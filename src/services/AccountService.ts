@@ -149,9 +149,11 @@ export class AccountService {
       throw new Error('Not enough energy');
     }
 
+    const newEnergy = accountAttribute.energy - energy;
+
     await accountAttribute.update({
-      energy: accountAttribute.energy,
-      lastEnergyUpdated: accountAttribute.lastEnergyUpdated,
+      energy: newEnergy,
+      lastEnergyUpdated: new Date(),
     });
   }
 
