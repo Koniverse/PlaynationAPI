@@ -1,5 +1,5 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import {Account, AccountAttribute, GameData, GamePlay, Game} from '@src/models';
+import {Account, GameData, GamePlay, Game} from '@src/models';
 import { v4 } from 'uuid';
 import {AccountService} from '@src/services/AccountService';
 
@@ -14,7 +14,6 @@ export interface SubmitGamePlayParams {
 }
 
 const accountService = AccountService.instance;
-
 
 export interface GameContentCms {
     id: number,
@@ -155,6 +154,12 @@ export class GameService {
     });
   }
 
+  async addGameDataPoint(accountId: number, gameId: number, point: number) {
+    const gameData = await this.getGameData(accountId, gameId);
+    gameData.point += point;
+    await gameData.save();
+  }
+
   async submitGameplay(params: SubmitGamePlayParams) {
     const gamePlay = await GamePlay.findByPk(params.gamePlayId);
 
@@ -174,6 +179,7 @@ export class GameService {
     }
 
     // Todo: Validate by time
+    // Timeout if game is submitting too long
 
     await gamePlay.update({
       point: params.point,
@@ -182,6 +188,8 @@ export class GameService {
     });
 
     await accountService.addAccountPoint(gamePlay.accountId, params.point);
+
+    await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, params.point);
 
     return gamePlay;
   }
