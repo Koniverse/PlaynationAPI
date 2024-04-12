@@ -8,6 +8,7 @@ import GameInventoryItem from '@src/models/GameInventoryItem';
 import GameItem from '@src/models/GameItem';
 import Task from '@src/models/Task';
 import TaskHistory from '@src/models/TaskHistory';
+import ReferralLog from "@src/models/ReferralLog";
 
 AccountAttribute.belongsTo(Account, {foreignKey: 'accountId'});
 Account.hasOne(AccountAttribute, {foreignKey: 'accountId'});
@@ -42,6 +43,7 @@ SequelizeServiceImpl.addSync((async () => {
 
   await Task.sync();
   await TaskHistory.sync();
+  await ReferralLog.sync();
 })());
 
 export * from '@src/models/AccountAttribute';

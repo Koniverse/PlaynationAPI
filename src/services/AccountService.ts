@@ -1,10 +1,11 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Account, {AccountParams} from '@src/models/Account';
 import AccountAttribute, {AccountAttributeRank} from '@src/models/AccountAttribute';
-import {validateSignature} from '@src/utils';
+import {generateRandomString, validateSignature} from '@src/utils';
 import {checkWalletType} from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
+import ReferralLog from '@src/models/ReferralLog';
 
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
@@ -46,6 +47,7 @@ export class AccountService {
     return await this.sequelizeService.sequelize.transaction(async (transaction) => {
       const newAccount = await Account.create({
         ...info,
+        inviteCode: generateRandomString('',10),
         accumulatePoint: 0, // Assuming starting points is 0
         sessionTime: new Date(),
       }, { transaction });
@@ -63,7 +65,7 @@ export class AccountService {
   }
 
   // Sync account data with Telegram data
-  public async syncAccountData(info: AccountParams) {
+  public async syncAccountData(info: AccountParams, code = '') {
     const { signature, telegramUsername, address} = info;
 
     info.type = checkWalletType(address);
@@ -82,6 +84,8 @@ export class AccountService {
     let account = await this.findByAddress(address);
     if (!account) {
       account = await this.createAccount(info);
+      // Add  point from inviteCode
+      await this.addInvitePoint(account.id, code);
     }
 
 
@@ -118,6 +122,33 @@ export class AccountService {
       return rankData.rank as AccountAttributeRank;
     }
     return AccountAttributeRank.IRON;
+  }
+  
+  async addInvitePoint(accountId: number, code: string) {
+    if (code) {
+      const account = await Account.findOne({
+        where: {
+          inviteCode: code,
+        },
+      });
+
+      if (account) {
+        const accountAttribute = await this.getAccountAttribute(account.id, false);
+        const rank = accountAttribute.rank;
+        const rankData = rankJson.find((item) => item.rank === rank);
+        if (rankData) {
+          const invitePoint = Number(rankData.invitePoint);
+          await ReferralLog.create({
+            accountFromId: accountId,
+            accountReceiveId: account.id,
+            point: invitePoint,
+          });
+          await accountAttribute.update({
+            point: accountAttribute.point + invitePoint,
+          });
+        }
+      }
+    }
   }
 
   async getAccountAttribute(accountId: number, autoCheckEnergy = true) {
@@ -186,7 +217,7 @@ export class AccountService {
     }
     const sql = `
       SELECT sum(point) from game_data where "accountId" = ${accountId};
-    `
+    `;
     const data = await this.sequelizeService.sequelize.query(sql);
     if (data.length > 0) {
       // @ts-ignore

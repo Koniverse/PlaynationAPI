@@ -43,6 +43,7 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   declare signature: CreationOptional<string>;
   declare sessionTime: CreationOptional<Date>;
   declare accumulatePoint: number;
+  declare inviteCode: string;
 
   // Telegram information
   declare telegramId: number;
@@ -56,7 +57,7 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   declare languageCode: CreationOptional<string>;
   
   // Account information
-    declare getAccountAttribute: HasOneCreateAssociationMixin<AccountAttribute>;
+  declare getAccountAttribute: HasOneCreateAssociationMixin<AccountAttribute>;
   // createdAt can be undefined during creation
   declare createdAt: CreationOptional<Date>;
   // updatedAt can be undefined during creation
@@ -80,13 +81,17 @@ Account.init({
     type: DataTypes.STRING,
     allowNull: true,
   },
+  inviteCode: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   sessionTime: {
     type: DataTypes.DATE,
     allowNull: true,
   },
   accumulatePoint: {
     type: DataTypes.BIGINT,
-    defaultValue: 0
+    defaultValue: 0,
   },
   telegramId: {
     type: DataTypes.BIGINT,
@@ -125,7 +130,7 @@ Account.init({
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
 }, {
-  indexes: [{unique: true, fields: ['address']}],
+  indexes: [{unique: true, fields: ['address']}, {unique: true, fields: ['inviteCode']}],
   tableName: 'account',
   sequelize: SequelizeServiceImpl.sequelize,
   createdAt: true,
