@@ -10,6 +10,7 @@ export interface TaskContentCms {
     slug: string,
     name: string,
     description: string,
+    url: string,
     icon: string,
     itemReward: number,
     gameId: number,

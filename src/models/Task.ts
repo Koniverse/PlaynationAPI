@@ -10,6 +10,7 @@ export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<T
   declare name: string;
   declare description: string;
   declare icon: string;
+  declare url: string;
   declare pointReward: number;
   declare itemReward: CreationOptional<number>;
 }
@@ -40,6 +41,9 @@ Task.init({
     type: DataTypes.STRING,
   },
   icon: {
+    type: DataTypes.STRING,
+  },
+  url: {
     type: DataTypes.STRING,
   },
   pointReward: {

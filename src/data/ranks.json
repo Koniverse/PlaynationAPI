@@ -1,0 +1,32 @@
+[
+  {
+    "minPoint": 0,
+    "maxPoint": 20000,
+    "rank": "iron"
+  },
+  {
+    "minPoint": 20001,
+    "maxPoint": 100000,
+    "rank": "bronze"
+  },
+  {
+    "minPoint": 100001,
+    "maxPoint": 1000000,
+    "rank": "silver"
+  },
+  {
+    "minPoint": 1000001,
+    "maxPoint": 5000000,
+    "rank": "gold"
+  },
+  {
+    "minPoint": 5000001,
+    "maxPoint": 20000000,
+    "rank": "platinum"
+  },
+  {
+    "minPoint": 20000001,
+    "maxPoint": 100000000,
+    "rank": "diamond"
+  }
+]

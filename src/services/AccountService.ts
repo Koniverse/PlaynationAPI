@@ -1,9 +1,10 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Account, {AccountParams} from '@src/models/Account';
-import AccountAttribute from '@src/models/AccountAttribute';
+import AccountAttribute, {AccountAttributeRank} from '@src/models/AccountAttribute';
 import {validateSignature} from '@src/utils';
 import {checkWalletType} from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
+import rankJson from '../data/ranks.json';
 
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
@@ -45,6 +46,7 @@ export class AccountService {
     return await this.sequelizeService.sequelize.transaction(async (transaction) => {
       const newAccount = await Account.create({
         ...info,
+        accumulatePoint: 0, // Assuming starting points is 0
         sessionTime: new Date(),
       }, { transaction });
 
@@ -52,6 +54,7 @@ export class AccountService {
         accountId: newAccount.id,
         energy: EnvVars.Game.MaxEnergy,
         lastEnergyUpdated: new Date(),
+        rank: AccountAttributeRank.IRON,
         point: 0,   // Assuming starting points is 0
       }, { transaction });
 
@@ -106,6 +109,22 @@ export class AccountService {
     return account;
   }
 
+  async checkAccountAttributeRank(accountId: number) {
+    const account = await Account.findByPk(accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    const accumulatePoint = account.accumulatePoint;
+    const rankData = rankJson.find((rank) => accumulatePoint >= rank.minPoint && accumulatePoint <= rank.maxPoint);
+    if (!rankData && accumulatePoint > 100000000) {
+      return AccountAttributeRank.DIAMOND;
+    }
+    if (rankData) {
+      return rankData.rank as AccountAttributeRank;
+    }
+    return AccountAttributeRank.IRON;
+  }
+
   async getAccountAttribute(accountId: number, autoCheckEnergy = true) {
     const accountAttribute = await AccountAttribute.findOne({
       where: {
@@ -116,7 +135,7 @@ export class AccountService {
     if (!accountAttribute) {
       throw new Error('Account not found');
     }
-
+    accountAttribute.rank = await this.checkAccountAttributeRank(accountId);
     // Auto recover energy
     const maxEnergy = EnvVars.Game.MaxEnergy;
     if (autoCheckEnergy && accountAttribute.energy < maxEnergy) {

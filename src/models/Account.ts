@@ -25,6 +25,7 @@ export enum WalletTypeEnum {
   SUBSTRATE = 'SUBSTRATE',
 }
 
+
 export interface WalletParams {
   address: string;
   signature: string;
@@ -41,19 +42,21 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   declare type: CreationOptional<WalletTypeEnum>;
   declare signature: CreationOptional<string>;
   declare sessionTime: CreationOptional<Date>;
+  declare accumulatePoint: number;
 
   // Telegram information
   declare telegramId: number;
   declare telegramUsername: string;
   declare isBot: CreationOptional<boolean>;
   declare addedToAttachMenu: CreationOptional<boolean>;
+  declare isPremium: CreationOptional<boolean>;
   declare firstName: CreationOptional<string>;
   declare lastName: CreationOptional<string>;
   declare photoUrl: CreationOptional<string>;
   declare languageCode: CreationOptional<string>;
   
   // Account information
-  declare getAccountAttribute: HasOneCreateAssociationMixin<AccountAttribute>;
+    declare getAccountAttribute: HasOneCreateAssociationMixin<AccountAttribute>;
   // createdAt can be undefined during creation
   declare createdAt: CreationOptional<Date>;
   // updatedAt can be undefined during creation
@@ -81,6 +84,10 @@ Account.init({
     type: DataTypes.DATE,
     allowNull: true,
   },
+  accumulatePoint: {
+    type: DataTypes.BIGINT,
+    defaultValue: 0
+  },
   telegramId: {
     type: DataTypes.BIGINT,
   },
@@ -88,6 +95,10 @@ Account.init({
     type: DataTypes.STRING,
   },
   isBot: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+  },
+  isPremium: {
     type: DataTypes.BOOLEAN,
     allowNull: true,
   },

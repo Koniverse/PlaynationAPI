@@ -2,6 +2,16 @@ import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, M
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Account from '@src/models/Account';
 
+export enum AccountAttributeRank {
+  IRON = 'iron',
+  BRONZE = 'bronze',
+  SILVER = 'silver',
+  GOLD = 'gold',
+  PLATINUM = 'platinum',
+  DIAMOND = 'diamond',
+}
+
+
 export class AccountAttribute extends Model<InferAttributes<AccountAttribute>, InferCreationAttributes<AccountAttribute>> {
   declare id: CreationOptional<number>; // id on db
   
@@ -10,6 +20,7 @@ export class AccountAttribute extends Model<InferAttributes<AccountAttribute>, I
   declare lastEnergyUpdated: Date;
   declare energy: number;
   declare point: number;
+  declare rank: AccountAttributeRank;
 }
 
 AccountAttribute.init({
@@ -33,6 +44,9 @@ AccountAttribute.init({
   },
   point: {
     type: DataTypes.INTEGER,
+  },
+  rank: {
+    type: DataTypes.ENUM(AccountAttributeRank.IRON, AccountAttributeRank.BRONZE, AccountAttributeRank.SILVER, AccountAttributeRank.GOLD, AccountAttributeRank.PLATINUM, AccountAttributeRank.DIAMOND),
   },
 }, {
   indexes: [],
