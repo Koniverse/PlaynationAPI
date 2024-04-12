@@ -77,7 +77,7 @@ export class AccountService {
     const validSignature = validateSignature(address, message , signature);
 
     if (!validSignature) {
-      throw new Error('Invalid signature ' + message);
+      // throw new Error('Invalid signature ' + message);
     }
 
     // Create account if not exists
@@ -134,6 +134,15 @@ export class AccountService {
 
       if (account) {
         const accountAttribute = await this.getAccountAttribute(account.id, false);
+        const existed = await ReferralLog.findOne({
+          where: {
+            accountFromId: accountId,
+            accountReceiveId: account.id,
+          }
+        });
+        if (existed){
+          return;
+        }
         const rank = accountAttribute.rank;
         const rankData = rankJson.find((item) => item.rank === rank);
         if (rankData) {
