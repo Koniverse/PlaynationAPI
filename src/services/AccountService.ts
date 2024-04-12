@@ -4,7 +4,6 @@ import AccountAttribute from '@src/models/AccountAttribute';
 import {validateSignature} from '@src/utils';
 import {checkWalletType} from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
-import * as console from "node:console";
 
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
