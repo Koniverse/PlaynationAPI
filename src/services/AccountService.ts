@@ -150,17 +150,19 @@ export class AccountService {
       throw new Error('Not enough energy');
     }
 
-    accountAttribute.energy -= energy;
-    accountAttribute.lastEnergyUpdated = new Date();
-    await accountAttribute.save();
+    await accountAttribute.update({
+      energy: accountAttribute.energy,
+      lastEnergyUpdated: accountAttribute.lastEnergyUpdated,
+    });
   }
 
   async addAccountPoint(accountId: number, point: number) {
     const accountAttribute = await this.getAccountAttribute(accountId, false);
+    const newPoint = accountAttribute.point += point;
 
-    accountAttribute.point += point;
-
-    await accountAttribute.save();
+    await accountAttribute.update({
+      point: newPoint,
+    });
   }
 
   // Singleton this class
