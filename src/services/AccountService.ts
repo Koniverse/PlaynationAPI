@@ -109,12 +109,7 @@ export class AccountService {
     return account;
   }
 
-  async checkAccountAttributeRank(accountId: number) {
-    const account = await Account.findByPk(accountId);
-    if (!account) {
-      throw new Error('Account not found');
-    }
-    const accumulatePoint = account.accumulatePoint;
+  checkAccountAttributeRank(accumulatePoint: number) {
     const rankData = rankJson.find((rank) => accumulatePoint >= rank.minPoint && accumulatePoint <= rank.maxPoint);
     if (!rankData && accumulatePoint > 100000000) {
       return AccountAttributeRank.DIAMOND;
@@ -135,7 +130,6 @@ export class AccountService {
     if (!accountAttribute) {
       throw new Error('Account not found');
     }
-    accountAttribute.rank = await this.checkAccountAttributeRank(accountId);
     // Auto recover energy
     const maxEnergy = EnvVars.Game.MaxEnergy;
     if (autoCheckEnergy && accountAttribute.energy < maxEnergy) {
@@ -183,6 +177,27 @@ export class AccountService {
     await accountAttribute.update({
       point: newPoint,
     });
+  }
+
+  async addAccumulatePoint(accountId: number) {
+    const account = await Account.findByPk(accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    const sql = `
+      SELECT sum(point) from game_data where "accountId" = ${accountId};
+    `
+    const data = await this.sequelizeService.sequelize.query(sql);
+    if (data.length > 0) {
+      // @ts-ignore
+      const accumulatePoint = Number(data[0][0].sum);
+      const rank = this.checkAccountAttributeRank(accumulatePoint);
+      if (rank){
+        const accountAttribute = await this.getAccountAttribute(accountId, false);
+        await accountAttribute.update({rank});
+      }
+      await account.update({accumulatePoint});
+    }
   }
 
   // Singleton this class

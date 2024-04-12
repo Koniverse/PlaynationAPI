@@ -53,7 +53,7 @@ export class GameService {
       description: 'Default event type',
       maxEnergy: 1440,
       energyPerGame: 90,
-      maxPointPerGame: 100000,
+      maxPointPerGame: 100000000,
       icon: 'https://via.placeholder.com/150',
       banner: 'https://via.placeholder.com/1200x600',
       rankDefinition: '{}',
@@ -158,6 +158,7 @@ export class GameService {
     const gameData = await this.getGameData(accountId, gameId);
     gameData.point += point;
     await gameData.save();
+    await accountService.addAccumulatePoint(accountId);
   }
 
   async submitGameplay(params: SubmitGamePlayParams) {
