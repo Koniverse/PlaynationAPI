@@ -3,8 +3,8 @@ import SequelizeServiceImpl from '@src/services/SequelizeService';
 
 export class ReferralLog extends Model<InferAttributes<ReferralLog>, InferCreationAttributes<ReferralLog>> {
   declare id: CreationOptional<number>; // id on db
-  declare accountReceiveId: number;
-  declare accountFromId: number;
+  declare sourceAccountId: number;
+  declare invitedAccountId: number;
   declare point: number;
 }
 
@@ -14,10 +14,10 @@ ReferralLog.init({
     primaryKey: true,
     autoIncrement: true,
   },
-  accountReceiveId: {
+  sourceAccountId: {
     type: DataTypes.INTEGER,
   },
-  accountFromId: {
+  invitedAccountId: {
     type: DataTypes.INTEGER,
   },
   point: {

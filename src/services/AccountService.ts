@@ -151,8 +151,8 @@ export class AccountService {
         const accountAttribute = await this.getAccountAttribute(account.id, false);
         const existed = await ReferralLog.findOne({
           where: {
-            accountFromId: accountId,
-            accountReceiveId: account.id,
+            invitedAccountId: accountId,
+            sourceAccountId: account.id,
           },
         });
         if (existed){
@@ -163,8 +163,8 @@ export class AccountService {
         if (rankData) {
           const invitePoint = Number(rankData.invitePoint);
           await ReferralLog.create({
-            accountFromId: accountId,
-            accountReceiveId: account.id,
+            invitedAccountId: accountId,
+            sourceAccountId: account.id,
             point: invitePoint,
           });
           await accountAttribute.update({

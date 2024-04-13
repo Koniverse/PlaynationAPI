@@ -61,25 +61,7 @@ const routerMap = {
       account,
       attributes,
     });
-  },
-
-  // Todo: Invite account
-
-  // Todo: Update new account from telegram
-  // update: async (req: IReq<CreateAccountQuery>, res: IRes) => {
-  //   await new Promise((resolve) => setTimeout(resolve, 1000));
-  //   return res.status(200).json({
-  //     success: true,
-  //   });
-  // },
-
-  // Todo: Link wallet with account
-  // linkWallet: async (req: IReq<LinkWalletQuery>, res: IRes) => {
-  //   await new Promise((resolve) => setTimeout(resolve, 1000));
-  //   return res.status(200).json({
-  //     success: true,
-  //   });
-  // },
+  }
 };
 
 AccountRouter.post('/sync', routerMap.sync);
