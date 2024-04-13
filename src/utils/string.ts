@@ -1,6 +1,6 @@
-export function generateRandomString(prefix = '', number = 6) {
+export function generateRandomString(number = 9) {
   let randomString = '';
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const randomSize = characters.length;
 
   for (let i = 0; i < number; i++) {
@@ -8,5 +8,5 @@ export function generateRandomString(prefix = '', number = 6) {
     randomString += characters.charAt(randomIndex);
   }
 
-  return prefix + randomString;
+  return randomString;
 }

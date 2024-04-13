@@ -33,7 +33,9 @@ export class AccountService {
   }
 
   // Create a new account and its attributes
-  public async createAccount(info: AccountParams) {
+  public async createAccount(params: AccountParams) {
+    const {referralCode, ...info} = params;
+
     // Ensure the database is synchronized
     await this.sequelizeService.syncAll();
 
@@ -43,29 +45,42 @@ export class AccountService {
       throw new Error('Account already exists');
     }
 
-    // Transaction to ensure atomicity
-    return await this.sequelizeService.sequelize.transaction(async (transaction) => {
-      const newAccount = await Account.create({
-        ...info,
-        inviteCode: generateRandomString('',10),
-        sessionTime: new Date(),
-      }, { transaction });
+    let inviteCode = generateRandomString();
 
-      await AccountAttribute.create({
-        accountId: newAccount.id,
-        energy: EnvVars.Game.MaxEnergy,
-        lastEnergyUpdated: new Date(),
-        rank: AccountAttributeRank.IRON,
-        accumulatePoint: 0, // Assuming starting points is 0
-        point: 0,   // Assuming starting points is 0
-      }, { transaction });
+    // eslint-disable-next-line no-constant-condition
+    while(true) {
+      const existed = await Account.findOne({
+        where: {
+          inviteCode,
+        },
+      });
+      if (!existed) {
+        break;
+      }
+      inviteCode = generateRandomString();
+    }
 
-      return newAccount;
+    const newAccount = await Account.create({
+      ...info,
+      inviteCode,
+      sessionTime: new Date(),
     });
+
+    await AccountAttribute.create({
+      accountId: newAccount.id,
+      energy: EnvVars.Game.MaxEnergy,
+      lastEnergyUpdated: new Date(),
+      rank: AccountAttributeRank.IRON,
+      accumulatePoint: 0, // Assuming starting points is 0
+      point: 0,   // Assuming starting points is 0
+    });
+
+    return newAccount;
+
   }
 
   // Sync account data with Telegram data
-  public async syncAccountData(info: AccountParams, code = '') {
+  public async syncAccountData(info: AccountParams, code?: string) {
     const { signature, telegramUsername, address} = info;
 
     info.type = checkWalletType(address);
@@ -85,7 +100,7 @@ export class AccountService {
     if (!account) {
       account = await this.createAccount(info);
       // Add  point from inviteCode
-      await this.addInvitePoint(account.id, code);
+      code && await this.addInvitePoint(account.id, code);
     }
 
 

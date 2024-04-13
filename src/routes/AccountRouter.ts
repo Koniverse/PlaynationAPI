@@ -17,9 +17,8 @@ const routerMap = {
   // Sync account data and fetch account details
   sync: async (req: IReq<SyncAccountQuery>, res: IRes) => {
     try {
-      const data = req.body;
-      const code = req.query?.code as string || '';
-      const account = await AccountService.instance.syncAccountData(data, code);
+      const {referralCode, ...data} = req.body;
+      const account = await AccountService.instance.syncAccountData(data, referralCode);
       const accountDetails = await accountService.fetchAccountWithDetails(account.id);
   
       const token = jwt.sign({

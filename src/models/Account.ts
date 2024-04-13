@@ -9,6 +9,10 @@ import {
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import AccountAttribute from '@src/models/AccountAttribute';
 
+export interface ReferralParams {
+  referralCode?: string;
+}
+
 export interface ITelegramParams {
   telegramId: number;
   telegramUsername: string;
@@ -32,7 +36,7 @@ export interface WalletParams {
   type?: WalletTypeEnum;
 }
 
-export type AccountParams = ITelegramParams & WalletParams;
+export type AccountParams = ReferralParams & ITelegramParams & WalletParams;
 
 export class Account extends Model<InferAttributes<Account>, InferCreationAttributes<Account>> implements ITelegramParams, WalletParams {
   declare id: CreationOptional<number>; // id on db
@@ -42,7 +46,8 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   declare type: CreationOptional<WalletTypeEnum>;
   declare signature: CreationOptional<string>;
   declare sessionTime: CreationOptional<Date>;
-  declare inviteCode: string;
+
+  declare inviteCode: CreationOptional<string>;
 
   // Telegram information
   declare telegramId: number;
@@ -54,7 +59,7 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   declare lastName: CreationOptional<string>;
   declare photoUrl: CreationOptional<string>;
   declare languageCode: CreationOptional<string>;
-  
+
   // Account information
   declare getAccountAttribute: HasOneCreateAssociationMixin<AccountAttribute>;
   // createdAt can be undefined during creation
