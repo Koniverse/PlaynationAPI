@@ -42,7 +42,6 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   declare type: CreationOptional<WalletTypeEnum>;
   declare signature: CreationOptional<string>;
   declare sessionTime: CreationOptional<Date>;
-  declare accumulatePoint: number;
   declare inviteCode: string;
 
   // Telegram information
@@ -88,10 +87,6 @@ Account.init({
   sessionTime: {
     type: DataTypes.DATE,
     allowNull: true,
-  },
-  accumulatePoint: {
-    type: DataTypes.BIGINT,
-    defaultValue: 0,
   },
   telegramId: {
     type: DataTypes.BIGINT,

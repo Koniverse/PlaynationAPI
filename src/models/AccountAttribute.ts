@@ -20,6 +20,7 @@ export class AccountAttribute extends Model<InferAttributes<AccountAttribute>, I
   declare lastEnergyUpdated: Date;
   declare energy: number;
   declare point: number;
+  declare accumulatePoint: number;
   declare rank: AccountAttributeRank;
 }
 
@@ -41,6 +42,9 @@ AccountAttribute.init({
   },
   lastEnergyUpdated: {
     type: DataTypes.DATE,
+  },
+  accumulatePoint: {
+    type: DataTypes.INTEGER,
   },
   point: {
     type: DataTypes.INTEGER,

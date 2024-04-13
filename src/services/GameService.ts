@@ -156,9 +156,10 @@ export class GameService {
 
   async addGameDataPoint(accountId: number, gameId: number, point: number) {
     const gameData = await this.getGameData(accountId, gameId);
-    gameData.point += point;
-    await gameData.save();
-    await accountService.addAccumulatePoint(accountId);
+    await gameData.update({
+      point: gameData.point + point,
+    });
+    await accountService.addAccountPoint(accountId, point);
   }
 
   async submitGameplay(params: SubmitGamePlayParams) {
@@ -187,8 +188,6 @@ export class GameService {
       endTime: new Date(),
       success: true,
     });
-
-    await accountService.addAccountPoint(gamePlay.accountId, params.point);
 
     await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, params.point);
 

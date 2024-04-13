@@ -48,7 +48,6 @@ export class AccountService {
       const newAccount = await Account.create({
         ...info,
         inviteCode: generateRandomString('',10),
-        accumulatePoint: 0, // Assuming starting points is 0
         sessionTime: new Date(),
       }, { transaction });
 
@@ -57,6 +56,7 @@ export class AccountService {
         energy: EnvVars.Game.MaxEnergy,
         lastEnergyUpdated: new Date(),
         rank: AccountAttributeRank.IRON,
+        accumulatePoint: 0, // Assuming starting points is 0
         point: 0,   // Assuming starting points is 0
       }, { transaction });
 
@@ -138,7 +138,7 @@ export class AccountService {
           where: {
             accountFromId: accountId,
             accountReceiveId: account.id,
-          }
+          },
         });
         if (existed){
           return;
@@ -213,31 +213,14 @@ export class AccountService {
   async addAccountPoint(accountId: number, point: number) {
     const accountAttribute = await this.getAccountAttribute(accountId, false);
     const newPoint = accountAttribute.point += point;
+    const newAccumulatePoint = accountAttribute.accumulatePoint += point;
+    const rank = this.checkAccountAttributeRank(newAccumulatePoint);
 
     await accountAttribute.update({
       point: newPoint,
+      accumulatePoint: newAccumulatePoint,
+      rank,
     });
-  }
-
-  async addAccumulatePoint(accountId: number) {
-    const account = await Account.findByPk(accountId);
-    if (!account) {
-      throw new Error('Account not found');
-    }
-    const sql = `
-      SELECT sum(point) from game_data where "accountId" = ${accountId};
-    `;
-    const data = await this.sequelizeService.sequelize.query(sql);
-    if (data.length > 0) {
-      // @ts-ignore
-      const accumulatePoint = Number(data[0][0].sum);
-      const rank = this.checkAccountAttributeRank(accumulatePoint);
-      if (rank){
-        const accountAttribute = await this.getAccountAttribute(accountId, false);
-        await accountAttribute.update({rank});
-      }
-      await account.update({accumulatePoint});
-    }
   }
 
   // Singleton this class
