@@ -24,7 +24,7 @@ ReferralLog.init({
     type: DataTypes.INTEGER,
   },
 }, {
-  indexes: [{unique: true, fields: ['accountReceiveId', 'accountFromId']}],
+  indexes: [{unique: true, fields: ['sourceAccountId', 'invitedAccountId']}],
   tableName: 'referral_log',
   sequelize: SequelizeServiceImpl.sequelize,
   createdAt: true,
