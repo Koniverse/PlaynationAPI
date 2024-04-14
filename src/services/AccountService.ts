@@ -167,9 +167,8 @@ export class AccountService {
             sourceAccountId: account.id,
             point: invitePoint,
           });
-          await accountAttribute.update({
-            point: accountAttribute.point + invitePoint,
-          });
+
+          await this.addAccountPoint(account.id, invitePoint);
         }
       }
     }
