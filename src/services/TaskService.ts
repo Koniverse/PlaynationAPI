@@ -15,6 +15,7 @@ export interface TaskContentCms {
     itemReward: number,
     gameId: number,
     pointReward: number,
+    effectDuration: number,
 }
 
 export interface TaskSubmitParams{

@@ -36,6 +36,28 @@ export interface WalletParams {
   type?: WalletTypeEnum;
 }
 
+export interface AccountPublicInfo {
+  id: number;
+  telegramUsername: string;
+  firstName: string;
+  lastName: string;
+  address: string;
+  avatar?: string;
+
+}
+
+export interface LeaderboardPerson {
+  rank: number;
+  point: number;
+  accountInfo: AccountPublicInfo;
+}
+
+export interface ReferralRecord {
+  point: number;
+  referralSuccessTime: number;
+  accountInfo: AccountPublicInfo;
+}
+
 export type AccountParams = ReferralParams & ITelegramParams & WalletParams;
 
 export class Account extends Model<InferAttributes<Account>, InferCreationAttributes<Account>> implements ITelegramParams, WalletParams {

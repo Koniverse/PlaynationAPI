@@ -61,10 +61,19 @@ const routerMap = {
       account,
       attributes,
     });
-  }
+  },
+
+  // Get account details
+  getRerferalLog: async (req: IReq<Query>, res: IRes) => {
+    const accountId = req.user?.id || 0;
+    const data = await accountService.getRerferalLog(accountId);
+
+    return res.status(200).json(data);
+  },
 };
 
 AccountRouter.post('/sync', routerMap.sync);
 AccountRouter.get('/get-attribute', requireLogin, routerMap.getAttribute);
+AccountRouter.get('/get-rerferal-logs', requireLogin, routerMap.getRerferalLog);
 
 export default AccountRouter;

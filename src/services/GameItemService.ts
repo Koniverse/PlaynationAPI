@@ -1,6 +1,5 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {CacheService} from '@src/services/CacheService';
 import {GameItem} from '@src/models';
 
 
@@ -11,19 +10,15 @@ export interface GameItemContentCms {
     tokenPrice: number,
     slug: string,
     price: number,
+    effectDuration: number,
     gameId: number,
     maxBuy: string,
 }
 
 export class GameItemService {
+  private gameItemMap: Record<string, GameItem> | undefined;
   constructor(private sequelizeService: SequelizeService) {
 
-  }
-
-  async syncGameItemList() {
-    await CacheService.instance.isReady;
-    const client = CacheService.instance.redisClient;
-    await client.del('game_item_list');
   }
 
   async syncData(data: GameItemContentCms[]) {
@@ -45,23 +40,31 @@ export class GameItemService {
         await GameItem.create(itemData);
       }
     }
-    await this.syncGameItemList();
+    await this.buildMap();
     return response;
   }
 
-  async listGameItem() {
-    await CacheService.instance.isReady;
-    const client = CacheService.instance.redisClient;
-    const dataCache = await client.get('game_item_list');
-    if (dataCache) {
-      return JSON.parse(dataCache) as GameItem[];
-    }
 
+  async buildMap() {
     const data = await GameItem.findAll();
+    const dataMap: Record<string, GameItem> = {};
+    data.forEach((item) => {
+      dataMap[item.id.toString()] = item;
+    });
 
-    client.set('game_item_list', JSON.stringify(data));
+    this.gameItemMap = dataMap;
+    return dataMap;
+  }
 
-    return data;
+
+  async findGameItem(taskId: number) {
+    const gameItemMap = !!this.gameItemMap ? this.gameItemMap : await this.buildMap();
+    return gameItemMap[taskId.toString()];
+  }
+
+  async listGameItem() {
+    const dataMap = !!this.gameItemMap ? this.gameItemMap : await this.buildMap();
+    return Object.values(dataMap);
   }
 
   // Singleton

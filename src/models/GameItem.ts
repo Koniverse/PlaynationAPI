@@ -11,6 +11,7 @@ export class GameItem extends Model<InferAttributes<GameItem>, InferCreationAttr
   declare price: number;
   declare tokenPrice: number;
   declare maxBuy: number;
+  declare effectDuration: number;
 }
 
 GameItem.init({
@@ -44,8 +45,11 @@ GameItem.init({
   maxBuy: {
     type: DataTypes.INTEGER,
   },
+  effectDuration: {
+    type: DataTypes.INTEGER,
+  },
 }, {
-  indexes: [{unique: true, fields: ['gameId']}],
+  indexes: [{fields: ['gameId']}],
   tableName: 'game_item',
   sequelize: SequelizeServiceImpl.sequelize,
   createdAt: true,

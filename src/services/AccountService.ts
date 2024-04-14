@@ -1,5 +1,5 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import Account, {AccountParams} from '@src/models/Account';
+import Account, {AccountParams, ReferralRecord} from '@src/models/Account';
 import AccountAttribute, {AccountAttributeRank} from '@src/models/AccountAttribute';
 import {generateRandomString, validateSignature} from '@src/utils';
 import {checkWalletType} from '@src/utils/wallet';
@@ -92,7 +92,7 @@ export class AccountService {
     const validSignature = validateSignature(address, message , signature);
 
     if (!validSignature) {
-      // throw new Error('Invalid signature ' + message);
+      throw new Error('Invalid signature ' + message);
     }
 
     // Create account if not exists
@@ -236,6 +236,40 @@ export class AccountService {
       accumulatePoint: newAccumulatePoint,
       rank,
     });
+  }
+
+  async getRerferalLog(accountId: number) {
+    const sql = `
+    Select
+        a.id,
+        a."telegramUsername",
+        a."firstName",
+        a."lastName",
+        rl.point,
+        EXTRACT(EPOCH FROM  CAST(rl."createdAt" AS timestamp)) AS referralSuccessTime
+    
+    from referral_log rl
+         JOIN public.account a on a.id = rl."invitedAccountId" where rl."sourceAccountId" = ${accountId}
+    `;
+    const data = await this.sequelizeService.sequelize.query(sql);
+    if (data.length > 0) {
+      return data[0].map((item) => {
+        // @ts-ignore
+        const {point, lastName, telegramUsername, firstName, referralsuccesstime, id} = item;
+        const referralSuccessTime = parseFloat(referralsuccesstime as string);
+        return {
+          point: point as number,
+          referralSuccessTime,
+          accountInfo: {
+            firstName: firstName as string,
+            id: id as number,
+            lastName: lastName as string,
+            telegramUsername: telegramUsername as string,
+          },
+        } as ReferralRecord;
+      });
+    }
+    return [];
   }
 
   // Singleton this class
