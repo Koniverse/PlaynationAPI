@@ -43,6 +43,7 @@ export interface AccountPublicInfo {
   lastName: string;
   address: string;
   avatar?: string;
+  mine?: boolean;
 
 }
 

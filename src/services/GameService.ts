@@ -1,5 +1,5 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import {Account, GameData, GamePlay, Game} from '@src/models';
+import {Account, GameData, GamePlay, Game, LeaderboardPerson} from '@src/models';
 import { v4 } from 'uuid';
 import {AccountService} from '@src/services/AccountService';
 
@@ -204,13 +204,14 @@ export class GameService {
   }
 
   async getLeaderBoard(accountId: number, gameId?: number) {
-    // Todo: Fill more information and optimize with raw query
     const queryGameId = gameId ? ` and aa."gameId" = ${gameId}`  : '';
     const sql = `
     with leader as (SELECT a.id,
-                       a.address,
+                           a."address",
                        a."firstName",
                        a."lastName",
+                       a."telegramUsername",
+                       a."photoUrl",
                        aa.point
                 from game_data aa
                          JOIN public.account a on a.id = aa."accountId"
@@ -218,9 +219,11 @@ export class GameService {
                 order by aa.point desc
                 limit 100),
      mine as (SELECT a.id,
-                     a.address,
+                  a."address",
                      a."firstName",
-                     a."lastName",
+                        a."lastName",
+                       a."telegramUsername",
+                       a."photoUrl",
                      aa.point
               from game_data aa
                   JOIN public.account a
@@ -233,10 +236,12 @@ export class GameService {
                   from mine)
         select row_number() over (order by point desc) as rank,
                id as accountId,
-               address,
+            "address",
                "firstName",
                "lastName",
                point,
+                "telegramUsername",
+                "photoUrl" as avatar,
                case
                    when id = ${accountId} then true
                    else false
@@ -245,7 +250,26 @@ export class GameService {
         order by point desc;
     `;
     const data = await this.sequelizeService.sequelize.query(sql);
-    return data.length > 0 ? data[0] : [];
+    if (data.length > 0) {
+      return data[0].map((item) => {
+        // @ts-ignore
+        const {rank, point, telegramUsername, lastName, firstName, avatar, mine, accountId, address} = item;
+        return {
+          rank: parseInt(rank as string),
+          point: parseInt(point as string),
+          accountInfo: {
+            telegramUsername: telegramUsername as string,
+            lastName: lastName as string,
+            firstName: firstName as string,
+            avatar: avatar as string,
+            mine: mine as boolean,
+            id: accountId as number,
+            address: address as string,
+          },
+        } as LeaderboardPerson;
+      });
+    }
+    return[];
   }
 
   // Singleton

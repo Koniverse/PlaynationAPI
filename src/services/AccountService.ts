@@ -244,7 +244,9 @@ export class AccountService {
         a.id,
         a."telegramUsername",
         a."firstName",
+        a."address",
         a."lastName",
+        a."photoUrl",
         rl.point,
         EXTRACT(EPOCH FROM  CAST(rl."createdAt" AS timestamp)) AS referralSuccessTime
     
@@ -255,7 +257,7 @@ export class AccountService {
     if (data.length > 0) {
       return data[0].map((item) => {
         // @ts-ignore
-        const {point, lastName, telegramUsername, firstName, referralsuccesstime, id} = item;
+        const {point, lastName, telegramUsername, firstName, referralsuccesstime, id, photoUrl, address} = item;
         const referralSuccessTime = parseFloat(referralsuccesstime as string);
         return {
           point: point as number,
@@ -265,6 +267,8 @@ export class AccountService {
             id: id as number,
             lastName: lastName as string,
             telegramUsername: telegramUsername as string,
+            avatar: photoUrl as string,
+            address: address as string,
           },
         } as ReferralRecord;
       });
