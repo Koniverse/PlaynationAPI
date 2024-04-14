@@ -259,6 +259,7 @@ export class AccountService {
         // @ts-ignore
         const {point, lastName, telegramUsername, firstName, referralsuccesstime, id, photoUrl, address} = item;
         const referralSuccessTime = parseFloat(referralsuccesstime as string);
+
         return {
           point: point as number,
           referralSuccessTime,

@@ -257,12 +257,12 @@ export class GameService {
         return {
           rank: parseInt(rank as string),
           point: parseInt(point as string),
+          mine: mine as boolean,
           accountInfo: {
             telegramUsername: telegramUsername as string,
             lastName: lastName as string,
             firstName: firstName as string,
             avatar: avatar as string,
-            mine: mine as boolean,
             id: accountId as number,
             address: address as string,
           },
