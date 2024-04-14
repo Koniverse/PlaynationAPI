@@ -50,7 +50,7 @@ const routerMap = {
 
   getLeaderBoard: async (req: IReq<Query>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const result = await gameService.getLeaderBoard(userId);
+    const result = await gameService.getTotalLeaderboard(userId);
     return res.status(200).json(result);
   },
 };

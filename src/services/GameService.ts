@@ -203,6 +203,72 @@ export class GameService {
     });
   }
 
+  async getTotalLeaderboard(accountId: number) {
+    const sql = `
+with leader as (SELECT a.id,
+                       a."address",
+                       a."firstName",
+                       a."lastName",
+                       a."telegramUsername",
+                       a."photoUrl",
+                       aa."accumulatePoint" as point
+                from account_attribute aa
+                         JOIN public.account a on a.id = aa."accountId"
+                order by aa."accumulatePoint" desc
+                limit 100),
+     mine as (SELECT a.id,
+                     a."address",
+                     a."firstName",
+                     a."lastName",
+                     a."telegramUsername",
+                     a."photoUrl",
+                     aa."accumulatePoint" as point
+              from account_attribute aa
+                       JOIN public.account a
+                            on a.id = aa."accountId"),
+     data_all as (select *
+                  from leader
+                  union
+                  select *
+                  from mine)
+select row_number() over (order by point desc) as rank,
+       id                                      as accountId,
+       "address",
+       "firstName",
+       "lastName",
+       point,
+       "telegramUsername",
+       "photoUrl"                              as avatar,
+       case
+           when id = ${accountId} then true
+           else false
+           end                                 as mine
+from data_all
+order by point desc;
+    `;
+    const data = await this.sequelizeService.sequelize.query(sql);
+    if (data.length > 0) {
+      return data[0].map((item) => {
+        // @ts-ignore
+        const {rank, point, telegramUsername, lastName, firstName, avatar, mine, accountId, address} = item;
+        return {
+          rank: parseInt(rank as string),
+          point: parseInt(point as string),
+          mine: mine as boolean,
+          accountInfo: {
+            telegramUsername: telegramUsername as string,
+            lastName: lastName as string,
+            firstName: firstName as string,
+            avatar: avatar as string,
+            id: accountId as number,
+            address: address as string,
+          },
+        } as LeaderboardPerson;
+      });
+    }
+    return[];
+  }
+
   async getLeaderBoard(accountId: number, gameId?: number) {
     const queryGameId = gameId ? ` and aa."gameId" = ${gameId}`  : '';
     const sql = `
