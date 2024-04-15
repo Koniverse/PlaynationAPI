@@ -107,7 +107,7 @@ export class AccountService {
     if (!account) {
       account = await this.createAccount(info);
       // Add  point from inviteCode
-      code && await this.addInvitePoint(account.id, code);
+      code && await this.addInvitePoint(account.id, code, account.isPremium);
     }
 
 
@@ -146,7 +146,7 @@ export class AccountService {
     return AccountAttributeRank.IRON;
   }
   
-  async addInvitePoint(accountId: number, code: string) {
+  async addInvitePoint(accountId: number, code: string, isPremium = false) {
     if (code) {
       const account = await Account.findOne({
         where: {
@@ -169,7 +169,7 @@ export class AccountService {
         const rank = accountAttribute.rank;
         const rankData = rankJson.find((item) => item.rank === rank);
         if (rankData) {
-          const invitePoint = Number(account.isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
+          const invitePoint = Number(isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
           await ReferralLog.create({
             invitedAccountId: accountId,
             sourceAccountId: account.id,
