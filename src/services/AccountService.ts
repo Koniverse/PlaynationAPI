@@ -6,6 +6,13 @@ import {checkWalletType} from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
+import {GiveAwayPoint} from '@src/models';
+
+export interface GiveawayPointParams {
+  contentId?: number;
+  inviteCode: string;
+  point: number;
+}
 
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
@@ -80,7 +87,7 @@ export class AccountService {
   }
 
   // Sync account data with Telegram data
-  public async syncAccountData(info: AccountParams, code?: string) {
+  public async syncAccountData(info: AccountParams, code?: string, validateSign = true) {
     const { signature, telegramUsername, address} = info;
 
     info.type = checkWalletType(address);
@@ -91,7 +98,7 @@ export class AccountService {
     const message = `Login as ${telegramUsername}`;
     const validSignature = validateSignature(address, message , signature);
 
-    if (!validSignature) {
+    if (validateSign && !validSignature) {
       throw new Error('Invalid signature ' + message);
     }
 
@@ -148,7 +155,6 @@ export class AccountService {
       });
 
       if (account) {
-        const accountAttribute = await this.getAccountAttribute(account.id, false);
         const existed = await ReferralLog.findOne({
           where: {
             invitedAccountId: accountId,
@@ -158,10 +164,12 @@ export class AccountService {
         if (existed){
           return;
         }
+
+        const accountAttribute = await this.getAccountAttribute(account.id, false);
         const rank = accountAttribute.rank;
         const rankData = rankJson.find((item) => item.rank === rank);
         if (rankData) {
-          const invitePoint = Number(rankData.invitePoint);
+          const invitePoint = Number(account.isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
           await ReferralLog.create({
             invitedAccountId: accountId,
             sourceAccountId: account.id,
@@ -237,7 +245,29 @@ export class AccountService {
     });
   }
 
-  async getRerferalLog(accountId: number) {
+  async giveAccountPoint(params: GiveawayPointParams) {
+    const {contentId, inviteCode, point} = params;
+    // Find account by invite code
+    const account = await Account.findOne({
+      where: {
+        inviteCode,
+      },
+    });
+
+    if (!account) {
+      throw new Error('Invalid invite code');
+    }
+
+    await GiveAwayPoint.create({
+      contentId,
+      accountId: account.id,
+      point,
+    });
+
+    await this.addAccountPoint(account.id, point);
+  }
+
+  async getReferralLog(accountId: number) {
     const sql = `
     Select
         a.id,

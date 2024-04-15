@@ -1,11 +1,11 @@
 import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
-import {AccountService} from '@src/services/AccountService';
+import {AccountService, GiveawayPointParams} from '@src/services/AccountService';
 import {AccountParams} from '@src/models';
 import jwt from 'jsonwebtoken';
 import envVars from '@src/constants/EnvVars';
-import {requireLogin} from '@src/routes/helper';
+import {requireLogin, requireSecret} from '@src/routes/helper';
 
 type SyncAccountQuery = AccountParams & Query;
 
@@ -64,9 +64,16 @@ const routerMap = {
   },
 
   // Get account details
-  getRerferalLog: async (req: IReq<Query>, res: IRes) => {
+  getReferralLog: async (req: IReq<Query>, res: IRes) => {
     const accountId = req.user?.id || 0;
-    const data = await accountService.getRerferalLog(accountId);
+    const data = await accountService.getReferralLog(accountId);
+
+    return res.status(200).json(data);
+  },
+
+  giveAway: async (req: IReq<GiveawayPointParams>, res: IRes) => {
+    const params = req.body;
+    const data = await accountService.giveAccountPoint(params);
 
     return res.status(200).json(data);
   },
@@ -74,6 +81,7 @@ const routerMap = {
 
 AccountRouter.post('/sync', routerMap.sync);
 AccountRouter.get('/get-attribute', requireLogin, routerMap.getAttribute);
-AccountRouter.get('/get-rerferal-logs', requireLogin, routerMap.getRerferalLog);
+AccountRouter.get('/get-rerferal-logs', requireLogin, routerMap.getReferralLog);
+AccountRouter.get('/giveaway', requireSecret, routerMap.giveAway);
 
 export default AccountRouter;
