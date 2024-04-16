@@ -2,6 +2,7 @@ import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, M
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
 
+
 export class GameItem extends Model<InferAttributes<GameItem>, InferCreationAttributes<GameItem>> {
   declare id: CreationOptional<number>; // id on db
   declare gameId: number;
@@ -9,9 +10,12 @@ export class GameItem extends Model<InferAttributes<GameItem>, InferCreationAttr
   declare name: string;
   declare description: string;
   declare price: number;
+  declare itemGroup: CreationOptional<number>;
+  declare itemGroupLevel: CreationOptional<number>;
+  declare slug: string; // With levelItems like LEVEL1, LEVEL2, LEVEL3, LEVEL4, LEVEL5 slug will be itemGroup + levelNumber
   declare tokenPrice: number;
   declare maxBuy: number;
-  declare effectDuration: number;
+  declare effectDuration: CreationOptional<number>;
 }
 
 GameItem.init({
@@ -36,6 +40,17 @@ GameItem.init({
   description: {
     type: DataTypes.STRING,
   },
+  slug: {
+    type: DataTypes.STRING,
+  },
+  itemGroup: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  itemGroupLevel: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
   price: {
     type: DataTypes.INTEGER,
   },
@@ -47,9 +62,10 @@ GameItem.init({
   },
   effectDuration: {
     type: DataTypes.INTEGER,
+    allowNull: true,
   },
 }, {
-  indexes: [{fields: ['gameId']}],
+  indexes: [{unique: false, fields: ['gameId']}],
   tableName: 'game_item',
   sequelize: SequelizeServiceImpl.sequelize,
   createdAt: true,
