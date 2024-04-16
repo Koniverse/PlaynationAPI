@@ -7,6 +7,7 @@ export class GiveAwayPoint extends Model<InferAttributes<GiveAwayPoint>, InferCr
   declare contentId: CreationOptional<number>;
   declare accountId: number;
   declare point: number;
+  declare note: CreationOptional<string>;
 }
 
 GiveAwayPoint.init({
@@ -28,6 +29,9 @@ GiveAwayPoint.init({
   },
   point: {
     type: DataTypes.INTEGER,
+  },
+  note: {
+    type: DataTypes.TEXT,
   },
 }, {
   indexes: [],
