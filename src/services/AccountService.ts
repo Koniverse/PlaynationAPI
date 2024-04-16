@@ -269,6 +269,41 @@ export class AccountService {
 
     await this.addAccountPoint(account.id, point);
   }
+  async syncGiveAccountPoint(params: GiveawayPointParams[]) {
+    for (const param of params) {
+      const {contentId, inviteCode, point, note} = param;
+      const _contentId = contentId || 0;
+      const account = await Account.findOne({
+        where: {
+          inviteCode,
+        },
+      });
+      console.log('account', account);
+
+      if (!account) {
+        continue;
+      }
+      if (_contentId > 0) {
+        const giveAwayPoint = await GiveAwayPoint.findOne({
+          where: {
+            contentId: _contentId,
+          },
+        });
+        if (giveAwayPoint) {
+          continue;
+        }
+      }
+      await GiveAwayPoint.create({
+        contentId: _contentId,
+        accountId: account.id,
+        point,
+        note,
+      });
+
+      await this.addAccountPoint(account.id, point);
+    }
+    return {success: true};
+  }
 
   async getReferralLog(accountId: number) {
     const sql = `
