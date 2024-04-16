@@ -1,9 +1,15 @@
 import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
-import {GameContentCms, GameService, newGamePlayParams, SubmitGamePlayParams} from '@src/services/GameService';
+import {
+  GameContentCms,
+  GameInventoryItemParams,
+  GameService,
+  newGamePlayParams,
+  SubmitGamePlayParams,
+} from '@src/services/GameService';
 import {requireLogin, requireSecret} from '@src/routes/helper';
-import * as console from "node:console";
+import {GameItemService} from '@src/services/GameItemService';
 
 const GameRouter = Router();
 type NewGameParams = newGamePlayParams & Query;
@@ -53,6 +59,20 @@ const routerMap = {
     const result = await gameService.getTotalLeaderboard(userId);
     return res.status(200).json(result);
   },
+
+  usedGameItem: async (req: IReq<GameInventoryItemParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const data = req.body;
+    const result = await gameService.useGameInventoryItem(userId, data);
+    return res.status(200).json(result);
+  },
+
+
+  getInventoryLogs: async (req: IReq<Query>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const response = await GameItemService.instance.getInventoryLogs(userId, true);
+    return res.status(200).json(response);
+  },
 };
 
 GameRouter.post('/sync', requireSecret, routerMap.sync);
@@ -62,5 +82,8 @@ GameRouter.get('/leader-board', requireLogin, routerMap.getLeaderBoard);
 
 GameRouter.post('/new-game', requireLogin, routerMap.newGame);
 GameRouter.post('/submit', requireLogin, routerMap.submitGameplay);
+
+GameRouter.post('/use-item', requireLogin, routerMap.usedGameItem);
+GameRouter.get('/used-item-log', requireLogin, routerMap.getInventoryLogs);
 
 export default GameRouter;

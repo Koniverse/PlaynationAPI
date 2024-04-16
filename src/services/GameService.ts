@@ -1,6 +1,14 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import {Account, GameData, GamePlay, Game, LeaderboardPerson} from '@src/models';
-import { v4 } from 'uuid';
+import {
+  Account,
+  Game,
+  GameData,
+  GameInventoryItem,
+  GameInventoryItemStatus,
+  GamePlay,
+  LeaderboardPerson,
+} from '@src/models';
+import {v4} from 'uuid';
 import {AccountService} from '@src/services/AccountService';
 
 export interface newGamePlayParams {
@@ -29,7 +37,11 @@ export interface GameContentCms {
     icon: string,
     rank_definition: string,
     banner: string
+}
 
+
+export interface GameInventoryItemParams {
+  gameInventoryItemId: number,
 }
 
 export class GameService {
@@ -336,6 +348,32 @@ order by point desc;
       });
     }
     return[];
+  }
+
+  async useGameInventoryItem(accountId: number, data: GameInventoryItemParams){
+    const account = await accountService.findById(accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    const {gameInventoryItemId} = data;
+    const gameInventoryItem = await GameInventoryItem.findByPk(gameInventoryItemId);
+    if (!gameInventoryItem) {
+      throw new Error('Game inventory item not found');
+    }
+    if (gameInventoryItem.accountId !== accountId) {
+      throw new Error('Invalid account');
+    }
+    if (gameInventoryItem.status !== GameInventoryItemStatus.ACTIVE) {
+      throw new Error('Inventory item not used');
+    }
+    await gameInventoryItem.update({
+      status: GameInventoryItemStatus.USED,
+      usedTime: new Date(),
+    });
+    return  {
+      success: true,
+    };
+        
   }
 
   // Singleton
