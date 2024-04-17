@@ -169,17 +169,23 @@ export class GameService {
       throw new Error('Game play not found');
     }
 
-    // Validate max point
+
     const game = await this.findGame(gamePlay?.gameId || 0);
     if (!game) {
       throw new Error('Game not found');
     }
 
-    // Todo: Validate signature
+    // Validate max point
     if (params.point > game.maxPointPerGame) {
       throw new Error('Point limit exceeded');
     }
 
+    // Validate submitted
+    if (gamePlay.endTime) {
+      throw new Error('Game already submitted');
+    }
+
+    // Todo: Validate signature
     // Todo: Validate by time
     // Timeout if game is submitting too long
 
