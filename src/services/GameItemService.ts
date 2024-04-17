@@ -142,6 +142,9 @@ export class GameItemService {
     if (!game) {
       throw new Error('Game not found');
     }
+    if (gameItem.gameId !== game.id) {
+      throw new Error('Invalid game');
+    }
     
     const gameData = await GameData.findOne({where: {
       gameId: gameItem.gameId,
