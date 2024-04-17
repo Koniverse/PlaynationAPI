@@ -190,16 +190,16 @@ export class GameService {
     // Validate by time
     // Each game must be at least 25s
     // May be cheating
-    const timeDiff = new Date().getTime() - gamePlay.startTime.getTime();
-    if (timeDiff < 25000) {
-      await gamePlay.update({
-        point: -1,
-        endTime: new Date(),
-        success: false,
-      });
-
-      throw new Error('Invalid game');
-    }
+    // const timeDiff = new Date().getTime() - gamePlay.startTime.getTime();
+    // if (timeDiff < 25000) {
+    //   await gamePlay.update({
+    //     point: -1,
+    //     endTime: new Date(),
+    //     success: false,
+    //   });
+    //
+    //   throw new Error('Invalid game');
+    // }
 
     // Timeout if game is submitting too long
 
