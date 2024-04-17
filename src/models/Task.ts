@@ -13,6 +13,7 @@ export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<T
   declare url: string;
   declare pointReward: number;
   declare itemReward: CreationOptional<number>;
+  declare interval: CreationOptional<number>;
 }
 
 Task.init({
@@ -50,6 +51,9 @@ Task.init({
     type: DataTypes.INTEGER,
   },
   itemReward: {
+    type: DataTypes.INTEGER,
+  },
+  interval: {
     type: DataTypes.INTEGER,
   },
 }, {

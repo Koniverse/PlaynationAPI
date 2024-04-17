@@ -16,6 +16,7 @@ export interface TaskContentCms {
     gameId: number,
     pointReward: number,
     effectDuration: number,
+    interval: number,
 }
 
 export interface TaskSubmitParams{
@@ -91,9 +92,24 @@ export class TaskService {
     if (!userId || userId === 0) {
       throw new Error('User not found');
     }
-    const tasHistory = await TaskHistory.findOne({where: {taskId: task.id, accountId: userId}});
-    if (tasHistory) {
+    const interval = task.interval;
+    const tasHistory = await TaskHistory.findAll({
+      where: {taskId: task.id, accountId: userId},
+      order: [['createdAt', 'DESC']],
+      limit: 1,
+    });
+    if (tasHistory.length > 0 && (!interval || interval <= 0)) {
       throw new Error('Task already submitted');
+    }
+    if (tasHistory.length > 0 && interval > 0) {
+      const lastSubmit = tasHistory[0];
+      // @ts-ignore
+      const lastSubmitTime = lastSubmit.createdAt.getTime();
+      const currentTime = new Date().getTime();
+      const diff = currentTime - lastSubmitTime;
+      if (diff < interval * 1000) {
+        throw new Error('Task already for this interval time');
+      }
     }
 
     await TaskHistory.create({
