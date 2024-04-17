@@ -90,7 +90,7 @@ export class GameItemService {
     const dataMap = await GameItem.findAll({where: {gameId}});
     const gameData = await GameData.findOne({where: {accountId, gameId}});
     if (!gameData) {
-      return Object.values(dataMap);
+      return [];
     }
     const level = gameData.level;
     return dataMap.filter((item) => !item.slug || item.slug === this.getSlug(level));
