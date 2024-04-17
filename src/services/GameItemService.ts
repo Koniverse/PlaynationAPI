@@ -154,7 +154,7 @@ export class GameItemService {
     if (!gameData) {
       throw new Error('Game data not found');
     }
-    if (gameItem.slug !== this.getSlug(gameData.level)) {
+    if (gameItem.slug && gameItem.slug !== this.getSlug(gameData.level)) {
       throw new Error('Invalid level');
     }
     const accountAttribute = await AccountService.instance.getAccountAttribute(accountId, false);
