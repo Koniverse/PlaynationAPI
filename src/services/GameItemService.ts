@@ -23,9 +23,10 @@ export interface GameItemContentCms {
 
 export interface GameItemParams {
   gameItemId: number,
+  level: number,
 }
 export interface GameItemSearchParams {
-  level: number,
+  gameId: number,
 }
 export interface GameItemValidateParams{
   signature: string;
@@ -80,13 +81,19 @@ export class GameItemService {
     return gameItemMap[id.toString()];
   }
 
-  async listGameItem(data: GameItemSearchParams) {
-    const dataMap = !!this.gameItemMap ? this.gameItemMap : await this.buildMap();
-    const {level} = data;
-    if (!level) {
+  async listGameItem(accountId: number, data: GameItemSearchParams) {
+    const account = await accountService.findById(accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    const {gameId} = data;
+    const dataMap = await GameItem.findAll({where: {gameId}});
+    const gameData = await GameData.findOne({where: {accountId, gameId}});
+    if (!gameData) {
       return Object.values(dataMap);
     }
-    return Object.values(dataMap).filter((item) => !item.slug || item.slug === `level${level}`);
+    const level = gameData.level;
+    return dataMap.filter((item) => !item.slug || item.slug === this.getSlug(level));
   }
 
   async validate(accountId: number, data: GameItemValidateParams) {
@@ -118,12 +125,16 @@ export class GameItemService {
       success: true,
     };
   }
+  private getSlug(level: number) {
+    return `level${level}`;
+  }
   async submit(accountId: number, data: GameItemParams) {
     const account = await accountService.findById(accountId);
     if (!account) {
       throw new Error('Account not found');
     }
-    const gameItem = await this.findGameItem(data.gameItemId);
+    const {gameItemId} = data;
+    const gameItem = await this.findGameItem(gameItemId);
     if (!gameItem) {
       throw new Error('Game item not found');
     }
@@ -136,8 +147,12 @@ export class GameItemService {
       gameId: gameItem.gameId,
       accountId: accountId,
     }});
+    
     if (!gameData) {
       throw new Error('Game data not found');
+    }
+    if (gameItem.slug !== this.getSlug(gameData.level)) {
+      throw new Error('Invalid level');
     }
     const accountAttribute = await AccountService.instance.getAccountAttribute(accountId, false);
     if (!accountAttribute) {
