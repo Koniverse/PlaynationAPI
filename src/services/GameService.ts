@@ -2,6 +2,7 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import {Account, GameData, GamePlay, Game, LeaderboardPerson} from '@src/models';
 import { v4 } from 'uuid';
 import {AccountService} from '@src/services/AccountService';
+import {QueryTypes} from 'sequelize';
 
 export interface newGamePlayParams {
   gameId: number;
@@ -11,6 +12,18 @@ export interface SubmitGamePlayParams {
   gamePlayId: number;
   signature: string;
   point: number;
+}
+
+interface LeaderboardRecord {
+  rank: string; // SQL query returns rank as string
+  accountId: number;
+  address: string;
+  firstName: string;
+  lastName: string;
+  point: string; // SQL query returns point as string
+  telegramUsername: string;
+  avatar: string;
+  mine: boolean;
 }
 
 const accountService = AccountService.instance;
@@ -225,70 +238,59 @@ export class GameService {
 
   async getTotalLeaderboard(accountId: number) {
     const sql = `
-with leader as (SELECT a.id,
-                       a."address",
-                       a."firstName",
-                       a."lastName",
-                       a."telegramUsername",
-                       a."photoUrl",
-                       aa."accumulatePoint" as point
-                from account_attribute aa
-                         JOIN public.account a on a.id = aa."accountId"
-                order by aa."accumulatePoint" desc
-                limit 100),
-     mine as (SELECT a.id,
-                     a."address",
-                     a."firstName",
-                     a."lastName",
-                     a."telegramUsername",
-                     a."photoUrl",
-                     aa."accumulatePoint" as point
-              from account_attribute aa
-                       JOIN public.account a
-                            on a.id = aa."accountId"),
-     data_all as (select *
-                  from leader
-                  union
-                  select *
-                  from mine)
-select row_number() over (order by point desc) as rank,
-       id                                      as accountId,
-       "address",
-       "firstName",
-       "lastName",
-       point,
-       "telegramUsername",
-       "photoUrl"                              as avatar,
-       case
-           when id = ${accountId} then true
-           else false
-           end                                 as mine
-from data_all
-order by point desc;
-    `;
-    const data = await this.sequelizeService.sequelize.query(sql);
-    if (data.length > 0) {
-      return data[0].map((item) => {
-        // @ts-ignore
-        const {rank, point, telegramUsername, lastName, firstName, avatar, mine, accountId, address} = item;
-        return {
-          rank: parseInt(rank as string),
-          point: parseInt(point as string),
-          mine: mine as boolean,
-          accountInfo: {
-            telegramUsername: telegramUsername as string,
-            lastName: lastName as string,
-            firstName: firstName as string,
-            avatar: avatar as string,
-            id: accountId as number,
-            address: address as string,
-          },
-        } as LeaderboardPerson;
-      });
-    }
-    return[];
-  }
+    WITH RankedUsers AS (
+      SELECT 
+        a.id,
+        a."address",
+        a."firstName",
+        a."lastName",
+        a."telegramUsername",
+        a."photoUrl" as avatar,
+        aa."accumulatePoint" as point,
+        RANK() OVER (ORDER BY aa."accumulatePoint" DESC) as rank,
+        (a.id = :accountId) as mine
+      FROM account_attribute aa
+      JOIN public.account a ON a.id = aa."accountId"
+    )
+    SELECT
+      rank,
+      id as accountId,
+      "address",
+      "firstName",
+      "lastName",
+      point,
+      "telegramUsername",
+      avatar,
+      mine
+    FROM RankedUsers
+    WHERE rank <= 100 OR mine = true
+    ORDER BY rank;
+  `;
 
+    try {
+      const data = await this.sequelizeService.sequelize.query<LeaderboardRecord>(sql, {
+        replacements: { accountId },  // Use replacements for parameterized queries
+        type: QueryTypes.SELECT,
+      });
+
+      return data.map(item => ({
+        rank: parseInt(item.rank),
+        point: parseInt(item.point),
+        mine: item.mine,
+        accountInfo: {
+          telegramUsername: item.telegramUsername,
+          lastName: item.lastName,
+          firstName: item.firstName,
+          avatar: item.avatar,
+          id: item.accountId,
+          address: item.address,
+        },
+      }) as LeaderboardPerson);
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+      return [] as LeaderboardPerson[];  // Return an empty array in case of an error
+    }
+  }
   async getLeaderBoard(accountId: number, gameId?: number) {
     const queryGameId = gameId ? ` and aa."gameId" = ${gameId}`  : '';
     const sql = `
