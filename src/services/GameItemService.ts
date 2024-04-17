@@ -24,6 +24,9 @@ export interface GameItemContentCms {
 export interface GameItemParams {
   gameItemId: number,
 }
+export interface GameItemSearchParams {
+  level: number,
+}
 export interface GameItemValidateParams{
   signature: string;
   transactionId: string;
@@ -77,9 +80,13 @@ export class GameItemService {
     return gameItemMap[id.toString()];
   }
 
-  async listGameItem() {
+  async listGameItem(data: GameItemSearchParams) {
     const dataMap = !!this.gameItemMap ? this.gameItemMap : await this.buildMap();
-    return Object.values(dataMap);
+    const {level} = data;
+    if (!level) {
+      return Object.values(dataMap);
+    }
+    return Object.values(dataMap).filter((item) => !item.slug || item.slug === `level${level}`);
   }
 
   async validate(accountId: number, data: GameItemValidateParams) {

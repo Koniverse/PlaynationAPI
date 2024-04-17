@@ -6,7 +6,7 @@ import {
   GameItemContentCms,
   GameItemService,
   GameItemParams,
-  GameItemValidateParams
+  GameItemValidateParams, GameItemSearchParams
 } from '@src/services/GameItemService';
 
 const ShopRouter = Router();
@@ -17,8 +17,8 @@ const routerMap = {
     const response = await GameItemService.instance.syncData(data);
     return res.status(200).json(response);
   },
-  getItems: async (req: IReq<Query>, res: IRes) => {
-    const response = await GameItemService.instance.listGameItem();
+  getItems: async (req: IReq<GameItemSearchParams>, res: IRes) => {
+    const response = await GameItemService.instance.listGameItem(req.body);
     return res.status(200).json(response);
   },
 
@@ -42,7 +42,7 @@ const routerMap = {
 };
 
 ShopRouter.post('/sync', requireSecret, routerMap.sync);
-ShopRouter.get('/get-items', requireLogin, routerMap.getItems);
+ShopRouter.post('/get-items', requireLogin, routerMap.getItems);
 ShopRouter.post('/submit', requireLogin, routerMap.submit);
 ShopRouter.post('/buy-item-validate', requireLogin, routerMap.validate);
 ShopRouter.get('/buy-item-log', requireLogin, routerMap.getInventoryLogs);
