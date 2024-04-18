@@ -17,6 +17,8 @@ export interface TaskContentCms {
     pointReward: number,
     effectDuration: number,
     interval: number,
+    startTime: Date,
+    endTime: Date,
 }
 
 export interface TaskSubmitParams{
@@ -63,7 +65,16 @@ export class TaskService {
 
   async listTask() {
     const taskMap = !!this.taskMap ? this.taskMap : await this.buildMap();
-    return Object.values(taskMap);
+    const currentTime = new Date().getTime();
+    return Object.values(taskMap).filter((item) => {
+      if (item.startTime && item.endTime) {
+        console.log(item.startTime.getTime(), item.endTime.getTime(), currentTime);
+        const startTime = item.startTime.getTime();
+        const endTime = item.endTime.getTime();
+        return currentTime >= startTime && currentTime <= endTime;
+      }
+      return true;
+    });
   }
 
   async listTaskHistory(userId: number) {
@@ -98,6 +109,15 @@ export class TaskService {
       order: [['createdAt', 'DESC']],
       limit: 1,
     });
+    const currentTime = new Date().getTime();
+
+    if (task.startTime && task.endTime) {
+      const startTime = task.startTime.getTime();
+      const endTime = task.endTime.getTime();
+      if (currentTime < startTime || currentTime > endTime) {
+        throw new Error('Task not in time');
+      }
+    }
     if (tasHistory.length > 0 && (!interval || interval <= 0)) {
       throw new Error('Task already submitted');
     }
@@ -105,7 +125,6 @@ export class TaskService {
       const lastSubmit = tasHistory[0];
       // @ts-ignore
       const lastSubmitTime = lastSubmit.createdAt.getTime();
-      const currentTime = new Date().getTime();
       const diff = currentTime - lastSubmitTime;
       if (diff < interval * 1000) {
         throw new Error('Task already for this interval time');

@@ -14,6 +14,8 @@ export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<T
   declare pointReward: number;
   declare itemReward: CreationOptional<number>;
   declare interval: CreationOptional<number>;
+  declare startTime: CreationOptional<Date>;
+  declare endTime: CreationOptional<Date>;
 }
 
 Task.init({
@@ -55,6 +57,14 @@ Task.init({
   },
   interval: {
     type: DataTypes.INTEGER,
+  },
+  startTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  endTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
 }, {
   indexes: [{unique: true, fields: ['slug']}],
