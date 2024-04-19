@@ -1,9 +1,18 @@
 import {AccountService} from '@src/services/AccountService';
 import {Account, AccountParams} from '@src/models/Account';
-import {AccountAttribute, Game, GameData, GamePlay, Task, TaskHistory} from '@src/models';
+import {
+  AccountAttribute,
+  Game,
+  GameData,
+  GameInventoryItem,
+  GameInventoryItemStatus,
+  GamePlay,
+  Task,
+  TaskHistory,
+} from '@src/models';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {GameService} from '@src/services/GameService';
-import {GameItemService} from "@src/services/GameItemService";
+import {GameItemService} from '@src/services/GameItemService';
 
 
 describe('Game Item Test', () => {
@@ -89,7 +98,7 @@ describe('Game Item Test', () => {
     expect(account.updatedAt).toEqual(updatedAt2);
   });
 
-  it('Play game', async function () {
+  it('Test game enought point', async function () {
     await SequelizeServiceImpl.syncAll();
     // Create new game
     const defaultGame = await gameService.generateDefaultData();
@@ -100,7 +109,7 @@ describe('Game Item Test', () => {
     const defaultGameItem = await gameItemService.generateDefaultData(defaultGame.id);
     const newGame = await gameService.newGamePlay(currentUser.id, defaultGame.id);
     try {
-        await gameItemService.submit(currentUser.id, {gameItemId: defaultGameItem.id});
+      await gameItemService.submit(currentUser.id, {gameItemId: defaultGameItem.id});
     }
     catch (e) {
       expect(e.message).toEqual('Not enough point');
@@ -120,6 +129,30 @@ describe('Game Item Test', () => {
     const defaultGameItem = await gameItemService.generateDefaultData(defaultGame.id);
     const newGame = await gameService.newGamePlay(currentUser.id, defaultGame.id);
     const submitResult = await gameItemService.submit(currentUser.id, {gameItemId: defaultGameItem.id});
+    console.log('Game item submit result');
     expect(submitResult.success).toEqual(true);
+    expect(submitResult.transactionId).toMatch(/^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i);
+    const accountNewAttribute = await accountService.getAccountAttribute(currentUser.id, false);
+    expect(accountNewAttribute.point).toEqual(1000 - defaultGameItem.price);
+    const validateGameItem = await gameItemService.validate(currentUser.id, {
+      transactionId: submitResult.transactionId,
+      signature: '0x000',
+    }, false);
+    const gameInventoryItem = await GameInventoryItem.findOne({where: {transactionId: submitResult.transactionId}});
+
+    expect(validateGameItem.success).toEqual(true);
+    if (gameInventoryItem) {
+      console.log('Game inventory item validate by transactionId');
+      expect(gameInventoryItem.status).toEqual(GameInventoryItemStatus.ACTIVE);
+      const usedGameItem = await gameService.useGameInventoryItem(currentUser.id, {
+        gameInventoryItemId: gameInventoryItem.id,
+      });
+      expect(usedGameItem.success).toEqual(true);
+      const gameInventoryItemNew = await GameInventoryItem.findOne({where: {transactionId: submitResult.transactionId}});
+      console.log('Game inventory item used');
+      if (gameInventoryItemNew) {
+        expect(gameInventoryItemNew.status).toEqual(GameInventoryItemStatus.USED);
+      }
+    }
   });
 });

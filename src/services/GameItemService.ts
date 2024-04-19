@@ -119,7 +119,7 @@ export class GameItemService {
     return dataMap.filter((item) => !item.slug || item.slug === this.getSlug(level));
   }
 
-  async validate(accountId: number, data: GameItemValidateParams) {
+  async validate(accountId: number, data: GameItemValidateParams, isValidateSignature = true) {
     const account = await accountService.findById(accountId);
     if (!account) {
       throw new Error('Account not found');
@@ -137,7 +137,7 @@ export class GameItemService {
     }
     const validSignature = validateSignature(account.address, transactionId , signature);
 
-    if (!validSignature) {
+    if (!validSignature && isValidateSignature) {
       throw new Error('Invalid signature ' + transactionId);
     }
     await gameInventoryItem.update({

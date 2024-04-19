@@ -52,7 +52,7 @@ export class GameService {
   }
 
   async generateDefaultData() {
-    const existed = await Game.findOne({ where: { slug: 'play_booka' } });
+    const existed = await Game.findOne({ where: { slug: 'booka' } });
     if (existed) {
       return existed;
     }
