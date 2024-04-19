@@ -1,14 +1,26 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import EnvVars from '@src/constants/EnvVars';
 import fetch from 'node-fetch';
-import {Account} from "@src/models";
+import {Account} from '@src/models';
 
 export interface TelegramParams {
     telegramId: number;
     telegramUsername: string;
-
 }
+
+export interface TelegramMessageItem {
+  id: string,
+  telegramId: number;
+  data: any;
+}
+
+const TELEGRAM_RATE_LIMIT = 20;
+const ONE_SECOND = 1000;
+
 export class TelegramService {
+  private telegramMessageQueue: Record<string, TelegramMessageItem> = {};
+  private isRunning = false;
+
   public dataTelegramList: Record<string, TelegramParams> = {};
   constructor(private sequelizeService: SequelizeService) {}
 
@@ -16,12 +28,12 @@ export class TelegramService {
     delete this.dataTelegramList[telegramId];
   }
   async getTelegramList(){
-    console.log('Get telegram list')
+    console.log('Get telegram list');
     console.log(Object.keys(this.dataTelegramList).length);
     if (Object.keys(this.dataTelegramList).length === 0) {
       const telegramList = await Account.findAll({});
       this.dataTelegramList = telegramList.reduce((acc, item) => {
-        console.log('item', item.telegramId)
+        console.log('item', item.telegramId);
         acc[item.telegramId] = {
           telegramId: item.telegramId,
           telegramUsername: item.telegramUsername,
@@ -41,6 +53,7 @@ export class TelegramService {
       caption: message,
       'parse_mode': 'html',
     };
+
     const rs = await this.sendTelegramMessage(telegramId,data);
   }
 
@@ -48,8 +61,44 @@ export class TelegramService {
     return `https://api.telegram.org/bot${EnvVars.Telegram.Token}/${action}`;
   }
 
-  async sendTelegramMessage(telegramId: string,data: any){
+  addTelegramMessage(telegramId: number, data: TelegramParams){
+    const messageId = `${telegramId}-${new Date().getTime()}`;
+    this.telegramMessageQueue[messageId] = {
+      id: messageId,
+      telegramId,
+      data,
+    };
+
+    this.process();
+  }
+
+  private process() {
+    if (this.isRunning) {
+      return;
+    }
+
+    const processInterval = setInterval(() => {
+      if (Object.keys(this.telegramMessageQueue).length === 0) {
+        clearInterval(processInterval);
+        this.isRunning = false;
+        return;
+      }
+
+      // Get TELEGRAM_RATE_LIMIT messages and send
+      const messages = Object.values(this.telegramMessageQueue).slice(0, TELEGRAM_RATE_LIMIT);
+      messages.forEach(async (message) => {
+        const {telegramId, data} = message;
+        await this.sendTelegramMessage(telegramId, data);
+        delete this.telegramMessageQueue[message.id];
+      });
+    }, ONE_SECOND);
+
+    this.isRunning = true;
+  }
+
+  async sendTelegramMessage(telegramId: number, data: any){
     console.log(this.getUrlApi('sendPhoto'));
+
     const rs = await fetch(
       this.getUrlApi('sendPhoto'),
       {
