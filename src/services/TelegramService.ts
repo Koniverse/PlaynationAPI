@@ -49,10 +49,9 @@ export class TelegramService {
 
       // Get TELEGRAM_RATE_LIMIT messages and send
       const messages = Object.values(this.telegramMessageQueue).slice(0, EnvVars.Telegram.RateLimit);
-      const promises = [];
       messages.forEach(async (message) => {
         const { data} = message;
-        promises.push(this.sendTelegramMessage(data))
+        await this.sendTelegramMessage(data);
         delete this.telegramMessageQueue[message.id];
       });
     }, EnvVars.Telegram.IntervalTime);
