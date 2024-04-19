@@ -19,7 +19,10 @@ export class TelegramService {
   }
 
   async addTelegramMessage( data: any){
-    const accountDataList = await Account.findAll({})
+    const accountDataList = await Account.findAll({order: [['id', 'ASC']]});
+
+    console.log('send telegram message', accountDataList.length, data);
+
     // add to queue in memory
     accountDataList.forEach((account) => {
       const telegramId = account.telegramId;
@@ -29,8 +32,7 @@ export class TelegramService {
       this.telegramMessageQueue[messageId] = {
         id: messageId,
         telegramId,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        data: dataSend,
+        data: dataSend as unknown,
       };
     });
     this.process();
@@ -49,9 +51,8 @@ export class TelegramService {
 
       // Get TELEGRAM_RATE_LIMIT messages and send
       const messages = Object.values(this.telegramMessageQueue).slice(0, EnvVars.Telegram.RateLimit);
-      messages.forEach(async (message) => {
-        const { data } = message;
-        await this.sendTelegramMessage(data);
+      messages.forEach((message) => {
+        this.sendTelegramMessage(message.data).catch(console.error);
         delete this.telegramMessageQueue[message.id];
       });
     }, EnvVars.Telegram.IntervalTime);
