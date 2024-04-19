@@ -4,6 +4,7 @@ import {GameData, GameInventoryItem, GameInventoryItemStatus, GameItem} from '@s
 import {AccountService} from '@src/services/AccountService';
 import {v4} from 'uuid';
 import {validateSignature} from '@src/utils';
+import {GameService} from "@src/services/GameService";
 
 
 export interface GameItemContentCms {
@@ -22,8 +23,7 @@ export interface GameItemContentCms {
 
 
 export interface GameItemParams {
-  gameItemId: number,
-  level: number,
+  gameItemId: number
 }
 export interface GameItemSearchParams {
   gameId: number,
@@ -39,6 +39,29 @@ export class GameItemService {
   private gameItemMap: Record<string, GameItem> | undefined;
   constructor(private sequelizeService: SequelizeService) {
 
+  }
+
+
+
+  async generateDefaultData(gameId: number) {
+    const existed = await GameItem.findOne({where: {contentId: 1}});
+    if (existed) {
+      return existed;
+    }
+
+    return await GameItem.create({
+      contentId: 1,
+      name: 'Game item',
+      description: 'Default Game item',
+      effectDuration: 200,
+      gameId: gameId,
+      itemGroup: 1,
+      itemGroupLevel: 1,
+      maxBuy: 0,
+      price: 300,
+      tokenPrice: 0,
+      slug: 'level1',
+    });
   }
 
   async syncData(data: GameItemContentCms[]) {
