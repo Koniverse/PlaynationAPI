@@ -21,11 +21,20 @@ export class TelegramService {
   async addTelegramMessage( data: any){
     const accountDataList = await Account.findAll({order: [['id', 'ASC']]});
 
-    console.log('send telegram message', accountDataList.length, data);
+    console.log('Send telegram message for all user', accountDataList.length, data);
+
+    const sentMap: Record<number, number> = {};
 
     // add to queue in memory
     accountDataList.forEach((account) => {
       const telegramId = account.telegramId;
+
+      if (!telegramId || sentMap[telegramId]) {
+        return;
+      }
+
+      sentMap[telegramId] = telegramId;
+
       const messageId = `${telegramId}-${new Date().getTime()}`;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const dataSend = {...data, chat_id: telegramId};
