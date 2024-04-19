@@ -40,7 +40,9 @@ const Environments = {
   },
   Telegram: {
     Token: process.env.BOT_TELEGRAM_TOKEN ?? '',
-    IntervalTime: Number(process.env.INTERVAL_TELEGRAM_TIME) ?? 6000000,
+    IntervalTime: Number(process.env.INTERVAL_TELEGRAM_TIME || '1000'),
+    RateLimit: Number(process.env.TELEGRAM_RATE_LIMIT || '20')
+
   },
   Mongo: {
     Host: process.env.MONGO_HOST ?? 'localhost',
