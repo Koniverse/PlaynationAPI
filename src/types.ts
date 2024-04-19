@@ -111,3 +111,10 @@ export enum ExtensionAccountType {
     SUBWALLET = 'subwallet',
     POLKADOT = 'polkadotjs',
 }
+
+export interface TelegramResponse<T> {
+    code: number,
+    data: T,
+    message: string,
+    generated_at: number
+}
