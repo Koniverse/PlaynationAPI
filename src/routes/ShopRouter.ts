@@ -20,19 +20,22 @@ const routerMap = {
   },
   getItems: async (req: IReq<GameItemSearchParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const response = await GameItemService.instance.listGameItem(userId, req.body);
+    const {gameId} = req.body;
+    const response = await GameItemService.instance.listGameItem(userId, gameId);
     return res.status(200).json(response);
   },
 
   submit: async (req: IReq<GameItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const response = await GameItemService.instance.submit(userId, req.body);
+    const {gameItemId} = req.body;
+    const response = await GameItemService.instance.submit(userId, gameItemId);
     return res.status(200).json(response);
   },
 
   validate: async (req: IReq<GameItemValidateParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const response = await GameItemService.instance.validate(userId, req.body);
+    const {signature, transactionId} = req.body;
+    const response = await GameItemService.instance.validate(userId, transactionId, signature);
     return res.status(200).json(response);
   },
 
@@ -44,7 +47,7 @@ const routerMap = {
 };
 
 ShopRouter.post('/sync', requireSecret, routerMap.sync);
-ShopRouter.get('/get-items', requireLogin, routerMap.getItems);
+ShopRouter.post('/get-items', requireLogin, routerMap.getItems);
 ShopRouter.post('/submit', requireLogin, routerMap.submit);
 ShopRouter.post('/buy-item-validate', requireLogin, routerMap.validate);
 ShopRouter.get('/buy-item-log', requireLogin, routerMap.getInventoryLogs);

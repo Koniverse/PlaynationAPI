@@ -372,12 +372,11 @@ export class GameService {
     return[];
   }
 
-  async useGameInventoryItem(accountId: number, data: GameInventoryItemParams){
+  async useGameInventoryItem(accountId: number, gameInventoryItemId: number){
     const account = await accountService.findById(accountId);
     if (!account) {
       throw new Error('Account not found');
     }
-    const {gameInventoryItemId} = data;
     const gameInventoryItem = await GameInventoryItem.findByPk(gameInventoryItemId);
     if (!gameInventoryItem) {
       throw new Error('Game inventory item not found');

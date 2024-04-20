@@ -62,8 +62,8 @@ const routerMap = {
 
   usedGameItem: async (req: IReq<GameInventoryItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const data = req.body;
-    const result = await gameService.useGameInventoryItem(userId, data);
+    const {gameInventoryItemId} = req.body;
+    const result = await gameService.useGameInventoryItem(userId, gameInventoryItemId);
     return res.status(200).json(result);
   },
 

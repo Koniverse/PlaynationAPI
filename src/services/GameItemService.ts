@@ -103,28 +103,29 @@ export class GameItemService {
     const gameItemMap = !!this.gameItemMap ? this.gameItemMap : await this.buildMap();
     return gameItemMap[id.toString()];
   }
+  // Get game item by game id and account id
+  // and fiter by level or all game item if slug is null
+  async listGameItem(accountId: number, gameId: number) {
 
-  async listGameItem(accountId: number, data: GameItemSearchParams) {
     const account = await accountService.findById(accountId);
+    console.log('gameId', gameId)
     if (!account) {
       throw new Error('Account not found');
     }
-    const {gameId} = data;
     const dataMap = await GameItem.findAll({where: {gameId}});
     const gameData = await GameData.findOne({where: {accountId, gameId}});
-    if (!gameData) {
-      return [];
+    let level = 1;
+    if (gameData) {
+      level = gameData.level;
     }
-    const level = gameData.level;
     return dataMap.filter((item) => !item.slug || item.slug === this.getSlug(level));
   }
 
-  async validate(accountId: number, data: GameItemValidateParams, isValidateSignature = true) {
+  async validate(accountId: number, transactionId: string, signature: string, isValidateSignature = true) {
     const account = await accountService.findById(accountId);
     if (!account) {
       throw new Error('Account not found');
     }
-    const {signature, transactionId} = data;
     const gameInventoryItem = await GameInventoryItem.findOne({where: {transactionId}});
     if (!gameInventoryItem) {
       throw new Error('Game inventory item not found');
@@ -151,12 +152,11 @@ export class GameItemService {
   private getSlug(level: number) {
     return `level${level}`;
   }
-  async submit(accountId: number, data: GameItemParams) {
+  async submit(accountId: number, gameItemId: number) {
     const account = await accountService.findById(accountId);
     if (!account) {
       throw new Error('Account not found');
     }
-    const {gameItemId} = data;
     const gameItem = await this.findGameItem(gameItemId);
     if (!gameItem) {
       throw new Error('Game item not found');
@@ -177,6 +177,7 @@ export class GameItemService {
     if (!gameData) {
       throw new Error('Game data not found');
     }
+    // Check if game item is valid for this level
     if (gameItem.slug && gameItem.slug !== this.getSlug(gameData.level)) {
       throw new Error('Invalid level');
     }
