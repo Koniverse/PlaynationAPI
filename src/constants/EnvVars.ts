@@ -38,6 +38,12 @@ const Environments = {
     Host: process.env.REDIS_HOST ?? 'localhost',
     Port: process.env.REDIS_PORT ?? 6379,
   },
+  Telegram: {
+    Token: process.env.BOT_TELEGRAM_TOKEN ?? '',
+    IntervalTime: Number(process.env.INTERVAL_TELEGRAM_TIME || '1000'),
+    RateLimit: Number(process.env.TELEGRAM_RATE_LIMIT || '20')
+
+  },
   Mongo: {
     Host: process.env.MONGO_HOST ?? 'localhost',
     Port: process.env.MONGO_PORT ?? 27001,

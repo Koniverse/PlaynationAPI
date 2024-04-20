@@ -8,10 +8,12 @@ import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
 import {GiveAwayPoint} from '@src/models';
 
+// CMS input
 export interface GiveawayPointParams {
   contentId?: number;
   inviteCode: string;
   point: number;
+  note?: string;
 }
 
 export class AccountService {
@@ -246,7 +248,7 @@ export class AccountService {
   }
 
   async giveAccountPoint(params: GiveawayPointParams) {
-    const {contentId, inviteCode, point} = params;
+    const {contentId, inviteCode, point, note} = params;
     // Find account by invite code
     const account = await Account.findOne({
       where: {
@@ -262,9 +264,45 @@ export class AccountService {
       contentId,
       accountId: account.id,
       point,
+      note,
     });
 
     await this.addAccountPoint(account.id, point);
+  }
+  async syncGiveAccountPoint(params: GiveawayPointParams[]) {
+    for (const param of params) {
+      const {contentId, inviteCode, point, note} = param;
+      const _contentId = contentId || 0;
+      const account = await Account.findOne({
+        where: {
+          inviteCode,
+        },
+      });
+      console.log('account', account);
+
+      if (!account) {
+        continue;
+      }
+      if (_contentId > 0) {
+        const giveAwayPoint = await GiveAwayPoint.findOne({
+          where: {
+            contentId: _contentId,
+          },
+        });
+        if (giveAwayPoint) {
+          continue;
+        }
+      }
+      await GiveAwayPoint.create({
+        contentId: _contentId,
+        accountId: account.id,
+        point,
+        note,
+      });
+
+      await this.addAccountPoint(account.id, point);
+    }
+    return {success: true};
   }
 
   async getReferralLog(accountId: number) {

@@ -74,7 +74,14 @@ const routerMap = {
   giveAway: async (req: IReq<GiveawayPointParams>, res: IRes) => {
     const params = req.body;
     const data = await accountService.giveAccountPoint(params);
+    return res.status(200).json(data);
+  },
 
+
+  syncGiveAway: async (req: IReq<GiveawayPointParams[]>, res: IRes) => {
+    // @ts-ignore
+    const params = req.body.data as GiveawayPointParams[];
+    const data = await accountService.syncGiveAccountPoint(params);
     return res.status(200).json(data);
   },
 };
@@ -83,5 +90,6 @@ AccountRouter.post('/sync', routerMap.sync);
 AccountRouter.get('/get-attribute', requireLogin, routerMap.getAttribute);
 AccountRouter.get('/get-rerferal-logs', requireLogin, routerMap.getReferralLog);
 AccountRouter.get('/giveaway', requireSecret, routerMap.giveAway);
+AccountRouter.post('/sync-giveaway', requireSecret, routerMap.syncGiveAway);
 
 export default AccountRouter;

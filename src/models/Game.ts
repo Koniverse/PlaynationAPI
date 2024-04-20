@@ -12,9 +12,13 @@ export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<G
   declare banner: string;
   declare maxEnergy: number;
   declare energyPerGame: number;
-  declare maxPointPerGame: number;
-  declare rankDefinition: string;
-  declare active: boolean;
+  declare active: boolean; // Todo: change to field on CMS
+
+  declare startTime: CreationOptional<Date>;
+  declare endTime: CreationOptional<Date>;
+
+  declare maxPointPerGame: CreationOptional<number>;
+  declare rankDefinition: CreationOptional<string>;
 }
 
 Game.init({
@@ -55,6 +59,14 @@ Game.init({
   },
   rankDefinition: {
     type: DataTypes.TEXT,
+  },
+  startTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  endTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
   active: {
     type: DataTypes.BOOLEAN,
