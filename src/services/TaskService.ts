@@ -109,7 +109,8 @@ export class TaskService {
       order: [['createdAt', 'DESC']],
       limit: 1,
     });
-    const currentTime = new Date().getTime();
+    const now = new Date();
+    const currentTime = now.getTime();
 
     if (task.startTime && task.endTime) {
       const startTime = task.startTime.getTime();
@@ -123,10 +124,10 @@ export class TaskService {
     }
     if (tasHistory.length > 0 && interval > 0) {
       const lastSubmit = tasHistory[0];
-      // @ts-ignore
       const lastSubmitTime = lastSubmit.createdAt.getTime();
       const diff = currentTime - lastSubmitTime;
-      if (diff < interval * 1000) {
+      const diffInSeconds = diff / 1000;
+      if (diffInSeconds < interval) {
         throw new Error('Task already for this interval time');
       }
     }
