@@ -57,6 +57,7 @@ Task.init({
   },
   interval: {
     type: DataTypes.INTEGER,
+    allowNull: true,
   },
   startTime: {
     type: DataTypes.DATE,

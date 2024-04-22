@@ -81,10 +81,13 @@ export class TaskService {
     const sql = `
         SELECT t.*,
                CASE
-                   WHEN EXISTS (SELECT 1 FROM task_history AS th WHERE th."taskId" = t.id and th."accountId" = ${userId})
+                   WHEN th.id IS NOT NULL
                        THEN 1
-                   ELSE 0 END AS status
-        FROM task AS t;
+                       ELSE 0 
+                   END AS status
+        FROM task AS t
+            LEFT JOIN task_history th on t.id = th."taskId"
+        WHERE th."accountId" = ${userId}
     `;
     const data = await this.sequelizeService.sequelize.query(sql);
     return data.length > 0 ? data[0] : [];
@@ -96,6 +99,7 @@ export class TaskService {
   }
 
   async submit(userId: number, taskId: number) {
+    // Get basic data
     const task = await this.findTask(taskId);
     if (!task) {
       throw new Error('Task not found');
@@ -103,41 +107,57 @@ export class TaskService {
     if (!userId || userId === 0) {
       throw new Error('User not found');
     }
-    const interval = task.interval;
-    const tasHistory = await TaskHistory.findAll({
+
+    // Check if task already submitted
+    const latestLast = await TaskHistory.findAll({
       where: {taskId: task.id, accountId: userId},
       order: [['createdAt', 'DESC']],
       limit: 1,
     });
+
+    // Validate task submission
+    const interval = task.interval;
+    if (latestLast.length > 0 && (!interval || interval <= 0)) {
+      throw new Error('Task already submitted');
+    }
+
+    // Validate task time
     const now = new Date();
     const currentTime = now.getTime();
 
-    if (task.startTime && task.endTime) {
+    if (task.startTime) {
       const startTime = task.startTime.getTime();
-      const endTime = task.endTime.getTime();
-      if (currentTime < startTime || currentTime > endTime) {
-        throw new Error('Task not in time');
+      if (currentTime < startTime) {
+        throw new Error('Task is not started yet');
       }
     }
-    if (tasHistory.length > 0 && (!interval || interval <= 0)) {
-      throw new Error('Task already submitted');
+
+    if (task.endTime) {
+      const endTime = task.endTime.getTime();
+      if (currentTime > endTime) {
+        throw new Error('Task is already ended');
+      }
     }
-    if (tasHistory.length > 0 && interval > 0) {
-      const lastSubmit = tasHistory[0];
+
+    // Validate repeat task
+    if (latestLast.length > 0 && interval > 0) {
+      const lastSubmit = latestLast[0];
       const lastSubmitTime = lastSubmit.createdAt.getTime();
       const diff = currentTime - lastSubmitTime;
       const diffInSeconds = diff / 1000;
       if (diffInSeconds < interval) {
-        throw new Error('Task already for this interval time');
+        throw new Error('Task is not ready to be submitted yet');
       }
     }
 
+    // Create task history
     await TaskHistory.create({
       taskId: task.id,
       accountId: userId,
       pointReward: task.pointReward,
     });
 
+    // Add point to account
     await AccountService.instance.addAccountPoint(userId, task.pointReward);
 
     return {
