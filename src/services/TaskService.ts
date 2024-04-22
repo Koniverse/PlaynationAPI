@@ -80,14 +80,14 @@ export class TaskService {
   async listTaskHistory(userId: number) {
     const sql = `
         SELECT t.*,
-               CASE
-                   WHEN th.id IS NOT NULL
-                       THEN 1
-                       ELSE 0 
-                   END AS status
+       CASE
+       WHEN th.id IS NOT NULL
+           THEN 1
+       ELSE 0
+       END AS status,
+       th."createdAt" as "completedAt"
         FROM task AS t
-            LEFT JOIN task_history th on t.id = th."taskId"
-        WHERE th."accountId" = ${userId}
+        LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
     `;
     const data = await this.sequelizeService.sequelize.query(sql);
     return data.length > 0 ? data[0] : [];
