@@ -9,7 +9,10 @@
     "start": "node -r module-alias/register ./dist --env=production",
     "dev": "nodemon",
     "test": "nodemon --config ./spec/nodemon.json",
-    "test:no-reloading": "npx ts-node --files -r tsconfig-paths/register ./spec"
+    "test:no-reloading": "npx ts-node --files -r tsconfig-paths/register ./spec",
+    "migrate:generate": "npx sequelize-cli migration:generate --name",
+    "migrate:up": "npx sequelize-cli db:migrate",
+    "migrate:down": "npx sequelize-cli db:migrate:undo"
   },
   "nodemonConfig": {
     "watch": [
@@ -91,6 +94,7 @@
     "jasmine": "^4.6.0",
     "jest": "^29.6.1",
     "nodemon": "^2.0.22",
+    "sequelize-cli": "^6.6.2",
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
