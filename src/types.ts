@@ -113,8 +113,18 @@ export enum ExtensionAccountType {
 }
 
 export interface TelegramResponse<T> {
-    code: number,
-    data: T,
-    message: string,
-    generated_at: number
+    ok: boolean,
+    result: T,
+}
+export interface TelegramFile {
+    file_id: string,
+    file_size?: number,
+    width?: number,
+    height?: number,
+    file_unique_id: string,
+    file_path?: string
+}
+export interface TelegramUserProfilePhotos {
+    photos: TelegramFile[][],
+    total_count: number
 }

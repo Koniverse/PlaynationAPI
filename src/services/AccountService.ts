@@ -7,6 +7,7 @@ import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
 import {GiveAwayPoint} from '@src/models';
+import {TelegramService} from '@src/services/TelegramService';
 
 // CMS input
 export interface GiveawayPointParams {
@@ -110,6 +111,11 @@ export class AccountService {
       account = await this.createAccount(info);
       // Add  point from inviteCode
       code && await this.addInvitePoint(account.id, code, account.isPremium);
+      
+      const {telegramId} = info;
+      if (telegramId) {
+        await TelegramService.instance.saveImageTelegram(telegramId);
+      }
     }
 
 

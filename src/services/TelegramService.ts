@@ -2,6 +2,8 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import EnvVars from '@src/constants/EnvVars';
 import fetch from 'node-fetch';
 import {Account} from '@src/models';
+import {TelegramFile, TelegramResponse, TelegramUserProfilePhotos} from '@src/types';
+import {downloadImage} from '@src/utils/download';
 
 export interface TelegramMessageItem {
   id: string,
@@ -16,6 +18,9 @@ export class TelegramService {
 
   getUrlApi(action: string){
     return `https://api.telegram.org/bot${EnvVars.Telegram.Token}/${action}`;
+  }
+  getUrlFile(path: string){
+    return `https://api.telegram.org/file/bot${EnvVars.Telegram.Token}/${path}`;
   }
 
   async addTelegramMessage( data: any){
@@ -46,6 +51,62 @@ export class TelegramService {
     });
     this.process();
   }
+  
+  async  saveImageTelegram(telegramId: number) {
+    const account = await Account.findOne({where: {telegramId}});
+    if (!account) {
+      return;
+    }
+    try {
+      const url = await this.getUrlProfile(telegramId);
+      if (url){
+        const photoUrl = `images/telegram/${telegramId}.jpg`;
+        const path = `./public/${photoUrl}`;
+        await downloadImage(url, path);
+        await account.update({photoUrl});
+      }
+    } catch (error) {
+      console.error('Error fetching image:', error);
+    }
+  }
+  
+  async  getUrlProfile(telegramId: number) {
+    const data = await this.sendActionTelegram('getUserProfilePhotos', {user_id: telegramId}) as TelegramResponse<TelegramUserProfilePhotos>;
+    if (!data) {
+      return;
+    }
+    if (data.ok) {
+      const {result} = data;
+      const {photos, total_count} = result;
+      if (total_count > 0) {
+      // Get file_id from photo file_size min (last item)
+        let minFileSize = 0;
+        let file_id;
+        photos.forEach(photoArray =>   {
+          photoArray.forEach(photo => {
+            if (photo.file_size) {
+              if(minFileSize === 0){
+                minFileSize = photo.file_size;
+                file_id = photo.file_id;
+              } else if( photo.file_size < minFileSize) {
+                minFileSize = photo.file_size;
+                file_id = photo.file_id;
+              }
+            }
+          });
+        });
+        const file = await this.sendActionTelegram('getFile', {file_id}) as TelegramResponse<TelegramFile>;
+        if (file && file.ok){
+          const {file_path} = file.result;
+          if (file_path) {
+            return this.getUrlFile(file_path);
+
+          }
+        }
+      }
+    }
+    return null;
+  }
 
   private process() {
     if (this.isRunning) {
@@ -72,6 +133,20 @@ export class TelegramService {
   async sendTelegramMessage(data: any){
     await fetch(
       this.getUrlApi('sendPhoto'),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+        body: JSON.stringify(data),
+        redirect: 'follow',
+      }).then(response => response.json());
+  }
+
+  async sendActionTelegram(action: string, data: any){
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return await fetch(
+      this.getUrlApi(action),
       {
         headers: {
           'Content-Type': 'application/json',
