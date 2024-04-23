@@ -54,7 +54,7 @@ export class TelegramService {
   
   async saveImageTelegram(telegramId: number) {
     const account = await Account.findAll({where: {telegramId}});
-    if (!account) {
+    if (account.length === 0) {
       return;
     }
     try {
