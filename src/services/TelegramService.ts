@@ -52,19 +52,24 @@ export class TelegramService {
     this.process();
   }
   
-  async  saveImageTelegram(telegramId: number) {
-    const account = await Account.findOne({where: {telegramId}});
+  async saveImageTelegram(telegramId: number) {
+    const account = await Account.findAll({where: {telegramId}});
     if (!account) {
       return;
     }
     try {
       const url = await this.getUrlProfile(telegramId);
+      let photoUrl;
       if (url){
-        const photoUrl = `images/telegram/${telegramId}.jpg`;
+        photoUrl = `images/telegram/${telegramId}.jpg`;
         const path = `./public/${photoUrl}`;
         await downloadImage(url, path);
-        await account.update({photoUrl});
       }
+      const updateData = {photoUrl: photoUrl, cronAvatar: true};
+      const promises = account.map( (account) => {
+        return account.update(updateData);
+      });
+      await Promise.all(promises);
     } catch (error) {
       console.error('Error fetching image:', error);
     }
