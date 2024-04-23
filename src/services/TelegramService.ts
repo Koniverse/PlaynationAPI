@@ -2,7 +2,7 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import EnvVars from '@src/constants/EnvVars';
 import fetch from 'node-fetch';
 import {Account} from '@src/models';
-import {TelegramFile, TelegramResponse, TelegramUserProfilePhotos} from '@src/types';
+import {TelegramFile, TelegramParams, TelegramResponse, TelegramUserProfilePhotos} from '@src/types';
 import {downloadImage} from '@src/utils/download';
 
 export interface TelegramMessageItem {
@@ -23,7 +23,7 @@ export class TelegramService {
     return `https://api.telegram.org/file/bot${EnvVars.Telegram.Token}/${path}`;
   }
 
-  async addTelegramMessage( data: any){
+  async addTelegramMessage( data: TelegramParams){
     const accountDataList = await Account.findAll({order: [['id', 'ASC']]});
 
     console.log('Send telegram message for all user', accountDataList.length, data);
