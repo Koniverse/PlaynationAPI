@@ -9,6 +9,8 @@ export class TaskHistory extends Model<InferAttributes<TaskHistory>, InferCreati
   declare accountId: number;
   declare pointReward: number;
   declare inventoryId: CreationOptional<number>;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 }
 
 TaskHistory.init({
@@ -37,8 +39,10 @@ TaskHistory.init({
   inventoryId: {
     type: DataTypes.INTEGER,
   },
+  createdAt: DataTypes.DATE,
+  updatedAt: DataTypes.DATE,
 }, {
-  indexes: [{unique: true, fields: ['accountId', 'taskId']}, {unique: false, fields: ['accountId']}],
+  indexes: [{unique: false, fields: ['accountId', 'taskId']}, {unique: false, fields: ['accountId']}],
   tableName: 'task_history',
   sequelize: SequelizeServiceImpl.sequelize,
   createdAt: true,

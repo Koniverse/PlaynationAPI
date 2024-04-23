@@ -16,6 +16,9 @@ export interface TaskContentCms {
     gameId: number,
     pointReward: number,
     effectDuration: number,
+    interval: number,
+    startTime: Date,
+    endTime: Date,
 }
 
 export interface TaskSubmitParams{
@@ -62,17 +65,29 @@ export class TaskService {
 
   async listTask() {
     const taskMap = !!this.taskMap ? this.taskMap : await this.buildMap();
-    return Object.values(taskMap);
+    const currentTime = new Date().getTime();
+    return Object.values(taskMap).filter((item) => {
+      if (item.startTime && item.endTime) {
+        console.log(item.startTime.getTime(), item.endTime.getTime(), currentTime);
+        const startTime = item.startTime.getTime();
+        const endTime = item.endTime.getTime();
+        return currentTime >= startTime && currentTime <= endTime;
+      }
+      return true;
+    });
   }
 
   async listTaskHistory(userId: number) {
     const sql = `
         SELECT t.*,
-               CASE
-                   WHEN EXISTS (SELECT 1 FROM task_history AS th WHERE th."taskId" = t.id and th."accountId" = ${userId})
-                       THEN 1
-                   ELSE 0 END AS status
-        FROM task AS t;
+       CASE
+       WHEN th.id IS NOT NULL
+           THEN 1
+       ELSE 0
+       END AS status,
+       th."createdAt" as "completedAt"
+        FROM task AS t
+        LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
     `;
     const data = await this.sequelizeService.sequelize.query(sql);
     return data.length > 0 ? data[0] : [];
@@ -83,25 +98,66 @@ export class TaskService {
     return taskMap[taskId.toString()];
   }
 
-  async submit(userId: number, data: TaskSubmitParams) {
-    const task = await this.findTask(data.taskId);
+  async submit(userId: number, taskId: number) {
+    // Get basic data
+    const task = await this.findTask(taskId);
     if (!task) {
       throw new Error('Task not found');
     }
     if (!userId || userId === 0) {
       throw new Error('User not found');
     }
-    const tasHistory = await TaskHistory.findOne({where: {taskId: task.id, accountId: userId}});
-    if (tasHistory) {
+
+    // Check if task already submitted
+    const latestLast = await TaskHistory.findAll({
+      where: {taskId: task.id, accountId: userId},
+      order: [['createdAt', 'DESC']],
+      limit: 1,
+    });
+
+    // Validate task submission
+    const interval = task.interval;
+    if (latestLast.length > 0 && (!interval || interval <= 0)) {
       throw new Error('Task already submitted');
     }
 
+    // Validate task time
+    const now = new Date();
+    const currentTime = now.getTime();
+
+    if (task.startTime) {
+      const startTime = task.startTime.getTime();
+      if (currentTime < startTime) {
+        throw new Error('Task is not started yet');
+      }
+    }
+
+    if (task.endTime) {
+      const endTime = task.endTime.getTime();
+      if (currentTime > endTime) {
+        throw new Error('Task is already ended');
+      }
+    }
+
+    // Validate repeat task
+    if (latestLast.length > 0 && interval > 0) {
+      const lastSubmit = latestLast[0];
+      const lastSubmitTime = lastSubmit.createdAt.getTime();
+      const diff = currentTime - lastSubmitTime;
+      const diffInSeconds = diff / 1000;
+      if (diffInSeconds < interval) {
+        throw new Error('Task is not ready to be submitted yet');
+      }
+    }
+
+    // Create task history
     await TaskHistory.create({
       taskId: task.id,
       accountId: userId,
       pointReward: task.pointReward,
     });
 
+    // Add point to account
     await AccountService.instance.addAccountPoint(userId, task.pointReward);
 
     return {

@@ -23,7 +23,8 @@ const routerMap = {
   },
   submit: async (req: IReq<TaskSubmitParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const response = await TaskService.instance.submit(userId, req.body);
+    const {taskId} = req.body;
+    const response = await TaskService.instance.submit(userId, taskId);
     return res.status(200).json(response);
   },
 };
