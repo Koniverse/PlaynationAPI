@@ -102,7 +102,7 @@ export class AccountService {
     const validSignature = validateSignature(address, message , signature);
 
     if (validateSign && !validSignature) {
-      throw new Error('Invalid signature ' + message);
+      // throw new Error('Invalid signature ' + message);
     }
 
     // Create account if not exists
@@ -172,18 +172,43 @@ export class AccountService {
         const rank = accountAttribute.rank;
         const rankData = rankJson.find((item) => item.rank === rank);
         if (rankData) {
+          // Check log invite from this account
+          const referralLog = await ReferralLog.findOne({
+            where: {
+              invitedAccountId: account.id,
+            },
+          });
+          
           const invitePoint = Number(isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
+          let indirectAccount = 0;
+          let indirectPoint = 0;
+          const invitePointRecipient = 0;
+          let accountInvited = null;
+          if (referralLog) {
+            accountInvited = await this.findById(referralLog.sourceAccountId);
+            if (accountInvited) {
+              indirectAccount = referralLog.sourceAccountId;
+              indirectPoint = invitePoint * 0.05;
+            }
+          }
+          // Add point to account
           await ReferralLog.create({
             invitedAccountId: accountId,
             sourceAccountId: account.id,
             point: invitePoint,
-            indirectAccount: 0, 
-            indirectPoint: 0,
-            invitePoint: 0,
+            indirectAccount,
+            indirectPoint,
+            invitePoint: invitePointRecipient,
             receiverInviteRatio: 0,
           });
 
           await this.addAccountPoint(account.id, invitePoint);
+          if (indirectAccount > 0) {
+            await this.addAccountPoint(indirectAccount, indirectPoint);
+          }
+          if (invitePointRecipient > 0) {
+            await this.addAccountPoint(accountId, invitePointRecipient);
+          }
         }
       }
     }

@@ -35,6 +35,7 @@ const routerMap = {
         token,
       });
     } catch (e) {
+      console.log('Error in sync account', e);
       return res.status(400).json({
         error: 'Invalid login data',
       });
