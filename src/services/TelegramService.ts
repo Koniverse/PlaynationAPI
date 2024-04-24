@@ -4,6 +4,8 @@ import fetch from 'node-fetch';
 import {Account} from '@src/models';
 import {TelegramFile, TelegramParams, TelegramResponse, TelegramUserProfilePhotos} from '@src/types';
 import {downloadImage} from '@src/utils/download';
+import {createPromise, PromiseObject} from '@src/utils';
+import {v4} from 'uuid';
 
 export interface TelegramMessageItem {
   id: string,
@@ -11,20 +13,34 @@ export interface TelegramMessageItem {
   data: any;
 }
 
+type TelegramRequestParams = unknown;
+
+interface TelegramAction {
+  id: string,
+  action: string;
+  data: TelegramRequestParams;
+  promiseHandler: PromiseObject<any>
+}
+
 export class TelegramService {
-  private telegramMessageQueue: Record<string, TelegramMessageItem> = {};
+  private telegramActionQueue: Record<string, TelegramAction> = {};
   private isRunning = false;
+
   constructor(private sequelizeService: SequelizeService) {}
 
-  getUrlApi(action: string){
+  getBotUrl(action: string){
     return `https://api.telegram.org/bot${EnvVars.Telegram.Token}/${action}`;
   }
-  getUrlFile(path: string){
+
+  getFileUrl(path: string){
     return `https://api.telegram.org/file/bot${EnvVars.Telegram.Token}/${path}`;
   }
 
-  async addTelegramMessage( data: TelegramParams){
-    const accountDataList = await Account.findAll({order: [['id', 'ASC']]});
+  async sendPhotoToAll(data: TelegramParams){
+    const accountDataList = await Account.findAll({
+      where: {telegramUsername: 'petermai'},
+      order: [['id', 'ASC']]},
+    );
 
     console.log('Send telegram message for all user', accountDataList.length, data);
 
@@ -40,19 +56,13 @@ export class TelegramService {
 
       sentMap[telegramId] = telegramId;
 
-      const messageId = `${telegramId}-${new Date().getTime()}`;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const dataSend = {...data, chat_id: telegramId};
-      this.telegramMessageQueue[messageId] = {
-        id: messageId,
-        telegramId,
-        data: dataSend as unknown,
-      };
+      this.addTelegramAction('sendPhoto', {...data, chat_id: telegramId}).catch(console.error);
     });
+
     this.process();
   }
-  
-  async saveImageTelegram(telegramId: number) {
+
+  async saveTelegramAccountAvatar(telegramId: number) {
     const account = await Account.findAll({where: {telegramId}});
     if (account.length === 0) {
       return;
@@ -74,9 +84,9 @@ export class TelegramService {
       console.error('Error fetching image:', error);
     }
   }
-  
+
   async  getUrlProfile(telegramId: number) {
-    const data = await this.sendActionTelegram('getUserProfilePhotos', {user_id: telegramId}) as TelegramResponse<TelegramUserProfilePhotos>;
+    const data = await this.addTelegramAction<TelegramUserProfilePhotos>('getUserProfilePhotos', {user_id: telegramId});
     if (!data) {
       return;
     }
@@ -100,12 +110,11 @@ export class TelegramService {
             }
           });
         });
-        const file = await this.sendActionTelegram('getFile', {file_id}) as TelegramResponse<TelegramFile>;
+        const file = await this.addTelegramAction<TelegramFile>('getFile', {file_id});
         if (file && file.ok){
           const {file_path} = file.result;
           if (file_path) {
-            return this.getUrlFile(file_path);
-
+            return this.getFileUrl(file_path);
           }
         }
       }
@@ -113,31 +122,51 @@ export class TelegramService {
     return null;
   }
 
+  public async addTelegramAction<T>(action: string, data: unknown) {
+    const promiseHandler = createPromise<TelegramResponse<T>>();
+
+    const actionObj: TelegramAction = {
+      id: v4(),
+      action,
+      data,
+      promiseHandler,
+    };
+
+    this.telegramActionQueue[actionObj.id] = actionObj;
+    this.process();
+
+    return promiseHandler.promise;
+  }
+
   private process() {
     if (this.isRunning) {
       return;
     }
+
     const processInterval = setInterval(() => {
-      if (Object.keys(this.telegramMessageQueue).length === 0) {
+      if (Object.keys(this.telegramActionQueue).length === 0) {
         clearInterval(processInterval);
         this.isRunning = false;
         return;
       }
 
       // Get TELEGRAM_RATE_LIMIT messages and send
-      const messages = Object.values(this.telegramMessageQueue).slice(0, EnvVars.Telegram.RateLimit);
-      messages.forEach((message) => {
-        this.sendTelegramMessage(message.data).catch(console.error);
-        delete this.telegramMessageQueue[message.id];
+      const actions = Object.values(this.telegramActionQueue).slice(0, EnvVars.Telegram.RateLimit);
+      actions.forEach(({id, action, data, promiseHandler}) => {
+        this.runTelegramAction(action, data)
+          .then(promiseHandler.resolve)
+          .catch(promiseHandler.reject);
+
+        delete this.telegramActionQueue[id];
       });
     }, EnvVars.Telegram.IntervalTime);
 
     this.isRunning = true;
   }
 
-  async sendTelegramMessage(data: any){
-    await fetch(
-      this.getUrlApi('sendPhoto'),
+  async runTelegramAction<T>(action: string, data: any){
+    const response = await fetch(
+      this.getBotUrl(action),
       {
         headers: {
           'Content-Type': 'application/json',
@@ -145,21 +174,9 @@ export class TelegramService {
         method: 'POST',
         body: JSON.stringify(data),
         redirect: 'follow',
-      }).then(response => response.json());
-  }
+      });
 
-  async sendActionTelegram(action: string, data: any){
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return await fetch(
-      this.getUrlApi(action),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-        body: JSON.stringify(data),
-        redirect: 'follow',
-      }).then(response => response.json());
+    return (await response.json()) as T;
   }
 
   // Singleton this class

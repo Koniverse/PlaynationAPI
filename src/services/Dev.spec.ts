@@ -1,7 +1,6 @@
 import {AccountService} from '@src/services/AccountService';
 import {Account, AccountParams} from '@src/models';
-import {GameService} from "@src/services/GameService";
-
+import {GameService} from '@src/services/GameService';
 
 
 describe('General Test', () => {
@@ -79,7 +78,7 @@ describe('General Test', () => {
       await gameService.submitGameplay({
         gamePlayId: gameplay.id,
         signature: '0xxx',
-        point: 100
+        point: 100,
       });
       console.log('OK');
     } catch (e) {
@@ -90,7 +89,7 @@ describe('General Test', () => {
       await gameService.submitGameplay({
         gamePlayId: gameplay.id,
         signature: '0xxx',
-        point: 100
+        point: 100,
       });
     } catch (e) {
       console.log(e);

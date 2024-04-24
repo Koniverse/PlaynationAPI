@@ -114,7 +114,7 @@ export class AccountService {
       
       const {telegramId} = info;
       if (telegramId) {
-        await TelegramService.instance.saveImageTelegram(telegramId);
+        await TelegramService.instance.saveTelegramAccountAvatar(telegramId);
       }
     }
 

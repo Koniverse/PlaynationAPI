@@ -5,7 +5,7 @@ import {Op} from 'sequelize';
 
 const INTERVAL_TIME = EnvVars.Telegram.IntervalCronTime;
 const telegramService = TelegramService.instance;
-export async function fetchImageAndSaveToDatabase() {
+export async function fetchTelegramAvatarAndSaveToDatabase() {
   try {
     console.log('Fetching image and saving to database...');
     const accountDataList = await Account.findAll({
@@ -18,7 +18,7 @@ export async function fetchImageAndSaveToDatabase() {
       limit: EnvVars.Telegram.CronRateLimit,
     });
     const promises = accountDataList.map( (account) => {
-      return telegramService.saveImageTelegram(account.telegramId);
+      return telegramService.saveTelegramAccountAvatar(account.telegramId);
     });
     await Promise.all(promises);
   } catch (error) {
@@ -27,8 +27,10 @@ export async function fetchImageAndSaveToDatabase() {
 }
 
 if (INTERVAL_TIME > 0) {
+  fetchTelegramAvatarAndSaveToDatabase().catch(console.error);
+
   setInterval(() => {
-    fetchImageAndSaveToDatabase().catch(console.error);
+    fetchTelegramAvatarAndSaveToDatabase().catch(console.error);
   }, INTERVAL_TIME );
 
 }
