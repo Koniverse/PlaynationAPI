@@ -7,6 +7,7 @@ import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
 import {GiveAwayPoint} from '@src/models';
+import account from '@src/models/Account';
 
 // CMS input
 export interface GiveawayPointParams {
@@ -176,6 +177,10 @@ export class AccountService {
             invitedAccountId: accountId,
             sourceAccountId: account.id,
             point: invitePoint,
+            indirectAccount: 0, 
+            indirectPoint: 0,
+            invitePoint: 0,
+            receiverInviteRatio: 0,
           });
 
           await this.addAccountPoint(account.id, invitePoint);

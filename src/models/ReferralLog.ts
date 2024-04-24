@@ -6,6 +6,10 @@ export class ReferralLog extends Model<InferAttributes<ReferralLog>, InferCreati
   declare sourceAccountId: number;
   declare invitedAccountId: number;
   declare point: number;
+  declare indirectAccount: number;
+  declare indirectPoint: number;
+  declare invitePoint: number;
+  declare receiverInviteRatio: number;
 }
 
 ReferralLog.init({
@@ -22,6 +26,22 @@ ReferralLog.init({
   },
   point: {
     type: DataTypes.INTEGER,
+  },
+  indirectAccount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  indirectPoint: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  invitePoint: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  receiverInviteRatio: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
   },
 }, {
   indexes: [{unique: true, fields: ['sourceAccountId', 'invitedAccountId']}],
