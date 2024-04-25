@@ -49,7 +49,9 @@ export interface GameContentCms {
     maxPointPerGame: number,
     icon: string,
     rank_definition: string,
-    banner: string
+    banner: string,
+    startTime: Date,
+    endTime: Date,
 }
 
 
@@ -394,7 +396,7 @@ export class GameService {
     return  {
       success: true,
     };
-        
+
   }
 
   // Singleton

@@ -113,8 +113,42 @@ export enum ExtensionAccountType {
 }
 
 export interface TelegramResponse<T> {
-    code: number,
-    data: T,
-    message: string,
-    generated_at: number
+    ok: boolean,
+    result: T,
+}
+export interface TelegramFile {
+    file_id: string,
+    file_size?: number,
+    width?: number,
+    height?: number,
+    file_unique_id: string,
+    file_path?: string
+}
+export interface TelegramUserProfilePhotos {
+    photos: TelegramFile[][],
+    total_count: number
+}
+export type ParseMode = 'Markdown' | 'MarkdownV2' | 'HTML';
+export interface TelegramParams {
+  caption?: string; // Text content of the notification
+  photo?: string; // URL to an image
+  chatId?: number; // Chat identifier (likely specific to the platform)
+  parse_mode: ParseMode; // Indicates HTML formatting for caption
+  reply_markup?: ReplyMarkup; // Object containing button details
+  user_id?: number;
+  file_id?: string;
+  message?: string;
+}
+
+// Interface for the inline keyboard layout
+export interface ReplyMarkup {
+  inline_keyboard: InlineKeyboardButton[][]; // Array of rows of buttons
+}
+
+// Interface for individual buttons within the inline keyboard
+export interface InlineKeyboardButton {
+  text: string; // Text displayed on the button
+  webApp: {
+    url: string; // URL of the web app to open when clicked
+  };
 }

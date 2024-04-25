@@ -13,6 +13,7 @@ import EnvVars from '@src/constants/EnvVars';
 import HttpStatusCodes from '@src/constants/HttpStatusCodes';
 import {NodeEnvs} from '@src/constants/misc';
 import {RouteError} from '@src/other/classes';
+import path from "path";
 
 
 export async function startServer() {
@@ -33,6 +34,7 @@ export async function startServer() {
   // Basic middleware
   app.use(express.json());
   app.use(express.urlencoded({extended: true}));
+  app.use(express.static(path.join(__dirname, '../public')));
 
   // Show routes called in console during development
   if (EnvVars.NodeEnv === NodeEnvs.Dev) {
