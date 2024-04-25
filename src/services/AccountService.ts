@@ -7,7 +7,7 @@ import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
 import {GiveAwayPoint} from '@src/models';
-import account from '@src/models/Account';
+import {TelegramService} from '@src/services/TelegramService';
 
 // CMS input
 export interface GiveawayPointParams {
@@ -102,7 +102,7 @@ export class AccountService {
     const validSignature = validateSignature(address, message , signature);
 
     if (validateSign && !validSignature) {
-      // throw new Error('Invalid signature ' + message);
+      throw new Error('Invalid signature ' + message);
     }
 
     // Create account if not exists
@@ -111,6 +111,11 @@ export class AccountService {
       account = await this.createAccount(info);
       // Add  point from inviteCode
       code && await this.addInvitePoint(account.id, code, account.isPremium);
+      
+      const {telegramId} = info;
+      if (telegramId) {
+        await TelegramService.instance.saveTelegramAccountAvatar(telegramId);
+      }
     }
 
 
@@ -172,43 +177,14 @@ export class AccountService {
         const rank = accountAttribute.rank;
         const rankData = rankJson.find((item) => item.rank === rank);
         if (rankData) {
-          // Check log invite from this account
-          const referralLog = await ReferralLog.findOne({
-            where: {
-              invitedAccountId: account.id,
-            },
-          });
-          
           const invitePoint = Number(isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
-          let indirectAccount = 0;
-          let indirectPoint = 0;
-          const invitePointRecipient = 0;
-          let accountInvited = null;
-          if (referralLog) {
-            accountInvited = await this.findById(referralLog.sourceAccountId);
-            if (accountInvited) {
-              indirectAccount = referralLog.sourceAccountId;
-              indirectPoint = invitePoint * 0.05;
-            }
-          }
-          // Add point to account
           await ReferralLog.create({
             invitedAccountId: accountId,
             sourceAccountId: account.id,
             point: invitePoint,
-            indirectAccount,
-            indirectPoint,
-            invitePoint: invitePointRecipient,
-            receiverInviteRatio: 0,
           });
 
           await this.addAccountPoint(account.id, invitePoint);
-          if (indirectAccount > 0) {
-            await this.addAccountPoint(indirectAccount, indirectPoint);
-          }
-          if (invitePointRecipient > 0) {
-            await this.addAccountPoint(accountId, invitePointRecipient);
-          }
         }
       }
     }

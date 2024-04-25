@@ -89,6 +89,7 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   declare createdAt: CreationOptional<Date>;
   // updatedAt can be undefined during creation
   declare updatedAt: CreationOptional<Date>;
+  declare cronAvatar: CreationOptional<boolean>;
 }
 
 Account.init({
@@ -148,6 +149,10 @@ Account.init({
   },
   languageCode: {
     type: DataTypes.STRING,
+    allowNull: true,
+  },
+  cronAvatar: {
+    type: DataTypes.BOOLEAN,
     allowNull: true,
   },
   createdAt: DataTypes.DATE,

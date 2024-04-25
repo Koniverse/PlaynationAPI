@@ -41,7 +41,9 @@ const Environments = {
   Telegram: {
     Token: process.env.BOT_TELEGRAM_TOKEN ?? '',
     IntervalTime: Number(process.env.INTERVAL_TELEGRAM_TIME || '1000'),
-    RateLimit: Number(process.env.TELEGRAM_RATE_LIMIT || '20')
+    IntervalCronTime: Number(process.env.INTERVAL_TELEGRAM_CRON_TIME || '86400000'),
+    RateLimit: Number(process.env.TELEGRAM_RATE_LIMIT || '20'),
+    CronRateLimit: Number(process.env.TELEGRAM_CRON_RATE_LIMIT || '20'),
 
   },
   Mongo: {
