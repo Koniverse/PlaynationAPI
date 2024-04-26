@@ -28,6 +28,7 @@ const Environments = {
   TOKEN_ID_LIST: (process.env.TOKEN_ID_LIST?.split(',') ?? [101, 200070014]),
   NUMBER_OF_SEND: (Number(process.env.NUMBER_OF_SEND) ?? 1),
   SIGNATURE_RANDOM_CODE: (process.env.SIGNATURE_RANDOM_CODE ?? ''),
+  INDIRECT_POINT_RATE: parseFloat(process.env.INDIRECT_POINT_RATE || '0.05'),
   DefaultData:{
     KusamaEndpoint: process.env.KUSAMA_ENDPOINT || 'wss://kusama-rpc.polkadot.io',
     RMRKCollectionId: process.env.DEFAULT_COLLECTION_ID || '',

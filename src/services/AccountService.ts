@@ -153,7 +153,8 @@ export class AccountService {
     }
     return AccountAttributeRank.IRON;
   }
-  
+
+
   async addInvitePoint(accountId: number, code: string, isPremium = false) {
     if (code) {
       const account = await Account.findOne({
@@ -177,14 +178,43 @@ export class AccountService {
         const rank = accountAttribute.rank;
         const rankData = rankJson.find((item) => item.rank === rank);
         if (rankData) {
+          // Check log invite from this account
+          const referralLogIndirect = await ReferralLog.findOne({
+            where: {
+              invitedAccountId: account.id,
+            },
+          });
+
           const invitePoint = Number(isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
+          let indirectAccount = 0;
+          let indirectPoint = 0;
+          const invitePointRecipient = 0;
+          let accountInvited = null;
+          if (referralLogIndirect) {
+            accountInvited = await this.findById(referralLogIndirect.sourceAccountId);
+            if (accountInvited) {
+              indirectAccount = referralLogIndirect.sourceAccountId;
+              indirectPoint = invitePoint * EnvVars.INDIRECT_POINT_RATE;
+            }
+          }
+          // Add point to account
           await ReferralLog.create({
             invitedAccountId: accountId,
             sourceAccountId: account.id,
             point: invitePoint,
+            indirectAccount,
+            indirectPoint,
+            invitePoint: invitePointRecipient,
+            receiverInviteRatio: 0,
           });
 
           await this.addAccountPoint(account.id, invitePoint);
+          if (indirectAccount > 0) {
+            await this.addAccountPoint(indirectAccount, indirectPoint);
+          }
+          if (invitePointRecipient > 0) {
+            await this.addAccountPoint(accountId, invitePointRecipient);
+          }
         }
       }
     }
@@ -243,6 +273,7 @@ export class AccountService {
   async addAccountPoint(accountId: number, point: number) {
     const accountAttribute = await this.getAccountAttribute(accountId, false);
     const newPoint = accountAttribute.point += point;
+    console.log('newPoint', accountId, newPoint);
     const newAccumulatePoint = accountAttribute.accumulatePoint += point;
     const rank = this.checkAccountAttributeRank(newAccumulatePoint);
 
@@ -313,29 +344,34 @@ export class AccountService {
 
   async getReferralLog(accountId: number) {
     const sql = `
-    Select
-        a.id,
-        a."telegramUsername",
-        a."firstName",
-        a."address",
-        a."lastName",
-        a."photoUrl",
-        rl.point,
-        EXTRACT(EPOCH FROM  CAST(rl."createdAt" AS timestamp)) AS referralSuccessTime
-    
-    from referral_log rl
-         JOIN public.account a on a.id = rl."invitedAccountId" where rl."sourceAccountId" = ${accountId}
+    SELECT
+  (SELECT COUNT(*) FROM referral_log rl
+   JOIN public.account a on a.id = rl."invitedAccountId"
+   WHERE rl."sourceAccountId" = ${accountId}) AS total_count,
+  a.id,
+  a."telegramUsername",
+  a."firstName",
+  a."address",
+  a."lastName",
+  a."photoUrl",
+  rl.point,
+  EXTRACT(EPOCH FROM  CAST(rl."createdAt" AS timestamp)) AS referralSuccessTime
+FROM referral_log rl
+JOIN public.account a on a.id = rl."invitedAccountId"
+WHERE rl."sourceAccountId" = ${accountId}
+LIMIT 100;
     `;
     const data = await this.sequelizeService.sequelize.query(sql);
     if (data.length > 0) {
       return data[0].map((item) => {
         // @ts-ignore
-        const {point, lastName, telegramUsername, firstName, referralsuccesstime, id, photoUrl, address} = item;
+        const {point, lastName, telegramUsername, firstName, referralsuccesstime, id, photoUrl, address, total_count} = item;
         const referralSuccessTime = parseFloat(referralsuccesstime as string);
 
         return {
           point: point as number,
           referralSuccessTime,
+          total_count: total_count as number,
           accountInfo: {
             firstName: firstName as string,
             id: id as number,
