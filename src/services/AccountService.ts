@@ -275,16 +275,21 @@ export class AccountService {
     if (!referralLog) {
       return;
     }
+    const account = await this.findById(accountId);
+    if (!account) {
+      return;
+    }
     const rankData = rankJson.find((item) => item.rank === rank );
     if (rankData) {
-      const invitePoint = Number(rankData.invitePoint);
+      
+      const invitePoint = Number(account.isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
       const indirectPoint = invitePoint * EnvVars.INDIRECT_POINT_RATE;
       const indirectAccount = referralLog.indirectAccount;
       const newPoint = referralLog.point += invitePoint;
       const newIndirectPoint = referralLog.indirectPoint += indirectPoint;
       const   dataSave = {
         point: newPoint,
-        indirectPoint: 0
+        indirectPoint: 0,
       };
       if (indirectAccount > 0) {
         dataSave.indirectPoint = newIndirectPoint;
