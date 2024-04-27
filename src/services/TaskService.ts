@@ -98,8 +98,8 @@ export class TaskService {
     return taskMap[taskId.toString()];
   }
 
-  async submit(userId: number, data: TaskSubmitParams) {
-    const task = await this.findTask(data.taskId);
+  async submit(userId: number, taskId: number) {
+    const task = await this.findTask(taskId);
     if (!task) {
       throw new Error('Task not found');
     }

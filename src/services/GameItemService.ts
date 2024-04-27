@@ -1,10 +1,10 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {GameData, GameInventoryItem, GameInventoryItemStatus, GameItem} from '@src/models';
+import {GameInventoryItem, GameInventoryItemStatus, GameItem, NO_GROUP_KEY} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {v4} from 'uuid';
 import {validateSignature} from '@src/utils';
-import {GameService} from "@src/services/GameService";
+import {QuickGetService} from '@src/services/QuickGetService';
 
 
 export interface GameItemContentCms {
@@ -21,27 +21,17 @@ export interface GameItemContentCms {
     itemGroupLevel: number,
 }
 
-
-export interface GameItemParams {
-  gameItemId: number
-}
 export interface GameItemSearchParams {
   gameId: number,
 }
-export interface GameItemValidateParams{
-  signature: string;
-  transactionId: string;
-}
 
 const accountService = AccountService.instance;
+const quickGet = QuickGetService.instance;
 
 export class GameItemService {
-  private gameItemMap: Record<string, GameItem> | undefined;
   constructor(private sequelizeService: SequelizeService) {
 
   }
-
-
 
   async generateDefaultData(gameId: number) {
     const existed = await GameItem.findOne({where: {contentId: 1}});
@@ -55,13 +45,29 @@ export class GameItemService {
       description: 'Default Game item',
       effectDuration: 200,
       gameId: gameId,
-      itemGroup: 1,
+      itemGroup: 'LEVEL',
       itemGroupLevel: 1,
       maxBuy: 0,
       price: 300,
       tokenPrice: 0,
       slug: 'level1',
     });
+  }
+
+  async listItemByGroup(gameId: number) {
+    const items = await quickGet.listGameItem(gameId);
+    const result:Record<string, GameItem[]> = {};
+
+    items.forEach((item) => {
+      const group = item.itemGroup ?? NO_GROUP_KEY;
+      if (!result[group]) {
+        result[group] = [];
+      }
+
+      result[item.itemGroup].push(item);
+    });
+
+    return result;
   }
 
   async syncData(data: GameItemContentCms[]) {
@@ -83,43 +89,10 @@ export class GameItemService {
         await GameItem.create(itemData);
       }
     }
-    await this.buildMap();
+    await quickGet.buildGameItemMap();
     return response;
   }
 
-
-  async buildMap() {
-    const data = await GameItem.findAll();
-    const dataMap: Record<string, GameItem> = {};
-    data.forEach((item) => {
-      dataMap[item.id.toString()] = item;
-    });
-
-    this.gameItemMap = dataMap;
-    return dataMap;
-  }
-
-  async findGameItem(id: number) {
-    const gameItemMap = !!this.gameItemMap ? this.gameItemMap : await this.buildMap();
-    return gameItemMap[id.toString()];
-  }
-  // Get game item by game id and account id
-  // and fiter by level or all game item if slug is null
-  async listGameItem(accountId: number, gameId: number) {
-
-    const account = await accountService.findById(accountId);
-    console.log('gameId', gameId)
-    if (!account) {
-      throw new Error('Account not found');
-    }
-    const dataMap = await GameItem.findAll({where: {gameId}});
-    const gameData = await GameData.findOne({where: {accountId, gameId}});
-    let level = 1;
-    if (gameData) {
-      level = gameData.level;
-    }
-    return dataMap.filter((item) => !item.slug || item.slug === this.getSlug(level));
-  }
 
   async validate(accountId: number, transactionId: string, signature: string, isValidateSignature = true) {
     const account = await accountService.findById(accountId);
@@ -152,57 +125,36 @@ export class GameItemService {
   private getSlug(level: number) {
     return `level${level}`;
   }
-  async submit(accountId: number, gameItemId: number) {
-    const account = await accountService.findById(accountId);
-    if (!account) {
-      throw new Error('Account not found');
-    }
-    const gameItem = await this.findGameItem(gameItemId);
-    if (!gameItem) {
-      throw new Error('Game item not found');
-    }
-    const game = await Game.findOne({where: {id: gameItem.gameId}});
-    if (!game) {
-      throw new Error('Game not found');
-    }
-    if (gameItem.gameId !== game.id) {
-      throw new Error('Invalid game');
-    }
-    
-    const gameData = await GameData.findOne({where: {
-      gameId: gameItem.gameId,
-      accountId: accountId,
-    }});
-    
-    if (!gameData) {
-      throw new Error('Game data not found');
-    }
-    // Check if game item is valid for this level
-    if (gameItem.slug && gameItem.slug !== this.getSlug(gameData.level)) {
-      throw new Error('Invalid level');
-    }
+
+  async buyEnergy(accountId: number, amount?: number) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return {
+      success: true,
+    };
+  }
+
+  async buyItem(accountId: number, gameItemId: number, quantity = 1) {
+    const account = await quickGet.requireAccount(accountId);
+    const gameItem = await quickGet.requireGameItem(gameItemId);
+    const game = await quickGet.requireGame(gameItem.gameId);
+    const gameData = await quickGet.requireGameData(account.id, game.id);
     const accountAttribute = await AccountService.instance.getAccountAttribute(accountId, false);
-    if (!accountAttribute) {
-      throw new Error('Account attribute not found');
-    }
-    if (accountAttribute.point < gameItem.price) {
+
+    // Validate user point
+    const usePoint = gameItem.price * quantity;
+    const remainingPoint = accountAttribute.point - usePoint;
+    if (remainingPoint < 0) {
       throw new Error('Not enough point');
     }
-    const newPoint = accountAttribute.point - gameItem.price;
-    let transactionId = v4();
+
+    // Create transaction
+    const transactionId = v4();
     let endEffectTime = null;
     if (gameItem.effectDuration){
       endEffectTime = new Date();
       endEffectTime.setSeconds(endEffectTime.getSeconds() + gameItem.effectDuration);
     }
-    // eslint-disable-next-line no-constant-condition
-    while (true){
-      const existed = await GameInventoryItem.findOne({where: {transactionId}});
-      if (!existed){
-        break;
-      }
-      transactionId = v4();
-    }
+
     const gameInventoryData = {
       accountId,
       gameItemId: gameItem.id,
@@ -213,10 +165,13 @@ export class GameItemService {
       transactionId,
       endEffectTime,
     } as GameInventoryItem;
+
     await accountAttribute.update({
-      point: newPoint,
+      point: remainingPoint,
     });
+
     await GameInventoryItem.create(gameInventoryData);
+
     return {
       success: true,
       transactionId,
@@ -225,10 +180,7 @@ export class GameItemService {
 
   async getInventoryLogs(accountId: number, isUsed = false) {
     const queryUsed = isUsed ? 'AND i.status = \'used\'' : '';
-    const account = await accountService.findById(accountId);
-    if (!account) {
-      throw new Error('Account not found');
-    }
+    await quickGet.requireAccount(accountId);
     const sql = `
     SELECT
     gi.id as "gameItemId",
