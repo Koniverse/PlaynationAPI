@@ -173,10 +173,7 @@ export class AccountService {
         if (existed){
           return;
         }
-
-        const accountAttribute = await this.getAccountAttribute(account.id, false);
-        const rank = accountAttribute.rank;
-        const rankData = rankJson.find((item) => item.rank === rank);
+        const rankData = rankJson.find((item) => item.rank === AccountAttributeRank.IRON );
         if (rankData) {
           // Check log invite from this account
           const referralLogIndirect = await ReferralLog.findOne({
@@ -211,9 +208,6 @@ export class AccountService {
           await this.addAccountPoint(account.id, invitePoint);
           if (indirectAccount > 0) {
             await this.addAccountPoint(indirectAccount, indirectPoint);
-          }
-          if (invitePointRecipient > 0) {
-            await this.addAccountPoint(accountId, invitePointRecipient);
           }
         }
       }
@@ -269,13 +263,51 @@ export class AccountService {
       lastEnergyUpdated: new Date(),
     });
   }
+  
+  async updateIndirectAccountPoint(accountId: number, rank: AccountAttributeRank) {
+  // Find the account attribute for the given account
+    const referralLog = await ReferralLog.findOne({
+      where: {
+        invitedAccountId: accountId,
+      },
+    });
+
+    if (!referralLog) {
+      return;
+    }
+    const rankData = rankJson.find((item) => item.rank === rank );
+    if (rankData) {
+      const invitePoint = Number(rankData.invitePoint);
+      const indirectPoint = invitePoint * EnvVars.INDIRECT_POINT_RATE;
+      const indirectAccount = referralLog.indirectAccount;
+      const newPoint = referralLog.point += invitePoint;
+      const newIndirectPoint = referralLog.indirectPoint += indirectPoint;
+      const   dataSave = {
+        point: newPoint,
+        indirectPoint: 0
+      };
+      if (indirectAccount > 0) {
+        dataSave.indirectPoint = newIndirectPoint;
+      }
+      await referralLog.update(dataSave);
+    
+      await this.addAccountPoint(referralLog.sourceAccountId, invitePoint);
+      if (indirectAccount > 0) {
+        await this.addAccountPoint(indirectAccount, indirectPoint);
+      }
+    }
+  }
 
   async addAccountPoint(accountId: number, point: number) {
     const accountAttribute = await this.getAccountAttribute(accountId, false);
     const newPoint = accountAttribute.point += point;
-    console.log('newPoint', accountId, newPoint);
     const newAccumulatePoint = accountAttribute.accumulatePoint += point;
     const rank = this.checkAccountAttributeRank(newAccumulatePoint);
+
+    // Update indirect account point
+    if (accountAttribute.rank !== rank) {
+      await this.updateIndirectAccountPoint(accountId, rank);
+    }
 
     await accountAttribute.update({
       point: newPoint,
