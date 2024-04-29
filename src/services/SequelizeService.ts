@@ -1,11 +1,12 @@
-import {QueryTypes, Sequelize} from 'sequelize';
+import {Model, QueryTypes, Sequelize} from 'sequelize';
 import EnvVars from '@src/constants/EnvVars';
 import {createPromise} from '@src/utils';
+import {SyncOptions} from 'sequelize/types/sequelize';
 
 export class SequelizeService {
   public readonly sequelize: Sequelize;
   public readonly isReady: Promise<Sequelize>;
-  private syncList: Promise<any>[] = [];
+  private syncList: ((options?: SyncOptions) => Promise<any>)[] = [];
   private isSyncAll = false;
   private sequenceKeys: Record<string, number> = {};
 
@@ -32,14 +33,28 @@ export class SequelizeService {
     if (this.isSyncAll) {
       return;
     } else {
-      await Promise.all(this.syncList);
+      for (const sync of this.syncList) {
+        await sync();
+      }
       this.isSyncAll = true;
     }
   }
 
-  public addSync(promise: Promise<any>): void {
-    this.syncList.push(promise);
+  public addSync(method: (options?: SyncOptions) => Promise<any>): void {
+    this.syncList.push(method);
     this.isSyncAll = false;
+  }
+
+  public async truncateDB(): Promise<void> {
+    await this.syncAll();
+
+    await this.sequelize.truncate({force: true, cascade: true});
+  }
+
+  public async syncWithOptions(options?: SyncOptions): Promise<void> {
+    for (const sync of this.syncList) {
+      await sync(options);
+    }
   }
 
   /**

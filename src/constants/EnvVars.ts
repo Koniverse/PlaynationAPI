@@ -80,6 +80,8 @@ const Environments = {
   Game: {
     MaxEnergy: parseInt(process.env.MAX_ENERGY || '1440'),
     EnergyRecoverTime: parseInt(process.env.ENGERY_RECOVER_TIME || '60'),
+    EnergyPrice: parseInt(process.env.ENERGY_PRICE || '1'),
+    EnergyBuyLimit: parseInt(process.env.ENERGY_BUY_LIMIT || '5'),
   },
 };
 

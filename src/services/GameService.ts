@@ -37,21 +37,21 @@ interface LeaderboardRecord {
 const accountService = AccountService.instance;
 
 export interface GameContentCms {
-    id: number,
-    name: string,
-    description: string,
-    url: string,
-    maxEnergy: number,
-    slug: string,
-    active: boolean,
-    maxPoint: number,
-    energyPerGame: number,
-    maxPointPerGame: number,
-    icon: string,
-    rank_definition: string,
-    banner: string,
-    startTime: Date,
-    endTime: Date,
+  id: number,
+  name: string,
+  description: string,
+  url: string,
+  maxEnergy: number,
+  slug: string,
+  active: boolean,
+  maxPoint: number,
+  energyPerGame: number,
+  maxPointPerGame: number,
+  icon: string,
+  rank_definition: string,
+  banner: string,
+  startTime: Date,
+  endTime: Date,
 }
 
 

@@ -2,20 +2,26 @@ import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, M
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
 
+export const ITEM_GROUP_LEVEL = 'LEVEL';
+export const NO_GROUP_KEY = 'NO_GROUP';
 
 export class GameItem extends Model<InferAttributes<GameItem>, InferCreationAttributes<GameItem>> {
   declare id: CreationOptional<number>; // id on db
-  declare gameId: number;
   declare contentId: number;
+  declare gameId: number;
+  declare slug: string; // Item slug like LEVEL1, LEVEL2, LEVEL3, LEVEL4, LEVEL5
   declare name: string;
   declare description: string;
-  declare price: number;
-  declare itemGroup: CreationOptional<number>;
+
+  declare price: number; // NFS point
+  declare tokenPrice: CreationOptional<number>;
+  declare maxBuy: CreationOptional<number>;
+  declare maxBuyDaily: CreationOptional<number>;
+
+  declare itemGroup: CreationOptional<string>; // special item group is "LEVEL" is very is game level
   declare itemGroupLevel: CreationOptional<number>;
-  declare slug: string; // With levelItems like LEVEL1, LEVEL2, LEVEL3, LEVEL4, LEVEL5 slug will be itemGroup + levelNumber
-  declare tokenPrice: number;
-  declare maxBuy: number;
-  declare effectDuration: CreationOptional<number>;
+
+  declare effectDuration: CreationOptional<number>; // -1 is forever, 0 is one time use, > 0 is duration in seconds
 }
 
 GameItem.init({
@@ -56,8 +62,12 @@ GameItem.init({
   },
   tokenPrice: {
     type: DataTypes.INTEGER,
+    allowNull: true,
   },
   maxBuy: {
+    type: DataTypes.INTEGER,
+  },
+  maxBuyDaily: {
     type: DataTypes.INTEGER,
   },
   effectDuration: {

@@ -109,12 +109,13 @@ describe('Game Item Test', () => {
     const defaultGameItem = await gameItemService.generateDefaultData(defaultGame.id);
     const newGame = await gameService.newGamePlay(currentUser.id, defaultGame.id);
     try {
-      await gameItemService.submit(currentUser.id, defaultGameItem.id);
+      await gameItemService.buyItem(currentUser.id, defaultGameItem.id);
     }
     catch (e) {
       expect(e.message).toEqual('Not enough point');
     }
   });
+
   it('Submit game  point', async function () {
     await SequelizeServiceImpl.syncAll();
     // Create new game
@@ -128,7 +129,7 @@ describe('Game Item Test', () => {
 
     const defaultGameItem = await gameItemService.generateDefaultData(defaultGame.id);
     const newGame = await gameService.newGamePlay(currentUser.id, defaultGame.id);
-    const submitResult = await gameItemService.submit(currentUser.id, defaultGameItem.id);
+    const submitResult = await gameItemService.buyItem(currentUser.id, defaultGameItem.id);
     console.log('Game item submit result');
     expect(submitResult.success).toEqual(true);
     expect(submitResult.transactionId).toMatch(/^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i);
