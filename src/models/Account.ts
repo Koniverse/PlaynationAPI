@@ -17,6 +17,7 @@ export interface ITelegramParams {
   telegramId: number;
   telegramUsername: string;
   isBot?: boolean;
+  isPremium?: boolean;
   addedToAttachMenu?: boolean;
   firstName?: string;
   lastName?: string;
