@@ -38,7 +38,6 @@ export class TelegramService {
 
   async sendPhotoToAll(data: TelegramParams){
     const accountDataList = await Account.findAll({
-      where: {telegramUsername: 'petermai'},
       order: [['id', 'ASC']]},
     );
 
@@ -60,6 +59,8 @@ export class TelegramService {
     });
 
     this.process();
+
+    return accountDataList.length;
   }
 
   async saveTelegramAccountAvatar(telegramId: number) {

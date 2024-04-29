@@ -9,8 +9,11 @@ const telegramService = TelegramService.instance;
 
 const routerMap = {
   sendPhoto: async (req: IReq<TelegramParams>, res: IRes) => {
-    await telegramService.sendPhotoToAll(req.body);
-    return res.status(200).json({status: 'ok'});
+    const accountNumber = await telegramService.sendPhotoToAll(req.body);
+    return res.status(200).json({
+      status: 'ok',
+      accountNumber,
+    });
   },
   saveAvatar: async (req: IReq<TelegramParams>, res: IRes) => {
     const user_id = req.body.user_id ?? 0;
