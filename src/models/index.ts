@@ -31,22 +31,17 @@ TaskHistory.belongsTo(Account, {foreignKey: 'accountId'});
 Task.belongsTo(Game, {foreignKey: 'gameId'});
 
 // Sync all models
-SequelizeServiceImpl.addSync((async () => {
-  await Account.sync();
-  await AccountAttribute.sync();
-
-  await Game.sync();
-  await GameData.sync();
-  await GamePlay.sync();
-
-  await GameItem.sync();
-  await GameInventoryItem.sync();
-
-  await Task.sync();
-  await TaskHistory.sync();
-  await ReferralLog.sync();
-  await GiveAwayPoint.sync();
-})());
+SequelizeServiceImpl.addSync(Account.sync.bind(Account));
+SequelizeServiceImpl.addSync(AccountAttribute.sync.bind(AccountAttribute));
+SequelizeServiceImpl.addSync(Game.sync.bind(Game));
+SequelizeServiceImpl.addSync(GameData.sync.bind(GameData));
+SequelizeServiceImpl.addSync(GamePlay.sync.bind(GamePlay));
+SequelizeServiceImpl.addSync(GameItem.sync.bind(GameItem));
+SequelizeServiceImpl.addSync(GameInventoryItem.sync.bind(GameInventoryItem));
+SequelizeServiceImpl.addSync(Task.sync.bind(Task));
+SequelizeServiceImpl.addSync(TaskHistory.sync.bind(TaskHistory));
+SequelizeServiceImpl.addSync(ReferralLog.sync.bind(ReferralLog));
+SequelizeServiceImpl.addSync(GiveAwayPoint.sync.bind(GiveAwayPoint));
 
 export * from '@src/models/AccountAttribute';
 export * from '@src/models/Account';

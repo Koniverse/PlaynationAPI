@@ -1,6 +1,5 @@
 import {AccountService} from '@src/services/AccountService';
-import {Account, AccountParams} from '@src/models/Account';
-import {AccountAttribute, Game, GameData, GamePlay, Task, TaskHistory} from '@src/models';
+import {AccountParams} from '@src/models/Account';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {GameService} from '@src/services/GameService';
 
@@ -22,13 +21,7 @@ describe('General Test', () => {
 
   beforeAll(async () => {
     await SequelizeServiceImpl.syncAll();
-    await TaskHistory.truncate({cascade: true, restartIdentity: true});
-    await Task.truncate({cascade: true, restartIdentity: true});
-    await GamePlay.truncate({cascade: true, restartIdentity: true});
-    await GameData.truncate({cascade: true, restartIdentity: true});
-    await Game.truncate({cascade: true, restartIdentity: true});
-    await AccountAttribute.truncate({cascade: true, restartIdentity: true});
-    await Account.truncate({cascade: true, restartIdentity: true});
+    await SequelizeServiceImpl.truncateDB();
   });
 
   afterAll(async () => {
