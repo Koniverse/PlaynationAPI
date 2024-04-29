@@ -1,5 +1,5 @@
-import '../setup/setupTestEnvironment';
-import SequelizeServiceImpl from './SequelizeService';
+import '@src/setup/setupTestEnvironment';
+import SequelizeServiceImpl from '@src/services/SequelizeService';
 
 describe('Test SequelizeService', () => {
   beforeAll(async () => {
