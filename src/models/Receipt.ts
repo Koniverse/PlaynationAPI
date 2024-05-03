@@ -16,7 +16,7 @@ export class Receipt extends Model<InferAttributes<Receipt>, InferCreationAttrib
     declare gameItemId?: number;
     declare point: number;
     declare game_inventory_item_id?: number;
-    declare createdTime: CreationOptional<number>;
+    declare createdAt: CreationOptional<Date>;
 
 }
 
@@ -44,7 +44,7 @@ Receipt.init({
     game_inventory_item_id: {
         type: DataTypes.INTEGER,
     },
-    createdTime: {
+    createdAt: {
         type: DataTypes.DATE,
     }
     
@@ -52,6 +52,7 @@ Receipt.init({
     indexes: [],
     tableName: 'receipt',
     sequelize: SequelizeServiceImpl.sequelize,
+    createdAt: true,
 
 })
 

@@ -82,6 +82,7 @@ const Environments = {
     EnergyRecoverTime: parseInt(process.env.ENGERY_RECOVER_TIME || '60'),
     EnergyPrice: parseInt(process.env.ENERGY_PRICE || '1'),
     EnergyBuyLimit: parseInt(process.env.ENERGY_BUY_LIMIT || '5'),
+    EnergyOneBuy: parseInt(process.env.ENERGY_ONE_BUY || '1'),
   },
 };
 

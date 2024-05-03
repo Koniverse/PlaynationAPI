@@ -363,6 +363,16 @@ export class AccountService {
     return [];
   }
 
+  // update energy
+
+  async updateAccountEnergy(accountId: number, energy: number) {
+    const accountAttribute = await this.getAccountAttribute(accountId);
+    await accountAttribute.update({
+      energy,
+    })
+    return accountAttribute;
+  }
+
   // Singleton this class
   private static _instance: AccountService;
   public static get instance() {

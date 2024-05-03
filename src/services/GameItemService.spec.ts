@@ -7,12 +7,15 @@ import {
   GameInventoryItem,
   GameInventoryItemStatus,
   GamePlay,
+  Receipt,
   Task,
   TaskHistory,
 } from '@src/models';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {GameService} from '@src/services/GameService';
 import {GameItemService} from '@src/services/GameItemService';
+import EnvVars from '@src/constants/EnvVars';
+import { Op } from 'sequelize';
 
 
 describe('Game Item Test', () => {
@@ -30,6 +33,8 @@ describe('Game Item Test', () => {
     photoUrl: 'https://via.placeholder.com/300x300',
     languageCode: 'en',
   };
+  
+  
 
   beforeAll(async () => {
     await SequelizeServiceImpl.syncAll();
@@ -152,4 +157,63 @@ describe('Game Item Test', () => {
       }
     }
   });
+  
+ // Buy Energy test 
+it('should throw an error if account is not found', async () => {
+  const accountId = 9794997;
+  jest.spyOn(AccountAttribute, 'findOne').mockResolvedValue(null);
+  await gameItemService.buyEnergy(accountId)
+    .catch(error => {
+      expect(error.message).toBe('Account not found');
+      expect(AccountAttribute.findOne).toHaveBeenCalledWith({ where: { accountId } });
+    });
+});
+
+// if Not enough points
+it('should throw an error if Not enough points', async () => {
+  let account = await accountService.findByAddress(info.address);
+  if (!account) {
+    account = await accountService.createAccount(info);
+  }
+  await gameItemService.buyEnergy(account.id).catch(error => {
+    expect(error.message).toBe('Not enough points');
+  });
+});
+// if account already buy max energy in day
+it('should throw an error if account already buy max energy in day', async () => {
+  let account = await accountService.findByAddress(info.address);
+
+  if (!account) {
+    account = await accountService.createAccount(info);
+  }
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0); 
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999); 
+  jest.spyOn(Receipt, 'count').mockResolvedValue(EnvVars.Game.EnergyBuyLimit);
+  await gameItemService.buyEnergy(account.id)
+    .catch(error => {
+      expect(error.message).toBe('You already buy max energy in day, pls go back tomorrow');
+      expect(Receipt.count).toHaveBeenCalledWith({ where: { userId: account.id, createdAt: { [Op.gte]: todayStart, [Op.lte]: todayEnd } } });
+    });
+});
+
+// You already have max energy in your account
+it('should throw an error if the account already has max energy', async () => {
+  const maxEnergy = EnvVars.Game.MaxEnergy;
+  let account = await accountService.findByAddress(info.address);
+
+  if (!account) {
+    account = await accountService.createAccount(info);
+  }
+  await AccountAttribute.update({ energy: maxEnergy, point:10000 }, { where: { accountId: account.id } });
+  const currentUser = await accountService.syncAccountData(account);
+  // Try to buy energy and expect an error
+  await gameItemService.buyEnergy(currentUser.id)
+  .catch(error => {
+    expect(error.message).toBe('You already have max energy');
+  });
+});
+
+
 });

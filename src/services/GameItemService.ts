@@ -1,10 +1,12 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {GameInventoryItem, GameInventoryItemStatus, GameItem, NO_GROUP_KEY} from '@src/models';
+import {AccountAttribute, GameInventoryItem, GameInventoryItemStatus, GameItem, NO_GROUP_KEY, Receipt, ReceiptEnum} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {v4} from 'uuid';
 import {validateSignature} from '@src/utils';
 import {QuickGetService} from '@src/services/QuickGetService';
+import EnvVars from '@src/constants/EnvVars';
+import { Op } from 'sequelize';
 
 
 export interface GameItemContentCms {
@@ -126,11 +128,65 @@ export class GameItemService {
     return `level${level}`;
   }
 
-  async buyEnergy(accountId: number, amount?: number) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return {
-      success: true,
-    };
+  async buyEnergy(accountId: number) {
+    const accountAttribute = await AccountAttribute.findOne({
+      where: {
+        accountId,
+      }
+    });
+  
+    if (!accountAttribute) {
+      throw new Error('Account not found');
+    }
+  
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0); 
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999); 
+  
+    const countReceipt = await Receipt.count({
+      where: {
+        userId: accountId,
+        createdAt: {
+          [Op.gte]: todayStart, 
+          [Op.lte]: todayEnd  
+        },
+      }
+    });
+  
+    if (countReceipt >= EnvVars.Game.EnergyBuyLimit) {
+      throw new Error('You already buy max energy in day, pls go back tomorrow');
+    }
+  
+    if (accountAttribute.point < EnvVars.Game.EnergyPrice) {
+      throw new Error('Not enough points');
+    }
+  
+    if (accountAttribute.energy === EnvVars.Game.MaxEnergy) {
+      throw new Error('You already have max energy');
+    }
+  
+    try {
+      const receipt = await Receipt.create({
+        type: ReceiptEnum.BUY_ENERGY,
+        userId: accountId,
+        point: EnvVars.Game.EnergyPrice
+      });
+  
+      await accountAttribute.update({
+        point: accountAttribute.point - EnvVars.Game.EnergyPrice,
+        energy: accountAttribute.energy + EnvVars.Game.EnergyOneBuy,
+      });
+  
+      return {
+        success: true,
+        point: accountAttribute.point,
+        energy: accountAttribute.energy,
+        receiptId: receipt.id
+      }
+    } catch (error) {
+      throw new Error('Failed to buy energy');
+    }
   }
 
   async buyItem(accountId: number, gameItemId: number, quantity = 1) {
