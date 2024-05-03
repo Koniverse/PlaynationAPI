@@ -129,11 +129,7 @@ export class GameItemService {
   }
 
   async buyEnergy(accountId: number) {
-    const accountAttribute = await AccountAttribute.findOne({
-      where: {
-        accountId,
-      }
-    });
+    const accountAttribute = await accountService.getAccountAttribute(accountId, false);
   
     if (!accountAttribute) {
       throw new Error('Account not found');
