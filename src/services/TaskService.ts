@@ -100,7 +100,6 @@ export class TaskService {
   }
 
   async submit(userId: number, taskId: number) {
-    // Get basic data
     const task = await this.findTask(taskId);
     if (!task) {
       throw new Error('Task not found');

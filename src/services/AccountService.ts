@@ -321,6 +321,19 @@ export class AccountService {
     });
   }
 
+  async useAccountPoint(accountId: number, point: number) {
+    const accountAttribute = await this.getAccountAttribute(accountId, false);
+    const newPoint = accountAttribute.point -= point;
+
+    if (newPoint < 0) {
+      throw new Error('Not enough point');
+    }
+
+    await accountAttribute.update({
+      point: newPoint,
+    });
+  }
+
   async giveAccountPoint(params: GiveawayPointParams) {
     const {contentId, inviteCode, point, note} = params;
     // Find account by invite code
@@ -421,6 +434,16 @@ LIMIT 100;
       });
     }
     return [];
+  }
+
+  // update energy
+
+  async updateAccountEnergy(accountId: number, energy: number) {
+    const accountAttribute = await this.getAccountAttribute(accountId);
+    await accountAttribute.update({
+      energy,
+    })
+    return accountAttribute;
   }
 
   // Singleton this class

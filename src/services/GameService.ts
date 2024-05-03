@@ -1,6 +1,14 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import {Account, GameData, GamePlay, Game, LeaderboardPerson} from '@src/models';
-import { v4 } from 'uuid';
+import {
+  Account,
+  Game,
+  GameData,
+  GameInventoryItem,
+  GameInventoryItemStatus,
+  GamePlay,
+  LeaderboardPerson,
+} from '@src/models';
+import {v4} from 'uuid';
 import {AccountService} from '@src/services/AccountService';
 import {QueryTypes} from 'sequelize';
 
@@ -29,22 +37,26 @@ interface LeaderboardRecord {
 const accountService = AccountService.instance;
 
 export interface GameContentCms {
-    id: number,
-    name: string,
-    description: string,
-    url: string,
-    maxEnergy: number,
-    slug: string,
-    active: boolean,
-    maxPoint: number,
-    energyPerGame: number,
-    maxPointPerGame: number,
-    icon: string,
-    rank_definition: string,
-    banner: string,
-    startTime: Date,
-    endTime: Date,
+  id: number,
+  name: string,
+  description: string,
+  url: string,
+  maxEnergy: number,
+  slug: string,
+  active: boolean,
+  maxPoint: number,
+  energyPerGame: number,
+  maxPointPerGame: number,
+  icon: string,
+  rank_definition: string,
+  banner: string,
+  startTime: Date,
+  endTime: Date,
+}
 
+
+export interface GameInventoryItemParams {
+  gameInventoryItemId: number,
 }
 
 export class GameService {
@@ -55,7 +67,7 @@ export class GameService {
   }
 
   async generateDefaultData() {
-    const existed = await Game.findOne({ where: { slug: 'play_booka' } });
+    const existed = await Game.findOne({ where: { slug: 'booka' } });
     if (existed) {
       return existed;
     }
@@ -360,6 +372,31 @@ export class GameService {
       });
     }
     return[];
+  }
+
+  async useGameInventoryItem(accountId: number, gameInventoryItemId: number){
+    const account = await accountService.findById(accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    const gameInventoryItem = await GameInventoryItem.findByPk(gameInventoryItemId);
+    if (!gameInventoryItem) {
+      throw new Error('Game inventory item not found');
+    }
+    if (gameInventoryItem.accountId !== accountId) {
+      throw new Error('Invalid account');
+    }
+    if (gameInventoryItem.status !== GameInventoryItemStatus.ACTIVE) {
+      throw new Error('Inventory item not used');
+    }
+    await gameInventoryItem.update({
+      status: GameInventoryItemStatus.USED,
+      usedTime: new Date(),
+    });
+    return  {
+      success: true,
+    };
+
   }
 
   // Singleton
