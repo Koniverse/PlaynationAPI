@@ -129,12 +129,7 @@ export class GameItemService {
   }
 
   async buyEnergy(accountId: number) {
-    const accountAttribute = await accountService.getAccountAttribute(accountId, false);
-  
-    if (!accountAttribute) {
-      throw new Error('Account not found');
-    }
-  
+    const accountAttribute = await quickGet.requireAccountAttribute(accountId);
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0); 
     const todayEnd = new Date();

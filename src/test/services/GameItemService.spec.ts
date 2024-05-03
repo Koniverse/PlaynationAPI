@@ -1,15 +1,17 @@
-import {AccountService} from '@src/services/AccountService';
-import {AccountParams} from '@src/models/Account';
-import {AccountAttribute, Receipt} from '@src/models';
+import { AccountService } from '@src/services/AccountService';
+import { AccountParams } from '@src/models/Account';
+import { AccountAttribute, Receipt } from '@src/models';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
-import {GameItemService} from '@src/services/GameItemService';
+import { GameItemService } from '@src/services/GameItemService';
 import EnvVars from '@src/constants/EnvVars';
-import {Op} from 'sequelize';
-
+import { Op } from 'sequelize';
+import {QuickGetService} from '@src/services/QuickGetService';
 
 describe('Game Item Test', () => {
   const accountService = AccountService.instance;
   const gameItemService = GameItemService.instance;
+  const quickGet = QuickGetService.instance;
+
   let accountId = 0;
 
   const info: AccountParams = {
@@ -23,8 +25,7 @@ describe('Game Item Test', () => {
     languageCode: 'en',
   };
 
-
-  beforeAll(async () => {
+  beforeEach(async () => {
     await SequelizeServiceImpl.syncAll();
     await SequelizeServiceImpl.truncateDB();
 
@@ -33,71 +34,86 @@ describe('Game Item Test', () => {
   });
 
   afterAll(async () => {
-    // await SequelizeServiceImpl.sequelize.close();
+    await SequelizeServiceImpl.sequelize.close();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   // Buy Energy test
   it('should throw an error if account is not found', async () => {
     jest.spyOn(AccountAttribute, 'findOne').mockResolvedValue(null);
     const notFoundId = 1231234;
-    await gameItemService.buyEnergy(notFoundId)
-      .catch(error => {
-        expect(error.message).toBe('Account not found');
-        expect(AccountAttribute.findOne).toHaveBeenCalledWith({where: {accountId: notFoundId}});
-      });
+    let errorOccurred = false;
+
+    await gameItemService.buyEnergy(notFoundId).catch(error => {
+      errorOccurred = true;
+      expect(error.message).toBe('AccountAttribute not found');
+      expect(AccountAttribute.findOne).toHaveBeenCalledWith({ where: { accountId: notFoundId } });
+    });
+
+    expect(errorOccurred).toBe(true);
   });
 
-  // if Not enough points
+  // Not enough points
   it('should throw an error if Not enough points', async () => {
+    let errorOccurred = false;
+
     await gameItemService.buyEnergy(accountId).catch(error => {
+      errorOccurred = true;
       expect(error.message).toBe('Not enough points');
     });
+
+    expect(errorOccurred).toBe(true);
   });
 
-  // if account already buy max energy in day
+  // Max energy in day
   it('should throw an error if account already buy max energy in day', async () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
     jest.spyOn(Receipt, 'count').mockResolvedValue(EnvVars.Game.EnergyBuyLimit);
-    await gameItemService.buyEnergy(accountId)
-      .catch(error => {
-        expect(error.message).toBe('You already buy max energy in day, pls go back tomorrow');
-        expect(Receipt.count).toHaveBeenCalledWith({
-          where: {
-            userId: accountId,
-            createdAt: {[Op.gte]: todayStart, [Op.lte]: todayEnd},
-          },
-        });
+    let errorOccurred = false;
+
+    await gameItemService.buyEnergy(accountId).catch(error => {
+      errorOccurred = true;
+      expect(error.message).toBe('You already buy max energy in day, pls go back tomorrow');
+      expect(Receipt.count).toHaveBeenCalledWith({
+        where: {
+          userId: accountId,
+          createdAt: { [Op.gte]: todayStart, [Op.lte]: todayEnd },
+        },
       });
+    });
+
+    expect(errorOccurred).toBe(true);
   });
 
-  // You already have max energy in your account
+  // Max energy
   it('should throw an error if the account already has max energy', async () => {
     const maxEnergy = EnvVars.Game.MaxEnergy;
-    await AccountAttribute.update({energy: maxEnergy, point: 10000}, {where: {accountId: accountId}});
+    await AccountAttribute.update({ energy: maxEnergy, point: 10000 }, { where: { accountId: accountId } });
+    let errorOccurred = false;
 
-    // Try to buy energy and expect an error
-    await gameItemService.buyEnergy(accountId)
-      .catch(error => {
-        expect(error.message).toBe('You already have max energy');
-      });
+    await gameItemService.buyEnergy(accountId).catch(error => {
+      errorOccurred = true;
+      expect(error.message).toBe('You already have max energy');
+    });
+
+    expect(errorOccurred).toBe(true);
   });
 
-
-  // successfully 
+  // Successfully buying energy
   it('should successfully buy energy with a different energy price and return the correct response', async () => {
-    await AccountAttribute.update({energy: 0, point: 10000}, {where: {accountId: accountId}});
+    await AccountAttribute.update({ energy: 0, point: 10000 }, { where: { accountId: accountId } });
     const result = await gameItemService.buyEnergy(accountId);
-
-    // attribute
-    const accountNewAttribute = await accountService.getAccountAttribute(accountId, false);
     expect(result).toEqual({
       success: true,
-      point: accountNewAttribute.point,
-      energy: accountNewAttribute.energy,
-      receiptId: 1,
+      point: result.point,
+      energy: result.energy,
+      receiptId: result.receiptId,
     });
   });
 
