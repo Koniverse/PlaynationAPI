@@ -45,6 +45,7 @@ describe('Game Item Test', () => {
     await Game.truncate({cascade: true, restartIdentity: true});
     await AccountAttribute.truncate({cascade: true, restartIdentity: true});
     await Account.truncate({cascade: true, restartIdentity: true});
+    await Receipt.truncate({cascade: true, restartIdentity: true});
   });
 
   afterAll(async () => {
@@ -215,5 +216,25 @@ it('should throw an error if the account already has max energy', async () => {
   });
 });
 
+
+// successfully 
+it('should successfully buy energy with a different energy price and return the correct response', async () => {
+  let account = await accountService.findByAddress(info.address);
+
+  if (!account) {
+    account = await accountService.createAccount(info);
+  }
+  await AccountAttribute.update({ energy: 0 ,point: 10000 }, { where: { accountId: account.id } });
+  const result = await gameItemService.buyEnergy(account.id);
+
+  // attribute
+  const accountNewAttribute = await accountService.getAccountAttribute(account.id, false);
+  expect(result).toEqual({
+    success: true,
+    point: accountNewAttribute.point,
+    energy: accountNewAttribute.energy,
+    receiptId: 1
+  });
+});
 
 });
