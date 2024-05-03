@@ -4,7 +4,7 @@ import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {GameService} from '@src/services/GameService';
 import {AccountService} from '@src/services/AccountService';
 import {AccountParams, Task, TaskHistory} from '@src/models';
-import * as console from 'console';
+
 async function updateTaskHistoryCreatedAt(accountId: number, taskId: number, diffDays: number) {
   const latestLast = await TaskHistory.findAll({
     where: {taskId, accountId},
@@ -18,6 +18,7 @@ async function updateTaskHistoryCreatedAt(accountId: number, taskId: number, dif
     await TaskHistory.update({createdAt}, {where: {id: lastSubmit.id}});
   }
 }
+
 describe('Task Test', () => {
   const accountService = AccountService.instance;
   const taskService = TaskService.instance;
@@ -56,15 +57,22 @@ describe('Task Test', () => {
       account = await accountService.createAccount(info);
     }
     const taskId = taskSample?.id || 0;
-    const taskSumit = await taskService.submit(account.id, taskId);
+    const taskSubmit = await taskService.submit(account.id, taskId);
     console.log('Task submit done');
-    expect(taskSumit.success).toEqual(true);
+    expect(taskSubmit.success).toEqual(true);
+    // Submit more
+    try {
+      await taskService.submit(account.id, taskId);
+    }catch (e) {
+      expect(e.message).toEqual('Task is not ready to be submitted yet');
+    }
 
     await updateTaskHistoryCreatedAt(account.id, taskId, -1);
     console.log('Update last submit before 1 day');
-    const taskSumit1 = await taskService.submit(account.id, taskId);
-    expect(taskSumit1.success).toEqual(true);
+    const taskSubmit1 = await taskService.submit(account.id, taskId);
+    expect(taskSubmit1.success).toEqual(true);
     console.log('Task submit before 1 day done');
+
     await updateTaskHistoryCreatedAt(account.id, taskId, 1);
     console.log('Update last submit after 1 day');
     try {
