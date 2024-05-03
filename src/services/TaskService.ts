@@ -2,6 +2,7 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import Game from '@src/models/Game';
 import {Task, TaskHistory} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
+import {dateDiffInDays} from "@src/utils/date";
 
 
 export interface TaskContentCms {
@@ -142,10 +143,8 @@ export class TaskService {
     // Validate repeat task
     if (latestLast.length > 0 && interval > 0) {
       const lastSubmit = latestLast[0];
-      const lastSubmitTime = lastSubmit.createdAt.getTime();
-      const diff = currentTime - lastSubmitTime;
-      const diffInSeconds = diff / 1000;
-      if (diffInSeconds < interval) {
+      const diffInDays = dateDiffInDays(lastSubmit.createdAt, now);
+      if (diffInDays < interval) {
         throw new Error('Task is not ready to be submitted yet');
       }
     }
