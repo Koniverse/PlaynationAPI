@@ -1,4 +1,6 @@
-import {Account, AccountAttribute, Game, GameData, GameItem, Task} from '@src/models';
+import {Account, AccountAttribute, Game, GameData, GameItem, Receipt, ReceiptEnum, Task} from '@src/models';
+import {Op} from 'sequelize';
+import EnvVars from '@src/constants/EnvVars';
 
 export class QuickGetService {
   private gameMap: Record<string, Game> | undefined;
@@ -107,6 +109,33 @@ export class QuickGetService {
     }
 
     return task;
+  }
+
+  calculateTotalCost(itemPrice: number, quantity: number): number {
+    return itemPrice * quantity;
+  }
+
+  calculateRemainingPoints(currentPoints: number, cost: number): number {
+    return currentPoints - cost;
+  }
+  async validateMaxDailyPurchases(accountId: number, type:string, maxDailyPurchases: number = EnvVars.Game.EnergyBuyLimit ) {
+    const today = new Date();
+    const todayStart = new Date(today.setHours(0, 0, 0, 0));
+    const todayEnd = new Date(today.setHours(23, 59, 59, 999));
+    const countReceipt = await Receipt.count({
+      where: {
+        userId: accountId,
+        type: type,
+        createdAt: {
+          [Op.gte]: todayStart,
+          [Op.lte]: todayEnd
+        }
+      }
+    });
+
+    if (countReceipt >= EnvVars.Game.EnergyBuyLimit) {
+      throw new Error('You have reached your daily purchase limit. Please try again tomorrow.');
+    }
   }
 
   // Singleton

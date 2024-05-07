@@ -1,11 +1,13 @@
 import { AccountService } from '@src/services/AccountService';
 import { AccountParams } from '@src/models/Account';
-import { AccountAttribute, Receipt } from '@src/models';
+import {AccountAttribute, Game, GameItem, Receipt, ReceiptEnum} from '@src/models';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import { GameItemService } from '@src/services/GameItemService';
 import EnvVars from '@src/constants/EnvVars';
 import { Op } from 'sequelize';
 import {QuickGetService} from '@src/services/QuickGetService';
+import gameItem from '@src/models/GameItem';
+import {createSampleGameData} from '@src/test/data_samples/Games';
 
 describe('Game Item Test', () => {
   const accountService = AccountService.instance;
@@ -13,7 +15,7 @@ describe('Game Item Test', () => {
   const quickGet = QuickGetService.instance;
 
   let accountId = 0;
-
+  let sampleDataGame = {};
   const info: AccountParams = {
     address: '5Eo5BJntLSFRYGjzEedEguxVjH7dxo1iEXUCgXJEP2bFNHSo',
     signature: '0x660b13c0908541dcfdde53c0cb98e37ac47e4cd4d032941e53b51aac593ed81b8ec5c0ac6123c3c51bd08f1ae7b88afda838314d6727bb0dc6b0d1ad5b18438a',
@@ -31,6 +33,7 @@ describe('Game Item Test', () => {
 
     const syncAccount = await accountService.syncAccountData(info, undefined, false);
     accountId = syncAccount.id;
+    sampleDataGame = await  createSampleGameData(accountId);
   });
 
   afterAll(async () => {
@@ -79,10 +82,11 @@ describe('Game Item Test', () => {
 
     await gameItemService.buyEnergy(accountId).catch(error => {
       errorOccurred = true;
-      expect(error.message).toBe('You already buy max energy in day, pls go back tomorrow');
+      expect(error.message).toBe('You have reached your daily purchase limit. Please try again tomorrow.');
       expect(Receipt.count).toHaveBeenCalledWith({
         where: {
           userId: accountId,
+          type: ReceiptEnum.BUY_ENERGY,
           createdAt: { [Op.gte]: todayStart, [Op.lte]: todayEnd },
         },
       });
@@ -116,5 +120,32 @@ describe('Game Item Test', () => {
       receiptId: result.receiptId,
     });
   });
+
+
+  // buy Item
+  it('should throw an error if Not enough points', async () =>{
+    await AccountAttribute.update({point: 0 }, { where: { accountId: accountId } });
+    let errorOccurred = false;
+    await gameItemService.buyItem(accountId,100).catch(error => {
+      errorOccurred = true;
+      expect(error.message).toBe('Not enough points');
+    });
+    expect(errorOccurred).toBe(true);
+
+  })
+
+
+
+  it('should successfully buy item with a different item', async () => {
+    await AccountAttribute.update({point: 10000 }, { where: { accountId: accountId } });
+    const result = await gameItemService.buyItem(accountId,100,1);
+    expect(result).toEqual({
+      success: true,
+      point: result.point,
+      receiptId: result.receiptId,
+      inventoryId: result.inventoryId,
+      itemGroupLevel: result.itemGroupLevel,
+    })
+  })
 
 });

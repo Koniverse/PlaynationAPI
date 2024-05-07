@@ -4,6 +4,8 @@
 
 /* eslint-disable node/no-process-env */
 
+import * as process from 'node:process';
+
 const Environments = {
   NodeEnv: (process.env.NODE_ENV ?? ''),
   Port: (process.env.PORT ?? 0),
@@ -85,6 +87,11 @@ const Environments = {
     EnergyBuyLimit: parseInt(process.env.ENERGY_BUY_LIMIT || '5'),
     EnergyOneBuy: parseInt(process.env.ENERGY_ONE_BUY || '1'),
   },
+  GameItem:{
+    EternalItem: parseInt(process.env.ETERNAL_ITEM|| '-1' ),
+    DisposableItem:parseInt(process.env.DISPOSABLE_ITEM|| '0' ),
+    ItemLevel:process.env.ITEM_LEVEL || 'LEVEL',
+  }
 };
 
 export default Environments;
