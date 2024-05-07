@@ -53,6 +53,7 @@ export * from '@src/models/GameData';
 export * from '@src/models/GamePlay';
 export * from '@src/models/GameInventoryItem';
 export * from '@src/models/GameItem';
+export * from '@src/models/TaskCategory';
 export * from '@src/models/Task';
 export * from '@src/models/TaskHistory';
 export * from '@src/models/ReferralLog';
