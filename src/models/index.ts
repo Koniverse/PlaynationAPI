@@ -10,6 +10,7 @@ import Task from '@src/models/Task';
 import TaskHistory from '@src/models/TaskHistory';
 import ReferralLog from '@src/models/ReferralLog';
 import GiveAwayPoint from '@src/models/GiveAwayPoint';
+import TaskCategory from '@src/models/TaskCategory';
 
 AccountAttribute.belongsTo(Account, {foreignKey: 'accountId'});
 Account.hasOne(AccountAttribute, {foreignKey: 'accountId'});
@@ -29,6 +30,7 @@ TaskHistory.belongsTo(Task, {foreignKey: 'taskId'});
 TaskHistory.belongsTo(Account, {foreignKey: 'accountId'});
 
 Task.belongsTo(Game, {foreignKey: 'gameId'});
+Task.belongsTo(TaskCategory, {foreignKey: 'categoryId'});
 
 // Sync all models
 SequelizeServiceImpl.addSync(Account.sync.bind(Account));
@@ -38,6 +40,7 @@ SequelizeServiceImpl.addSync(GameData.sync.bind(GameData));
 SequelizeServiceImpl.addSync(GamePlay.sync.bind(GamePlay));
 SequelizeServiceImpl.addSync(GameItem.sync.bind(GameItem));
 SequelizeServiceImpl.addSync(GameInventoryItem.sync.bind(GameInventoryItem));
+SequelizeServiceImpl.addSync(TaskCategory.sync.bind(TaskCategory));
 SequelizeServiceImpl.addSync(Task.sync.bind(Task));
 SequelizeServiceImpl.addSync(TaskHistory.sync.bind(TaskHistory));
 SequelizeServiceImpl.addSync(ReferralLog.sync.bind(ReferralLog));

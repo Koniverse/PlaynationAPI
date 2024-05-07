@@ -2,6 +2,7 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import Game from '@src/models/Game';
 import {Task, TaskHistory} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
+import TaskCategory from '@src/models/TaskCategory';
 
 
 export interface TaskContentCms {
@@ -14,6 +15,7 @@ export interface TaskContentCms {
     icon: string,
     itemReward: number,
     gameId: number,
+    categoryId: number,
     pointReward: number,
     effectDuration: number,
     interval: number,
@@ -37,6 +39,7 @@ export class TaskService {
     };
 
     for (const item of data) {
+      console.log(item);
       const itemData = {...item} as unknown as Task;
       const existed = await Task.findOne({where: {contentId: item.id}});
 
@@ -47,6 +50,14 @@ export class TaskService {
           continue;
         }
         itemData.gameId = gameData.id;
+      }
+      // Check if category exists
+      if (item.categoryId) {
+        const categoryData = await TaskCategory.findOne({where: {contentId: item.categoryId}});
+        if (!categoryData) {
+          continue;
+        }
+        itemData.categoryId = categoryData.id;
       }
 
       // Sync data
