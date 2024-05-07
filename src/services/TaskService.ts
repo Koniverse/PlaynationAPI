@@ -1,8 +1,7 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {Task, TaskHistory} from '@src/models';
+import {Task, TaskHistory, TaskCategory} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
-import TaskCategory from '@src/models/TaskCategory';
 
 
 export interface TaskContentCms {

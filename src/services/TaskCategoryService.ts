@@ -1,5 +1,5 @@
+import { TaskCategory } from '@src/models';
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import TaskCategory from '@src/models/TaskCategory';
 
 
 export interface TaskCategoryContentCms  {
