@@ -1,6 +1,14 @@
 import { AccountService } from '@src/services/AccountService';
 import account, { AccountParams } from '@src/models/Account';
-import {AccountAttribute, Game, GameItem, Receipt, ReceiptEnum} from '@src/models';
+import {
+  AccountAttribute,
+  Game,
+  GameItem,
+  Receipt,
+  ReceiptEnum,
+  GameInventoryItem,
+  GameInventoryItemStatus,
+} from '@src/models';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import { GameItemService } from '@src/services/GameItemService';
 import EnvVars from '@src/constants/EnvVars';
@@ -149,7 +157,7 @@ describe('Game Item Test', () => {
   })
 
   it('should throw an error if max buy in day', async () => {
-    await AccountAttribute.update({point: 10000 }, { where: { accountId: accountId } });
+    await accountService.addAccountPoint(accountId,10000)
     let errorOccurred = false;
     jest.spyOn(Receipt, 'count').mockResolvedValue(EnvVars.Game.EnergyBuyLimit);
     await gameItemService.buyItem(accountId,sampleGameItems[0].id, 1).catch(error => {
@@ -219,4 +227,18 @@ describe('Game Item Test', () => {
     });
     expect(errorOccurred).toBe(true);
   })
+
+  it('should throw an error to buy item not inactive  ', async () => {
+    await accountService.addAccountPoint(accountId,1000);
+    const getGameItem = await GameItem.findOne({where: {effectDuration: EnvVars.GameItem.DisposableItem}});
+    const gameItemId: number = getGameItem?.id ?? 100;
+    const gameItemResult = await gameItemService.buyItem(accountId, gameItemId, 1);
+    let errorOccurred = false;
+    await GameInventoryItem.update({status: GameInventoryItemStatus.ACTIVE }, { where: { id: gameItemResult.inventoryId } });
+    await gameItemService.useInventoryItem(accountId,gameItemResult.inventoryId).catch(error => {
+      errorOccurred = true;
+      expect(error.message).toBe('Your Item is active, can\'t be active');
+    });
+    expect(errorOccurred).toBe(true);
+  });
 });
