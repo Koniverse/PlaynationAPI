@@ -207,7 +207,7 @@ describe('Game Item Test', () => {
     });
   });
 
-  it('should throw an error to buy item not Disposable item ', async () => {
+  it('should throw an error to buy item not EternalItem item ', async () => {
     await accountService.addAccountPoint(accountId,1000);
     const getGameItem = await GameItem.findOne({where: {effectDuration: EnvVars.GameItem.EternalItem}});
     const gameItemId: number = getGameItem?.id ?? 100;
