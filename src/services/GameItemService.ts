@@ -121,17 +121,15 @@ export class GameItemService {
     const game = await quickGet.requireGame(gameItem.gameId);
     const accountAttribute = await quickGet.requireAccountAttribute(account.id);
     const gameData = await quickGet.requireGameData(accountId, game.id);
-
+    if (quantity > gameItem.maxBuy) {
+      throw new Error('Please purchase smaller quantities ' + gameItem.maxBuy);
+    }
     const usePoint = this.calculateTotalCost(gameItem.price, quantity);
     const remainingPoint = this.calculateRemainingPoints(accountAttribute.point, usePoint);
-
     if (remainingPoint < 0) {
       throw new Error('Not enough points');
     }
 
-    if (quantity > gameItem.maxBuy) {
-      throw new Error('Please purchase smaller quantities ' + gameItem.maxBuy);
-    }
     await this.validateMaxDailyPurchases(account.id, ReceiptEnum.BUY_ITEM, gameItem.maxBuyDaily);
 
     try {
