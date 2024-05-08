@@ -44,8 +44,8 @@ export async function createSampleGameData(accountId:number) {
         itemGroup: '1',
         itemGroupLevel: 1,
         tokenPrice: 0,
-        maxBuy: 0,
-        maxBuyDaily: 0,
+        maxBuy: 10,
+        maxBuyDaily: 20,
         price: 100,
         effectDuration: 0,
       };

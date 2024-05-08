@@ -1,4 +1,14 @@
-import {Account, AccountAttribute, Game, GameData, GameItem, Receipt, ReceiptEnum, Task} from '@src/models';
+import {
+  Account,
+  AccountAttribute,
+  Game,
+  GameData,
+  GameInventoryItem,
+  GameItem,
+  Receipt,
+  ReceiptEnum,
+  Task,
+} from '@src/models';
 import {Op} from 'sequelize';
 import EnvVars from '@src/constants/EnvVars';
 
@@ -118,6 +128,8 @@ export class QuickGetService {
   calculateRemainingPoints(currentPoints: number, cost: number): number {
     return currentPoints - cost;
   }
+
+
   async validateMaxDailyPurchases(accountId: number, type:string, maxDailyPurchases: number = EnvVars.Game.EnergyBuyLimit ) {
     const today = new Date();
     const todayStart = new Date(today.setHours(0, 0, 0, 0));
@@ -132,10 +144,17 @@ export class QuickGetService {
         }
       }
     });
-
-    if (countReceipt >= EnvVars.Game.EnergyBuyLimit) {
+    if (countReceipt >= maxDailyPurchases) {
       throw new Error('You have reached your daily purchase limit. Please try again tomorrow.');
     }
+  }
+
+  async requireInventoryGame(accountId: number,gameItemId:number) {
+    const inventoryGame = await GameInventoryItem.findOne({where: {accountId,gameItemId}});
+    if (!inventoryGame) {
+      throw new Error(`Inventory Item not found: ${accountId}`);
+    }
+    return inventoryGame;
   }
 
   // Singleton
