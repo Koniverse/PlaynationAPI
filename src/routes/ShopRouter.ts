@@ -60,6 +60,14 @@ const routerMap = {
     return res.status(200).json(response);
   },
 
+  // Use Item
+  useInventoryItem: async (req: IReq<BuyGameItemParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const {gameItemId} = req.body;
+    const response = await gameItemService.useInventoryItem(userId, gameItemId);
+    return res.status(200).json(response);
+  },
+
   // Get inventories
   getInventoryLogs: async (req: IReq<GetItemLogsParams>, res: IRes) => {
     const userId = req.user?.id || 0;
@@ -76,6 +84,7 @@ ShopRouter.post('/list-items', requireLogin, routerMap.listItems);
 // Buy items
 ShopRouter.post('/buy-energy', requireLogin, routerMap.buyEnergy);
 ShopRouter.post('/buy-item', requireLogin, routerMap.buyItem);
+ShopRouter.post('/use-inventory-item', requireLogin, routerMap.useInventoryItem);
 
 // Get inventories
 ShopRouter.get('/get-inventory-logs', requireLogin, routerMap.getInventoryLogs);

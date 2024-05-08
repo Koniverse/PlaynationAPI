@@ -1,4 +1,5 @@
 import { Game, GameData, GameItem } from '@src/models';
+import EnvVars from '@src/constants/EnvVars';
 
 
 export async function createSampleGameData(accountId:number) {
@@ -44,10 +45,10 @@ export async function createSampleGameData(accountId:number) {
         itemGroup: '1',
         itemGroupLevel: 1,
         tokenPrice: 0,
-        maxBuy: 10,
-        maxBuyDaily: 20,
+        maxBuy: index < 50 ? 1 : 10,
+        maxBuyDaily: EnvVars.Game.EnergyBuyLimit,
         price: 100,
-        effectDuration: 0,
+        effectDuration: index < 50 ? EnvVars.GameItem.EternalItem : EnvVars.GameItem.DisposableItem,
       };
     });
   }
@@ -62,11 +63,15 @@ export async function createSampleGameData(accountId:number) {
     }
   ]
 
-  return Promise.all([
-    ...GameList.map(game => Game.create(game)),
-    ...GameItemList.map(gameItem => GameItem.create(gameItem)),
-    ...GameDataList.map(gameData => GameData.create(gameData))
-  ]);
+  const games = Promise.all(GameList.map(game => Game.create(game)));
+
+  // Creating Game Items
+  const gameItems = Promise.all(GameItemList.map(gameItem => GameItem.create(gameItem)));
+
+  // Creating Game Data
+  const gameData = Promise.all(GameDataList.map(gameData => GameData.create(gameData)));
+  const [createdGames, createdGameItems, createdGameData] = await Promise.all([games, gameItems, gameData]);
+  return { createdGames, createdGameItems, createdGameData };
 }
 
 

@@ -3,7 +3,7 @@ import {
   AccountAttribute,
   Game,
   GameData,
-  GameInventoryItem,
+  GameInventoryItem, GameInventoryItemStatus,
   GameItem,
   Receipt,
   ReceiptEnum,
@@ -121,41 +121,22 @@ export class QuickGetService {
     return task;
   }
 
-  calculateTotalCost(itemPrice: number, quantity: number): number {
-    return itemPrice * quantity;
-  }
-
-  calculateRemainingPoints(currentPoints: number, cost: number): number {
-    return currentPoints - cost;
-  }
-
-
-  async validateMaxDailyPurchases(accountId: number, type:string, maxDailyPurchases: number = EnvVars.Game.EnergyBuyLimit ) {
-    const today = new Date();
-    const todayStart = new Date(today.setHours(0, 0, 0, 0));
-    const todayEnd = new Date(today.setHours(23, 59, 59, 999));
-    const countReceipt = await Receipt.count({
-      where: {
-        userId: accountId,
-        type: type,
-        createdAt: {
-          [Op.gte]: todayStart,
-          [Op.lte]: todayEnd
-        }
-      }
-    });
-    if (countReceipt >= maxDailyPurchases) {
-      throw new Error('You have reached your daily purchase limit. Please try again tomorrow.');
+  async requireInventoryGame(accountId: number,inventoryId:number) {
+    const inventoryGame = await GameInventoryItem.findOne({where: {accountId,id:inventoryId}});
+    if (!inventoryGame) {
+      throw new Error(`Inventory Item not found: ${inventoryId}`);
     }
+    return inventoryGame;
   }
-
-  async requireInventoryGame(accountId: number,gameItemId:number) {
-    const inventoryGame = await GameInventoryItem.findOne({where: {accountId,gameItemId}});
+  async requireCountInventoryInActiveGame(accountId: number) {
+    const inventoryGame = await GameInventoryItem.findAndCountAll({where: {accountId, status:EnvVars.GameItem.ItemInActive}});
     if (!inventoryGame) {
       throw new Error(`Inventory Item not found: ${accountId}`);
     }
     return inventoryGame;
   }
+
+
 
   // Singleton
   private static _instance: QuickGetService;

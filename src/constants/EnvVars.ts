@@ -91,6 +91,10 @@ const Environments = {
     EternalItem: parseInt(process.env.ETERNAL_ITEM|| '-1' ),
     DisposableItem:parseInt(process.env.DISPOSABLE_ITEM|| '0' ),
     ItemLevel:process.env.ITEM_LEVEL || 'LEVEL',
+    ItemMaxLevel: parseInt(process.env.ITEM_MAX_LEVEL || '100'),
+    ItemActive: process.env.ITEM_ACTIVE || 'active',
+    ItemInActive: process.env.ITEM_IN_ACTIVE || 'inactive',
+
   }
 };
 
