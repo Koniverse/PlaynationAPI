@@ -133,7 +133,7 @@ export class GameItemService {
     await this.validateMaxDailyPurchases(account.id, ReceiptEnum.BUY_ITEM, gameItem.maxBuyDaily);
 
     try {
-      let inventoryStatus = this.determineInventoryStatus(gameItem);
+      const inventoryStatus = this.determineInventoryStatus(gameItem);
 
       const transactionId = v4();
       let endEffectTime: Date | null = null;
@@ -191,7 +191,7 @@ export class GameItemService {
     if(gameItem.effectDuration !== EnvVars.GameItem.DisposableItem) {
       throw new Error('Your item is not a disposable item');
     }
-    if(gameInventoryItem.status === EnvVars.GameItem.ItemActive) {
+    if(gameInventoryItem.status === GameInventoryItemStatus.ACTIVE || gameInventoryItem.status === GameInventoryItemStatus.USED) {
       throw new Error(`Your Item is active, can't be active`);
     }
     try {
@@ -199,7 +199,7 @@ export class GameItemService {
         await this.handleLevelPurchase(gameData, gameItem);
       }
       await gameInventoryItem.update({
-        status: GameInventoryItemStatus.ACTIVE,
+        status: GameInventoryItemStatus.USED,
       })
       const countInventory =  await quickGet.requireCountInventoryInActiveGame(accountId)
       return {

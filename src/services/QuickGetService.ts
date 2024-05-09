@@ -129,7 +129,7 @@ export class QuickGetService {
     return inventoryGame;
   }
   async requireCountInventoryInActiveGame(accountId: number) {
-    const inventoryGame = await GameInventoryItem.findAndCountAll({where: {accountId, status:EnvVars.GameItem.ItemInActive}});
+    const inventoryGame = await GameInventoryItem.findAndCountAll({where: {accountId, status: GameInventoryItemStatus.INACTIVE}});
     if (!inventoryGame) {
       throw new Error(`Inventory Item not found: ${accountId}`);
     }
