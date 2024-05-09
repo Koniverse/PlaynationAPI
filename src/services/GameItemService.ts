@@ -191,8 +191,8 @@ export class GameItemService {
     if(gameItem.effectDuration !== EnvVars.GameItem.DisposableItem) {
       throw new Error('Your item is not a disposable item');
     }
-    if(gameInventoryItem.status === GameInventoryItemStatus.ACTIVE || gameInventoryItem.status === GameInventoryItemStatus.USED) {
-      throw new Error(`Your Item is active, can't be active`);
+    if(gameInventoryItem.status === GameInventoryItemStatus.INACTIVE || gameInventoryItem.status === GameInventoryItemStatus.USED) {
+      throw new Error(`Your Item is inactive, can't be used`);
     }
     try {
       if (gameItem.itemGroup === EnvVars.GameItem.ItemLevel) {
@@ -214,9 +214,9 @@ export class GameItemService {
 
   determineInventoryStatus(gameItem :GameItem) {
     if (gameItem.effectDuration === EnvVars.GameItem.EternalItem) {
-      return GameInventoryItemStatus.ACTIVE;
+      return GameInventoryItemStatus.USED;
     }
-    return GameInventoryItemStatus.INACTIVE;
+    return GameInventoryItemStatus.ACTIVE;
   }
 
   async  handleLevelPurchase(gameData: GameData, gameItem: GameItem) {

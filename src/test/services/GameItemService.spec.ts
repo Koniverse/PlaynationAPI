@@ -228,16 +228,16 @@ describe('Game Item Test', () => {
     expect(errorOccurred).toBe(true);
   })
 
-  it('should throw an error to buy item not inactive  ', async () => {
+  it('should throw an error to buy item not active  ', async () => {
     await accountService.addAccountPoint(accountId,1000);
     const getGameItem = await GameItem.findOne({where: {effectDuration: EnvVars.GameItem.DisposableItem}});
     const gameItemId: number = getGameItem?.id ?? 100;
     const gameItemResult = await gameItemService.buyItem(accountId, gameItemId, 1);
     let errorOccurred = false;
-    await GameInventoryItem.update({status: GameInventoryItemStatus.ACTIVE }, { where: { id: gameItemResult.inventoryId } });
+    await GameInventoryItem.update({status: GameInventoryItemStatus.INACTIVE || GameInventoryItemStatus.USED }, { where: { id: gameItemResult.inventoryId } });
     await gameItemService.useInventoryItem(accountId,gameItemResult.inventoryId).catch(error => {
       errorOccurred = true;
-      expect(error.message).toBe('Your Item is active, can\'t be active');
+      expect(error.message).toBe('Your Item is inactive, can\'t be used');
     });
     expect(errorOccurred).toBe(true);
   });
