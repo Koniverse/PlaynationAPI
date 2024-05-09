@@ -1,9 +1,17 @@
-import {Account, AccountAttribute, Game, GameData, GameItem, Task} from '@src/models';
+import {
+  Account,
+  AccountAttribute,
+  Game,
+  GameData,
+  GameInventoryItem,
+  GameInventoryItemStatus,
+  GameItem,
+  Task,
+} from '@src/models';
 
 export class QuickGetService {
   private gameMap: Record<string, Game> | undefined;
   private gameItemMap: Record<string, GameItem> | undefined;
-
 
   // API for Game
   async buildGameMap() {
@@ -51,12 +59,16 @@ export class QuickGetService {
   }
 
   async findGameItem(id: number) {
-    const gameItemMap = !!this.gameItemMap ? this.gameItemMap : await this.buildGameItemMap();
+    const gameItemMap = !!this.gameItemMap
+      ? this.gameItemMap
+      : await this.buildGameItemMap();
     return gameItemMap[id.toString()];
   }
 
   async listGameItem(gameId?: number) {
-    const gameItemMap = !!this.gameItemMap ? this.gameItemMap : await this.buildGameItemMap();
+    const gameItemMap = !!this.gameItemMap
+      ? this.gameItemMap
+      : await this.buildGameItemMap();
     if (!gameId) {
       return Object.values(gameItemMap);
     }
@@ -82,7 +94,9 @@ export class QuickGetService {
   }
 
   async requireAccountAttribute(accountId: number) {
-    const accountAttribute = await AccountAttribute.findOne({where: {accountId}});
+    const accountAttribute = await AccountAttribute.findOne({
+      where: { accountId },
+    });
     if (!accountAttribute) {
       throw new Error('AccountAttribute not found');
     }
@@ -91,7 +105,7 @@ export class QuickGetService {
   }
 
   async requireGameData(accountId: number, gameId: number) {
-    const gameData = await GameData.findOne({where: {accountId, gameId}});
+    const gameData = await GameData.findOne({ where: { accountId, gameId } });
 
     if (!gameData) {
       throw new Error('GameData not found');
@@ -107,6 +121,29 @@ export class QuickGetService {
     }
 
     return task;
+  }
+
+  async requireInventoryGame(accountId: number, inventoryId: number) {
+    const inventoryGame = await GameInventoryItem.findOne({
+      where: { accountId, id: inventoryId },
+    });
+    if (!inventoryGame) {
+      throw new Error(`Inventory Item not found: ${inventoryId}`);
+    }
+    return inventoryGame;
+  }
+
+  async requireCountInventoryActiveGame(accountId: number) {
+    const inventoryGame = await GameInventoryItem.findAndCountAll({
+      where: {
+        accountId,
+        status: GameInventoryItemStatus.ACTIVE,
+      },
+    });
+    if (!inventoryGame) {
+      throw new Error(`Inventory Item not found: ${accountId}`);
+    }
+    return inventoryGame;
   }
 
   // Singleton

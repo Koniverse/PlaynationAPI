@@ -392,6 +392,14 @@ export class AccountService {
     return {success: true};
   }
 
+  async addEnergy(accountId: number, energy: number) {
+    const accountAttribute = await this.getAccountAttribute(accountId, false);
+    const newEnergy = accountAttribute.energy += energy;
+    await accountAttribute.update({
+      energy: newEnergy,
+    });
+  }
+
   async getReferralLog(accountId: number) {
     const sql = `
     SELECT

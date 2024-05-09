@@ -19,7 +19,11 @@ interface BuyParams {
 export type BuyEnergyParams = BuyParams
 
 export interface BuyGameItemParams extends BuyParams{
-  gameItemId: number
+  gameItemId: number,
+  quantity?: number
+}
+export interface UseItemParams extends BuyParams{
+  inventoryId: number
 }
 
 type GetItemLogsParams = {
@@ -55,8 +59,16 @@ const routerMap = {
   // Buy items
   buyItem: async (req: IReq<BuyGameItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {gameItemId} = req.body;
-    const response = await gameItemService.buyItem(userId, gameItemId);
+    const {gameItemId,quantity} = req.body;
+    const response = await gameItemService.buyItem(userId, gameItemId,quantity);
+    return res.status(200).json(response);
+  },
+
+  // Use Item
+  useInventoryItem: async (req: IReq<UseItemParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const {inventoryId} = req.body;
+    const response = await gameItemService.useInventoryItem(userId, inventoryId);
     return res.status(200).json(response);
   },
 
@@ -76,6 +88,7 @@ ShopRouter.post('/list-items', requireLogin, routerMap.listItems);
 // Buy items
 ShopRouter.post('/buy-energy', requireLogin, routerMap.buyEnergy);
 ShopRouter.post('/buy-item', requireLogin, routerMap.buyItem);
+ShopRouter.post('/use-inventory-item', requireLogin, routerMap.useInventoryItem);
 
 // Get inventories
 ShopRouter.get('/get-inventory-logs', requireLogin, routerMap.getInventoryLogs);
