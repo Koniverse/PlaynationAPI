@@ -4,7 +4,7 @@ import { AccountAttribute, GameInventoryItem, GameInventoryItemStatus, GameItem,
 import EnvVars from '@src/constants/EnvVars';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import { GameItemService } from '@src/services/GameItemService';
-import { createGameData, createSampleGameData } from '@src/test/data_samples/Games';
+import { createSampleGameData } from '@src/test/data_samples/Games';
 import { QuickGetService } from '@src/services/QuickGetService';
 
 interface sampleGameItemsParams {
@@ -35,7 +35,7 @@ describe('Game Item Test', () => {
     await SequelizeServiceImpl.truncateDB();
     const syncAccount = await accountService.syncAccountData(info, undefined, false);
     accountId = syncAccount.id;
-    const sampleDataGame = await createSampleGameData();
+    const sampleDataGame = await createSampleGameData(accountId);
     sampleGameItems = sampleDataGame.createdGameItems;
   });
 
@@ -87,12 +87,10 @@ describe('Game Item Test', () => {
     await accountService.addAccountPoint(accountId, 1000);
     await accountService.addEnergy(accountId, maxEnergy);
     let errorOccurred = false;
-
     await gameItemService.buyEnergy(accountId).catch((error: Error) => {
       errorOccurred = true;
       expect(error.message).toBe('You already have max energy');
     });
-
     expect(errorOccurred).toBe(true);
   });
 
@@ -116,7 +114,6 @@ describe('Game Item Test', () => {
   // buy Item
   it('should throw an error if Not enough points', async () => {
     let errorOccurred = false;
-    await createGameData(accountId);
     await accountService.useAccountPoint(accountId, 1000000000).catch((error: Error) => {
       errorOccurred = true;
       expect(error.message).toBe('Not enough point');
@@ -131,7 +128,6 @@ describe('Game Item Test', () => {
   it('should throw an error if max buy item', async () => {
     let errorOccurred = false;
     await accountService.addAccountPoint(accountId, 10000);
-    await createGameData(accountId);
     await gameItemService.buyItem(accountId, sampleGameItems[0].id, 20).catch((error: Error) => {
       errorOccurred = true;
       expect(error.message).toBe(`Cannot buy more than ${sampleGameItems[0].maxBuy} items at once.`);
@@ -141,7 +137,6 @@ describe('Game Item Test', () => {
 
   it('should throw an error if max buy in day', async () => {
     await accountService.addAccountPoint(accountId, 10000);
-    await createGameData(accountId);
     let errorOccurred = false;
     jest.spyOn(Receipt, 'count').mockResolvedValue(EnvVars.Game.EnergyBuyLimit);
     await gameItemService.buyItem(accountId, sampleGameItems[0].id, 1).catch((error: Error) => {
@@ -153,7 +148,6 @@ describe('Game Item Test', () => {
 
   it('should successfully buy item with a Eternal item', async () => {
     await accountService.addAccountPoint(accountId, 1000);
-    await createGameData(accountId);
     const getGameItem = await GameItem.findOne({ where: { effectDuration: EnvVars.GameItem.EternalItem } });
     const gameIdItem = getGameItem?.id ?? 100;
     const result = await gameItemService.buyItem(accountId, gameIdItem, 1);
@@ -170,7 +164,6 @@ describe('Game Item Test', () => {
 
   it('should successfully buy item with a Disposable item', async () => {
     await accountService.addAccountPoint(accountId, 1000);
-    await createGameData(accountId);
     const getGameItem = await GameItem.findOne({ where: { effectDuration: EnvVars.GameItem.DisposableItem } });
     const gameItemId: number = getGameItem?.id ?? 100;
     const result = await gameItemService.buyItem(accountId, gameItemId, 1);
@@ -190,7 +183,6 @@ describe('Game Item Test', () => {
   // Use Item
   it('should successfully to buy item with a Disposable item', async () => {
     await accountService.addAccountPoint(accountId, 1000);
-    await createGameData(accountId);
     const getGameItem = await GameItem.findOne({ where: { effectDuration: EnvVars.GameItem.DisposableItem } });
     const gameItemId: number = getGameItem?.id ?? 100;
     const gameItemResult = await gameItemService.buyItem(accountId, gameItemId, 1);
@@ -204,7 +196,6 @@ describe('Game Item Test', () => {
 
   it('should throw an error to buy item not EternalItem item ', async () => {
     await accountService.addAccountPoint(accountId, 1000);
-    await createGameData(accountId);
     const getGameItem = await GameItem.findOne({ where: { effectDuration: EnvVars.GameItem.EternalItem } });
     const gameItemId: number = getGameItem?.id ?? 100;
     const gameItemResult = await gameItemService.buyItem(accountId, gameItemId, 1);
@@ -218,7 +209,6 @@ describe('Game Item Test', () => {
 
   it('should throw an error to buy item not active  ', async () => {
     await accountService.addAccountPoint(accountId, 1000);
-    await createGameData(accountId);
     const getGameItem = await GameItem.findOne({ where: { effectDuration: EnvVars.GameItem.DisposableItem } });
     const gameItemId: number = getGameItem?.id ?? 100;
     const gameItemResult = await gameItemService.buyItem(accountId, gameItemId, 1);

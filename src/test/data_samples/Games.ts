@@ -1,7 +1,8 @@
 import { Game, GameData, GameItem } from '@src/models';
 import EnvVars from '@src/constants/EnvVars';
+import * as console from 'node:console';
 
-export async function createSampleGameData() {
+export async function createSampleGameData(accountId: number) {
   const gameIds = await getAllGameIds();
   const GameList = generateGameRecords(1, 1, 'booka', 10);
   const GameItemList = generateRecordGameItems(1, 32, gameIds);
@@ -52,21 +53,25 @@ export async function createSampleGameData() {
     });
   }
 
-  const games = Promise.all(GameList.map((game) => Game.create(game)));
-  // Creating Game Items
+  const games = Promise.all(
+    GameList.map(async (game) => {
+      try {
+        const response = await Game.create(game);
+        await GameData.create({
+          gameId: response.id,
+          accountId: accountId,
+          level: 1,
+          point: 0,
+          rank: 0,
+          dayLimit: 0,
+        });
+      } catch (error) {
+        console.error('Failed to create game or gameData', error);
+        throw error;
+      }
+    }),
+  );
   const gameItems = Promise.all(GameItemList.map((gameItem) => GameItem.create(gameItem)));
   const [createdGames, createdGameItems] = await Promise.all([games, gameItems]);
   return { createdGames, createdGameItems };
-}
-
-export async function createGameData(accountId: number) {
-  const GameDataList = {
-    accountId: accountId,
-    level: 1,
-    point: 0,
-    rank: 0,
-    dayLimit: 0,
-    gameId: 1,
-  };
-  await GameData.create(GameDataList);
 }
