@@ -17,16 +17,17 @@ import { QuickGetService } from '@src/services/QuickGetService';
 
 export interface GameItemContentCms {
   id: number;
+  slug: string;
   name: string;
   description: string;
-  tokenPrice: number;
-  slug: string;
   price: number;
-  effectDuration: number;
+  tokenPrice: number;
   gameId: number;
-  maxBuy: string;
+  maxBuy: number;
+  maxBuyDaily: number;
   itemGroup: number;
   itemGroupLevel: number;
+  effectDuration: number;
 }
 
 export interface GameItemSearchParams {

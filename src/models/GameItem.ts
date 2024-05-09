@@ -8,7 +8,7 @@ export const NO_GROUP_KEY = 'NO_GROUP';
 export class GameItem extends Model<InferAttributes<GameItem>, InferCreationAttributes<GameItem>> {
   declare id: CreationOptional<number>; // id on db
   declare contentId: number;
-  declare gameId: number;
+  declare gameId: CreationOptional<number>;
   declare slug: string; // Item slug like LEVEL1, LEVEL2, LEVEL3, LEVEL4, LEVEL5
   declare name: string;
   declare description: string;
@@ -39,6 +39,7 @@ GameItem.init({
       model: Game,
       key: 'id',
     },
+    allowNull: true,
   },
   name: {
     type: DataTypes.STRING,
