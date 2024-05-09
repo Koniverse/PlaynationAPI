@@ -106,6 +106,9 @@ describe('Game Item Test', () => {
       point: result.point,
       energy: result.energy,
       receiptId: result.receiptId,
+      maxEnergy: result.maxEnergy,
+      energyPrice: result.energyPrice,
+      maxBuyEnergy: result.maxBuyEnergy,
     });
   });
   // end buy energy

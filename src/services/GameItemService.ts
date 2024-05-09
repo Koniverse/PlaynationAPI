@@ -108,6 +108,9 @@ export class GameItemService {
         point: accountAttribute.point,
         energy: accountAttribute.energy,
         receiptId: receipt.id,
+        maxEnergy: EnvVars.Game.MaxEnergy,
+        energyPrice: EnvVars.Game.EnergyPrice,
+        maxBuyEnergy: EnvVars.Game.MaxBuyEnergy,
       };
     } catch (error) {
       throw new Error('Failed to buy energy');
