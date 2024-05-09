@@ -1,6 +1,5 @@
 import { Game, GameData, GameItem } from '@src/models';
 import EnvVars from '@src/constants/EnvVars';
-import * as console from 'node:console';
 
 export async function createSampleGameData(accountId: number) {
   const gameIds = await getAllGameIds();
