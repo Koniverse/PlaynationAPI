@@ -9,12 +9,12 @@ import {
   Receipt,
   ReceiptEnum,
 } from '@src/models';
-import {AccountService} from '@src/services/AccountService';
-import {v4} from 'uuid';
-import {QuickGetService} from '@src/services/QuickGetService';
 import EnvVars from '@src/constants/EnvVars';
 import {Op} from 'sequelize';
-
+import {getTodayDateRange} from '@src/utils/date';
+import {v4} from 'uuid';
+import {AccountService} from '@src/services/AccountService';
+import {QuickGetService} from '@src/services/QuickGetService';
 
 export interface GameItemContentCms {
     id: number,
@@ -201,7 +201,7 @@ export class GameItemService {
       await gameInventoryItem.update({
         status: GameInventoryItemStatus.USED,
       })
-      const countInventory =  await quickGet.requireCountInventoryInActiveGame(accountId)
+      const countInventory =  await quickGet.requireCountInventoryActiveGame(accountId)
       return {
         success: true,
         inventoryStatus: gameInventoryItem.status,
@@ -238,17 +238,15 @@ export class GameItemService {
   }
 
 
-  async validateMaxDailyPurchases(accountId: number, type:string, maxDailyPurchases: number = EnvVars.Game.EnergyBuyLimit ) {
-    const today = new Date();
-    const todayStart = new Date(today.setHours(0, 0, 0, 0));
-    const todayEnd = new Date(today.setHours(23, 59, 59, 999));
+  async validateMaxDailyPurchases(accountId: number, type: string, maxDailyPurchases: number = EnvVars.Game.EnergyBuyLimit) {
+    const { startOfDay, endOfDay } = getTodayDateRange();
     const countReceipt = await Receipt.count({
       where: {
         userId: accountId,
         type: type,
         createdAt: {
-          [Op.gte]: todayStart,
-          [Op.lte]: todayEnd
+          [Op.gte]: startOfDay,
+          [Op.lte]: endOfDay
         }
       }
     });
@@ -256,6 +254,7 @@ export class GameItemService {
       throw new Error('You have reached your daily purchase limit. Please try again tomorrow.');
     }
   }
+
   async getInventoryLogs(accountId: number, isUsed = false) {
     const queryUsed = isUsed ? 'AND i.status = \'used\'' : '';
     await quickGet.requireAccount(accountId);

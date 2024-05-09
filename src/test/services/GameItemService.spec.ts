@@ -1,18 +1,17 @@
 import { AccountService } from '@src/services/AccountService';
-import account, { AccountParams } from '@src/models/Account';
+import { AccountParams } from '@src/models/Account';
 import {
   AccountAttribute,
-  Game,
   GameItem,
   Receipt,
   ReceiptEnum,
   GameInventoryItem,
   GameInventoryItemStatus,
 } from '@src/models';
-import SequelizeServiceImpl from '@src/services/SequelizeService';
-import { GameItemService } from '@src/services/GameItemService';
 import EnvVars from '@src/constants/EnvVars';
 import { Op } from 'sequelize';
+import SequelizeServiceImpl from '@src/services/SequelizeService';
+import { GameItemService } from '@src/services/GameItemService';
 import {createSampleGameData} from '@src/test/data_samples/Games';
 import {QuickGetService} from '@src/services/QuickGetService';
 

@@ -4,7 +4,6 @@
 
 /* eslint-disable node/no-process-env */
 
-import * as process from 'node:process';
 
 const Environments = {
   NodeEnv: (process.env.NODE_ENV ?? ''),
