@@ -59,16 +59,12 @@ export class QuickGetService {
   }
 
   async findGameItem(id: number) {
-    const gameItemMap = !!this.gameItemMap
-      ? this.gameItemMap
-      : await this.buildGameItemMap();
+    const gameItemMap = !!this.gameItemMap ? this.gameItemMap : await this.buildGameItemMap();
     return gameItemMap[id.toString()];
   }
 
   async listGameItem(gameId?: number) {
-    const gameItemMap = !!this.gameItemMap
-      ? this.gameItemMap
-      : await this.buildGameItemMap();
+    const gameItemMap = !!this.gameItemMap ? this.gameItemMap : await this.buildGameItemMap();
     if (!gameId) {
       return Object.values(gameItemMap);
     }
@@ -130,6 +126,13 @@ export class QuickGetService {
     if (!inventoryGame) {
       throw new Error(`Inventory Item not found: ${inventoryId}`);
     }
+    return inventoryGame;
+  }
+
+  async requireInventoryGameByGameItemId(accountId: number, gameItemId: number) {
+    const inventoryGame = await GameInventoryItem.findOne({
+      where: { accountId, gameItemId },
+    });
     return inventoryGame;
   }
 

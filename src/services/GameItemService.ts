@@ -14,6 +14,7 @@ import { Op } from 'sequelize';
 import { getTodayDateRange } from '@src/utils/date';
 import { v4 } from 'uuid';
 import { QuickGetService } from '@src/services/QuickGetService';
+import * as console from 'node:console';
 
 export interface GameItemContentCms {
   id: number;
@@ -157,6 +158,7 @@ export class GameItemService {
           await this.handleLevelPurchase(gameData, gameItem);
         }
       }
+      const checkGameInventory = await quickGet.requireInventoryGameByGameItemId(accountId, gameItem.id);
       const gameInventoryData = {
         accountId,
         gameItemId: gameItem.id,
@@ -164,10 +166,21 @@ export class GameItemService {
         gameId: game.id,
         buyTime: new Date(),
         status: inventoryStatus,
+        quantity: 1,
         transactionId,
         endEffectTime,
       } as GameInventoryItem;
-      const gameInventory: GameInventoryItem = await GameInventoryItem.create(gameInventoryData);
+      let gameInventory;
+      if (checkGameInventory && gameItem.effectDuration === EnvVars.GameItem.DisposableItem) {
+        gameInventory = await checkGameInventory.update({
+          quantity: checkGameInventory.quantity + 1,
+        });
+      } else if (!checkGameInventory) {
+        gameInventory = await GameInventoryItem.create(gameInventoryData);
+      }
+      if (!gameInventory) {
+        throw new Error('Failed to create or update game inventory');
+      }
       const receipt = await Receipt.create({
         type: gameItem.itemGroup === EnvVars.GameItem.ItemLevel ? ReceiptEnum.BUY_LEVEL : ReceiptEnum.BUY_ITEM,
         userId: accountId,
@@ -184,6 +197,8 @@ export class GameItemService {
         point: remainingPoint,
         receiptId: receipt.id,
         inventoryId: gameInventory.id,
+        gameItemId: gameItem.id,
+        InventoryQuantity: gameInventory.quantity,
         itemGroupLevel: gameItem.itemGroupLevel,
       };
     } catch (error) {
@@ -191,32 +206,33 @@ export class GameItemService {
     }
   }
 
-  async useInventoryItem(accountId: number, inventoryId: number) {
+  async useInventoryItem(accountId: number, gameItemId: number) {
     const account = await quickGet.requireAccount(accountId);
-    const gameInventoryItem = await quickGet.requireInventoryGame(account.id, inventoryId);
+    const gameInventoryItem = await quickGet.requireInventoryGameByGameItemId(account.id, gameItemId);
+    if (!gameInventoryItem) {
+      throw new Error('Inventory item not found');
+    }
     const gameItem = await quickGet.requireGameItem(gameInventoryItem.gameItemId);
     const gameData = await quickGet.requireGameData(accountId, gameInventoryItem.gameId);
 
     if (gameItem.effectDuration !== EnvVars.GameItem.DisposableItem) {
       throw new Error('Your item is not a disposable item');
     }
-    if (
-      gameInventoryItem.status === GameInventoryItemStatus.INACTIVE ||
-      gameInventoryItem.status === GameInventoryItemStatus.USED
-    ) {
-      throw new Error('Your item is inactive');
+    if (gameInventoryItem.quantity < 1) {
+      throw new Error('Your item has expired');
     }
     try {
       if (gameItem.itemGroup === EnvVars.GameItem.ItemLevel) {
         await this.handleLevelPurchase(gameData, gameItem);
       }
       await gameInventoryItem.update({
-        status: GameInventoryItemStatus.USED,
+        quantity: gameInventoryItem.quantity - 1,
       });
       const countInventory = await quickGet.requireCountInventoryActiveGame(accountId);
       return {
         success: true,
         inventoryStatus: gameInventoryItem.status,
+        quantity: gameInventoryItem.quantity,
         remainingItem: countInventory,
       };
     } catch (error) {

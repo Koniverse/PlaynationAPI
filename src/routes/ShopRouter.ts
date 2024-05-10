@@ -1,13 +1,8 @@
-import {IReq, IRes} from '@src/routes/types';
-import {Router} from 'express';
-import {Query} from 'express-serve-static-core';
-import {requireLogin, requireSecret} from '@src/routes/helper';
-import {
-  GameItemContentCms,
-  GameItemService,
-  GameItemSearchParams,
-} from '@src/services/GameItemService';
-import {QuickGetService} from '@src/services/QuickGetService';
+import { IReq, IRes } from '@src/routes/types';
+import { Router } from 'express';
+import { Query } from 'express-serve-static-core';
+import { requireLogin, requireSecret } from '@src/routes/helper';
+import { GameItemContentCms, GameItemSearchParams, GameItemService } from '@src/services/GameItemService';
 
 const ShopRouter = Router();
 
@@ -16,14 +11,15 @@ interface BuyParams {
   transactionId?: string;
 }
 
-export type BuyEnergyParams = BuyParams
+export type BuyEnergyParams = BuyParams;
 
-export interface BuyGameItemParams extends BuyParams{
-  gameItemId: number,
-  quantity?: number
+export interface BuyGameItemParams extends BuyParams {
+  gameItemId: number;
+  quantity?: number;
 }
-export interface UseItemParams extends BuyParams{
-  inventoryId: number
+
+export interface UseItemParams extends BuyParams {
+  gameItemId: number;
 }
 
 type GetItemLogsParams = {
@@ -42,7 +38,7 @@ const routerMap = {
 
   // Get list of items
   listItems: async (req: IReq<GameItemSearchParams>, res: IRes) => {
-    const {gameId} = req.body;
+    const { gameId } = req.body;
 
     const response = await gameItemService.listItemByGroup(gameId);
 
@@ -59,16 +55,16 @@ const routerMap = {
   // Buy items
   buyItem: async (req: IReq<BuyGameItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {gameItemId,quantity} = req.body;
-    const response = await gameItemService.buyItem(userId, gameItemId,quantity);
+    const { gameItemId, quantity } = req.body;
+    const response = await gameItemService.buyItem(userId, gameItemId, quantity);
     return res.status(200).json(response);
   },
 
   // Use Item
   useInventoryItem: async (req: IReq<UseItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {inventoryId} = req.body;
-    const response = await gameItemService.useInventoryItem(userId, inventoryId);
+    const { gameItemId } = req.body;
+    const response = await gameItemService.useInventoryItem(userId, gameItemId);
     return res.status(200).json(response);
   },
 
