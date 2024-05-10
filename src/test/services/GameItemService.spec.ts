@@ -203,7 +203,6 @@ describe('Game Item Test', () => {
       success: true,
       inventoryStatus: result.inventoryStatus,
       quantity: result.quantity,
-      remainingItem: result.remainingItem,
     });
   });
 
