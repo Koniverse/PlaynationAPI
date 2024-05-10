@@ -1,14 +1,6 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {
-  GameData,
-  GameInventoryItem,
-  GameInventoryItemStatus,
-  GameItem,
-  NO_GROUP_KEY,
-  Receipt,
-  ReceiptEnum,
-} from '@src/models';
+import { GameInventoryItem, GameInventoryItemStatus, GameItem, NO_GROUP_KEY, Receipt, ReceiptEnum } from '@src/models';
 import EnvVars from '@src/constants/EnvVars';
 import { Op } from 'sequelize';
 import { getTodayDateRange } from '@src/utils/date';
@@ -120,98 +112,96 @@ export class GameItemService {
 
   async buyItem(accountId: number, gameItemId: number, quantity = 1) {
     const account = await quickGet.requireAccount(accountId);
-    const gameItem = await quickGet.requireGameItem(gameItemId);
+    const gameItem = await quickGet.requireGameItemID(gameItemId);
     const game = await quickGet.requireGame(gameItem.gameId);
     const accountAttribute = await quickGet.requireAccountAttribute(account.id);
     const gameData = await quickGet.requireGameData(accountId, game.id);
+
     if (gameItem.maxBuy && quantity > gameItem.maxBuy) {
       throw new Error(`Cannot buy more than ${gameItem.maxBuy} items at once.`);
     }
+
     if (gameItem.maxBuyDaily) {
       await this.validateMaxDailyPurchases(account.id, ReceiptEnum.BUY_ITEM, gameItem.maxBuyDaily);
     }
-    await this.validateMaxBuyItem(accountId, quantity, gameItem.maxBuy);
-    await this.validateMaxDailyPurchases(account.id, ReceiptEnum.BUY_ITEM, gameItem.maxBuyDaily);
+
     const usePoint = this.calculateTotalCost(gameItem.price, quantity);
     const remainingPoint = this.calculateRemainingPoints(accountAttribute.point, usePoint);
+
     if (remainingPoint < 0) {
       throw new Error('Not enough points');
     }
-    try {
-      const gameInventory = await this.handleCreateInventory(accountId, gameItem, gameData.id, game.id);
-      const receipt = await Receipt.create({
-        type: gameItem.itemGroup === EnvVars.GameItem.ItemLevel ? ReceiptEnum.BUY_LEVEL : ReceiptEnum.BUY_ITEM,
-        userId: accountId,
-        point: remainingPoint,
-        gameId: game.id,
-        gameItemId: gameItem.id,
-        game_inventory_item_id: gameInventory ? gameInventory.id : 0,
-      });
-      if (
-        gameItem.effectDuration === EnvVars.GameItem.EternalItem &&
-        gameItem.itemGroup === EnvVars.GameItem.ItemLevel
-      ) {
-        await this.handleUpdateLevel(gameItem, gameData);
-      }
-      await accountAttribute.update({
-        point: remainingPoint,
-      });
-      return {
-        success: true,
-        point: remainingPoint,
-        receiptId: receipt.id,
-        inventoryId: gameInventory ? gameInventory.id : 0,
-        gameItemId: gameItem.id,
-        InventoryQuantity: gameInventory ? gameInventory.id : 0,
-        itemGroupLevel: gameItem.itemGroupLevel,
-      };
-    } catch (error) {
-      console.error('Error during purchase: ', error);
-      throw error;
-    }
-  }
 
-  async handleUpdateLevel(gameItem: GameItem, gameData: GameData) {
-    if (gameItem.itemGroupLevel === gameData.level + 1) {
-      await gameData.update({ level: gameData.level + 1 });
-    }
-    throw new Error(
-      `You can only purchase the next level. Current level: ${gameData.level}, Purchasable level: ${
-        gameData.level + 1
-      }`,
-    );
-  }
-
-  async handleCreateInventory(accountId: number, gameItem: GameItem, gameDataId: number, gameId?: number) {
-    const inventoryStatus = this.determineInventoryStatus(gameItem);
-    const checkGameInventory = await quickGet.requireInventoryGameByGameItemId(accountId, gameItem.id);
     const transactionId = v4();
-    let endEffectTime: Date | null = null;
+    let endEffectTime = null;
 
     if (gameItem.effectDuration) {
       endEffectTime = new Date();
       endEffectTime.setSeconds(endEffectTime.getSeconds() + gameItem.effectDuration);
     }
+
     const gameInventoryData = {
       accountId,
       gameItemId: gameItem.id,
-      gameDataId: gameDataId,
-      gameId: gameId,
+      gameDataId: gameData.id,
+      gameId: game.id,
       buyTime: new Date(),
-      status: inventoryStatus,
+      status: this.determineInventoryStatus(gameItem),
       quantity: 1,
       transactionId,
       endEffectTime,
     } as GameInventoryItem;
+
+    const existingInventory = await GameInventoryItem.findOne({
+      where: {
+        accountId: accountId,
+        gameItemId: gameItem.id,
+        gameDataId: gameData.id,
+      },
+    });
+
     let gameInventory;
-    if (checkGameInventory && gameItem.effectDuration === EnvVars.GameItem.DisposableItem) {
-      gameInventory = await checkGameInventory.update({
-        quantity: checkGameInventory.quantity + 1,
-      });
-    } else if (!checkGameInventory) {
+    if (!existingInventory) {
       gameInventory = await GameInventoryItem.create(gameInventoryData);
+    } else {
+      gameInventory = await existingInventory.update({ quantity: existingInventory.quantity + 1 });
     }
-    return gameInventory;
+
+    const receipt = await Receipt.create({
+      type: gameItem.itemGroup === EnvVars.GameItem.ItemLevel ? ReceiptEnum.BUY_LEVEL : ReceiptEnum.BUY_ITEM,
+      userId: accountId,
+      point: remainingPoint,
+      gameId: game.id,
+      gameItemId: gameItem.id,
+      game_inventory_item_id: gameInventory.id,
+    });
+    if (
+      gameItem.effectDuration === EnvVars.GameItem.EternalItem &&
+      gameItem.itemGroup === EnvVars.GameItem.ItemLevel &&
+      gameItem.itemGroupLevel !== gameData.level + 1
+    ) {
+      throw new Error('Cannot use item before level up');
+    }
+    if (
+      gameItem.effectDuration === EnvVars.GameItem.EternalItem &&
+      gameItem.itemGroup === EnvVars.GameItem.ItemLevel &&
+      gameItem.itemGroupLevel === gameData.level + 1
+    ) {
+      await gameData.update({ level: gameData.level + 1 });
+    }
+
+    await accountAttribute.update({
+      point: remainingPoint,
+    });
+    return {
+      success: true,
+      point: remainingPoint,
+      receiptId: receipt.id,
+      inventoryId: gameInventory.id,
+      gameItemId: gameItem.id,
+      InventoryQuantity: gameInventory.quantity,
+      itemGroupLevel: gameItem.itemGroupLevel,
+    };
   }
 
   async useInventoryItem(accountId: number, gameItemId: number) {
@@ -239,7 +229,7 @@ export class GameItemService {
         quantity: gameInventoryItem.quantity,
       };
     } catch (error) {
-      throw new Error('Failed to use Item');
+      throw error;
     }
   }
 
@@ -276,23 +266,6 @@ export class GameItemService {
     });
     if (maxDailyPurchases > 0 && countReceipt >= maxDailyPurchases) {
       throw new Error('You have reached your daily purchase limit. Please try again tomorrow.');
-    }
-  }
-
-  async validateMaxBuyItem(accountId: number, quantity: number, maxBuy: number) {
-    const { startOfDay, endOfDay } = getTodayDateRange();
-    const countReceipt = await Receipt.count({
-      where: {
-        userId: accountId,
-        type: ReceiptEnum.BUY_ITEM,
-        createdAt: {
-          [Op.gte]: startOfDay,
-          [Op.lte]: endOfDay,
-        },
-      },
-    });
-    if (countReceipt >= maxBuy) {
-      throw new Error('You have purchased the maximum number of items');
     }
   }
 

@@ -37,6 +37,14 @@ export class QuickGetService {
     return game;
   }
 
+  async requireGameItemID(gameItemId: number) {
+    const gameItem = await this.findGameItem(gameItemId);
+    if (!gameItem) {
+      throw new Error(`GameItem not found: ${gameItemId}`);
+    }
+    return gameItem;
+  }
+
   // API for GameItem
   async buildGameItemMap() {
     const data = await GameItem.findAll();
@@ -108,16 +116,6 @@ export class QuickGetService {
     }
 
     return task;
-  }
-
-  async requireInventoryGame(accountId: number, inventoryId: number) {
-    const inventoryGame = await GameInventoryItem.findOne({
-      where: { accountId, id: inventoryId },
-    });
-    if (!inventoryGame) {
-      throw new Error(`Inventory Item not found: ${inventoryId}`);
-    }
-    return inventoryGame;
   }
 
   async requireInventoryGameByGameItemId(accountId: number, gameItemId: number) {
