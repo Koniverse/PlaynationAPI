@@ -1,13 +1,4 @@
-import {
-  Account,
-  AccountAttribute,
-  Game,
-  GameData,
-  GameInventoryItem,
-  GameInventoryItemStatus,
-  GameItem,
-  Task,
-} from '@src/models';
+import { Account, AccountAttribute, Game, GameData, GameInventoryItem, GameItem, Task } from '@src/models';
 
 export class QuickGetService {
   private gameMap: Record<string, Game> | undefined;
@@ -133,19 +124,6 @@ export class QuickGetService {
     const inventoryGame = await GameInventoryItem.findOne({
       where: { accountId, gameItemId },
     });
-    return inventoryGame;
-  }
-
-  async requireCountInventoryActiveGame(accountId: number) {
-    const inventoryGame = await GameInventoryItem.findAndCountAll({
-      where: {
-        accountId,
-        status: GameInventoryItemStatus.ACTIVE,
-      },
-    });
-    if (!inventoryGame) {
-      throw new Error(`Inventory Item not found: ${accountId}`);
-    }
     return inventoryGame;
   }
 

@@ -226,12 +226,11 @@ export class GameItemService {
       await gameInventoryItem.update({
         quantity: gameInventoryItem.quantity - 1,
       });
-      const countInventory = await quickGet.requireCountInventoryActiveGame(accountId);
+
       return {
         success: true,
         inventoryStatus: gameInventoryItem.status,
         quantity: gameInventoryItem.quantity,
-        remainingItem: countInventory,
       };
     } catch (error) {
       throw new Error('Failed to use Item');
