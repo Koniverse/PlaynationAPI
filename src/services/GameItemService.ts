@@ -14,7 +14,6 @@ import { Op } from 'sequelize';
 import { getTodayDateRange } from '@src/utils/date';
 import { v4 } from 'uuid';
 import { QuickGetService } from '@src/services/QuickGetService';
-import * as console from 'node:console';
 
 export interface GameItemContentCms {
   id: number;
@@ -41,7 +40,6 @@ export class GameItemService {
   constructor(private sequelizeService: SequelizeService) {}
 
   async listItemByGroup(gameId?: number) {
-    console.log(gameId);
     const items = await quickGet.listGameItem(gameId);
     const result: Record<string, GameItem[]> = {};
 
