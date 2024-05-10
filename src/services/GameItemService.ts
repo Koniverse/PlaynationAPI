@@ -132,76 +132,80 @@ export class GameItemService {
       throw new Error('Not enough points');
     }
 
-    const transactionId = v4();
-    let endEffectTime = null;
+    try {
+      const transactionId = v4();
+      let endEffectTime = null;
 
-    if (gameItem.effectDuration) {
-      endEffectTime = new Date();
-      endEffectTime.setSeconds(endEffectTime.getSeconds() + gameItem.effectDuration);
-    }
+      if (gameItem.effectDuration) {
+        endEffectTime = new Date();
+        endEffectTime.setSeconds(endEffectTime.getSeconds() + gameItem.effectDuration);
+      }
 
-    const gameInventoryData = {
-      accountId,
-      gameItemId: gameItem.id,
-      gameDataId: gameData.id,
-      gameId: game.id,
-      buyTime: new Date(),
-      status: this.determineInventoryStatus(gameItem),
-      quantity: 1,
-      transactionId,
-      endEffectTime,
-    } as GameInventoryItem;
-
-    const existingInventory = await GameInventoryItem.findOne({
-      where: {
-        accountId: accountId,
+      const gameInventoryData = {
+        accountId,
         gameItemId: gameItem.id,
         gameDataId: gameData.id,
-      },
-    });
+        gameId: game.id,
+        buyTime: new Date(),
+        status: this.determineInventoryStatus(gameItem),
+        quantity: 1,
+        transactionId,
+        endEffectTime,
+      } as GameInventoryItem;
 
-    let gameInventory;
-    if (!existingInventory) {
-      gameInventory = await GameInventoryItem.create(gameInventoryData);
-    } else {
-      gameInventory = await existingInventory.update({ quantity: existingInventory.quantity + 1 });
-    }
+      const existingInventory = await GameInventoryItem.findOne({
+        where: {
+          accountId: accountId,
+          gameItemId: gameItem.id,
+          gameDataId: gameData.id,
+        },
+      });
 
-    const receipt = await Receipt.create({
-      type: gameItem.itemGroup === EnvVars.GameItem.ItemLevel ? ReceiptEnum.BUY_LEVEL : ReceiptEnum.BUY_ITEM,
-      userId: accountId,
-      point: remainingPoint,
-      gameId: game.id,
-      gameItemId: gameItem.id,
-      game_inventory_item_id: gameInventory.id,
-    });
-    if (
-      gameItem.effectDuration === EnvVars.GameItem.EternalItem &&
-      gameItem.itemGroup === EnvVars.GameItem.ItemLevel &&
-      gameItem.itemGroupLevel !== gameData.level + 1
-    ) {
-      throw new Error('Cannot use item before level up');
-    }
-    if (
-      gameItem.effectDuration === EnvVars.GameItem.EternalItem &&
-      gameItem.itemGroup === EnvVars.GameItem.ItemLevel &&
-      gameItem.itemGroupLevel === gameData.level + 1
-    ) {
-      await gameData.update({ level: gameData.level + 1 });
-    }
+      let gameInventory;
+      if (!existingInventory) {
+        gameInventory = await GameInventoryItem.create(gameInventoryData);
+      } else {
+        gameInventory = await existingInventory.update({ quantity: existingInventory.quantity + 1 });
+      }
 
-    await accountAttribute.update({
-      point: remainingPoint,
-    });
-    return {
-      success: true,
-      point: remainingPoint,
-      receiptId: receipt.id,
-      inventoryId: gameInventory.id,
-      gameItemId: gameItem.id,
-      InventoryQuantity: gameInventory.quantity,
-      itemGroupLevel: gameItem.itemGroupLevel,
-    };
+      const receipt = await Receipt.create({
+        type: gameItem.itemGroup === EnvVars.GameItem.ItemLevel ? ReceiptEnum.BUY_LEVEL : ReceiptEnum.BUY_ITEM,
+        userId: accountId,
+        point: remainingPoint,
+        gameId: game.id,
+        gameItemId: gameItem.id,
+        game_inventory_item_id: gameInventory.id,
+      });
+      if (
+        gameItem.effectDuration === EnvVars.GameItem.EternalItem &&
+        gameItem.itemGroup === EnvVars.GameItem.ItemLevel &&
+        gameItem.itemGroupLevel !== gameData.level + 1
+      ) {
+        throw new Error('Cannot use item before level up');
+      }
+      if (
+        gameItem.effectDuration === EnvVars.GameItem.EternalItem &&
+        gameItem.itemGroup === EnvVars.GameItem.ItemLevel &&
+        gameItem.itemGroupLevel === gameData.level + 1
+      ) {
+        await gameData.update({ level: gameData.level + 1 });
+      }
+
+      await accountAttribute.update({
+        point: remainingPoint,
+      });
+      return {
+        success: true,
+        point: remainingPoint,
+        receiptId: receipt.id,
+        inventoryId: gameInventory.id,
+        gameItemId: gameItem.id,
+        InventoryQuantity: gameInventory.quantity,
+        itemGroupLevel: gameItem.itemGroupLevel,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async useInventoryItem(accountId: number, gameItemId: number) {
