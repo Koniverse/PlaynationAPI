@@ -39,7 +39,8 @@ const quickGet = QuickGetService.instance;
 export class GameItemService {
   constructor(private sequelizeService: SequelizeService) {}
 
-  async listItemByGroup(gameId: number) {
+  async listItemByGroup(gameId?: number) {
+    console.log(gameId);
     const items = await quickGet.listGameItem(gameId);
     const result: Record<string, GameItem[]> = {};
 
