@@ -233,7 +233,7 @@ export class GameItemService {
         gameInventoryItem.id,
         gameItem.id,
         newQuantity,
-        `Use inventory gameIdItem ${gameItem.id} number of uses old ${gameInventoryItem.quantity} remaining ${newQuantity}`,
+        `Use inventory gameId Item ${gameItem.id} ,  number of uses old ${gameInventoryItem.quantity} remaining ${newQuantity}`,
       );
       return {
         success: true,
