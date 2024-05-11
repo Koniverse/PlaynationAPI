@@ -51,7 +51,10 @@ const routerMap = {
     const response = await gameItemService.buyEnergy(userId);
     return res.status(200).json(response);
   },
-
+  getConfigBuyEnergy: async (req: IReq<Query>, res: IRes) => {
+    const response = await gameItemService.getConfigBuyEnergy();
+    return res.status(200).json(response);
+  },
   // Buy items
   buyItem: async (req: IReq<BuyGameItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
@@ -89,6 +92,7 @@ ShopRouter.post('/list-items', requireLogin, routerMap.listItems);
 
 // Buy items
 ShopRouter.post('/buy-energy', requireLogin, routerMap.buyEnergy);
+ShopRouter.get('/get-config-buy-energy', routerMap.getConfigBuyEnergy);
 ShopRouter.post('/buy-item', requireLogin, routerMap.buyItem);
 ShopRouter.post('/use-inventory-item', requireLogin, routerMap.useInventoryItem);
 
