@@ -57,10 +57,6 @@ export class GameItemService {
       const gameData = await Game.findOne({
         where: { contentId: item.gameId },
       });
-      if (!gameData) {
-        continue;
-      }
-      itemData.gameId = gameData.id;
       if (existed) {
         await existed.update(itemData);
       } else {
