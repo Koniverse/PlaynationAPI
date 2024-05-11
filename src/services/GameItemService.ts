@@ -232,6 +232,7 @@ export class GameItemService {
     }
     try {
       const newQuantity = gameInventoryItem.quantity - 1;
+      const oldQuantity = gameInventoryItem.quantity;
       await gameInventoryItem.update({
         quantity: newQuantity,
       });
@@ -241,7 +242,7 @@ export class GameItemService {
         gameInventoryItem.id,
         gameItem.id,
         newQuantity,
-        `Use inventory Item ${gameItem.id} ,  quantity ${gameInventoryItem.quantity - 1} remaining ${newQuantity}`,
+        `Use inventory Item ${gameItem.id} ,  quantity ${oldQuantity} remaining ${newQuantity}`,
       );
       return {
         success: true,
