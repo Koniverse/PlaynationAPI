@@ -1,14 +1,6 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {
-  GameInventoryItem,
-  GameInventoryItemStatus,
-  GameInventoryLog,
-  GameItem,
-  NO_GROUP_KEY,
-  Receipt,
-  ReceiptEnum,
-} from '@src/models';
+import { GameInventoryItem, GameInventoryLog, GameItem, NO_GROUP_KEY, Receipt, ReceiptEnum } from '@src/models';
 import EnvVars from '@src/constants/EnvVars';
 import { Op } from 'sequelize';
 import { getTodayDateRange } from '@src/utils/date';
@@ -143,10 +135,11 @@ export class GameItemService {
     try {
       const transactionId = v4();
       let endEffectTime = null;
-
+      let useAble = true;
       if (gameItem.effectDuration) {
         endEffectTime = new Date();
         endEffectTime.setSeconds(endEffectTime.getSeconds() + gameItem.effectDuration);
+        useAble = false;
       }
 
       const gameInventoryData = {
@@ -155,8 +148,8 @@ export class GameItemService {
         gameDataId: gameData.id,
         gameId: game.id,
         buyTime: new Date(),
-        status: this.determineInventoryStatus(gameItem),
         quantity: 1,
+        useAble: useAble,
         transactionId,
         endEffectTime,
       } as GameInventoryItem;
@@ -251,13 +244,6 @@ export class GameItemService {
     } catch (error) {
       throw error;
     }
-  }
-
-  private determineInventoryStatus(gameItem: GameItem) {
-    if (gameItem.effectDuration === EnvVars.GameItem.EternalItem) {
-      return GameInventoryItemStatus.USED;
-    }
-    return GameInventoryItemStatus.ACTIVE;
   }
 
   private calculateTotalCost(itemPrice: number, quantity: number): number {

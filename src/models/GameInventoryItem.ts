@@ -25,6 +25,7 @@ export class GameInventoryItem extends Model<
   declare endEffectTime: CreationOptional<Date>;
   declare status: GameInventoryItemStatus;
   declare quantity: number;
+  declare useAble: boolean;
 
   // After validated signature
   declare signature: CreationOptional<string>;
@@ -92,6 +93,9 @@ GameInventoryItem.init(
     },
     quantity: {
       type: DataTypes.INTEGER,
+    },
+    useAble: {
+      type: DataTypes.BOOLEAN,
     },
   },
   {
