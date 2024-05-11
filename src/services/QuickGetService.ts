@@ -109,12 +109,10 @@ export class QuickGetService {
   }
 
   async requireGameData(accountId: number, gameId: number) {
-    const gameData = await GameData.findOne({ where: { accountId, gameId } });
-
+    let gameData = await GameData.findOne({ where: { accountId, gameId } });
     if (!gameData) {
-      throw new Error('GameData not found');
+      gameData = await GameData.create({ accountId, gameId, point: 0, level: 1, rank: 1, dayLimit: 0 });
     }
-
     return gameData;
   }
 
@@ -128,10 +126,9 @@ export class QuickGetService {
   }
 
   async requireInventoryGameByGameItemId(accountId: number, gameItemId: number) {
-    const inventoryGame = await GameInventoryItem.findOne({
+    return await GameInventoryItem.findOne({
       where: { accountId, gameItemId },
     });
-    return inventoryGame;
   }
 
   async createGameInventoryLog(
