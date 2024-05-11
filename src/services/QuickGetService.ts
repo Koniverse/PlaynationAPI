@@ -1,4 +1,13 @@
-import { Account, AccountAttribute, Game, GameData, GameInventoryItem, GameItem, Task } from '@src/models';
+import {
+  Account,
+  AccountAttribute,
+  Game,
+  GameData,
+  GameInventoryItem,
+  GameInventoryLog,
+  GameItem,
+  Task,
+} from '@src/models';
 
 export class QuickGetService {
   private gameMap: Record<string, Game> | undefined;
@@ -123,6 +132,24 @@ export class QuickGetService {
       where: { accountId, gameItemId },
     });
     return inventoryGame;
+  }
+
+  async createGameInventoryLog(
+    gameId: number,
+    accountId: number,
+    gameDataId: number,
+    gameItemId: number,
+    quantity: number,
+    note: string,
+  ) {
+    return await GameInventoryLog.create({
+      gameId,
+      accountId,
+      gameDataId,
+      gameItemId,
+      quantity,
+      note,
+    });
   }
 
   // Singleton

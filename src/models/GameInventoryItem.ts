@@ -95,7 +95,6 @@ GameInventoryItem.init(
     },
   },
   {
-    indexes: [{ unique: false, fields: ['gameDataId'] }],
     tableName: 'game_inventory_item',
     sequelize: SequelizeServiceImpl.sequelize,
     createdAt: true,

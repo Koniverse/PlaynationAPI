@@ -223,10 +223,18 @@ export class GameItemService {
       throw new Error('Your item has expired');
     }
     try {
+      const newQuantity = gameInventoryItem.quantity - 1;
       await gameInventoryItem.update({
-        quantity: gameInventoryItem.quantity - 1,
+        quantity: newQuantity,
       });
-
+      await quickGet.createGameInventoryLog(
+        gameInventoryItem.gameId,
+        accountId,
+        gameInventoryItem.id,
+        gameItem.id,
+        newQuantity,
+        `Use inventory gameIdItem ${gameItem.id} number of uses old ${gameInventoryItem.quantity} remaining ${newQuantity}`,
+      );
       return {
         success: true,
         inventoryStatus: gameInventoryItem.status,
