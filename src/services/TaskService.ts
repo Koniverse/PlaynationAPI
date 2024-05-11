@@ -1,6 +1,6 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {Task, TaskHistory, TaskCategory} from '@src/models';
+import {Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 
 
@@ -24,6 +24,8 @@ export interface TaskContentCms {
 
 export interface TaskSubmitParams{
   taskId: number,
+  extrinsicHash?: string,
+  network?: string,
 }
 
 export class TaskService {
@@ -108,7 +110,7 @@ export class TaskService {
     return taskMap[taskId.toString()];
   }
 
-  async submit(userId: number, taskId: number) {
+  async submit(userId: number, taskId: number, extrinsicHash?: string|undefined, network?: string|undefined) {
     // Get basic data
     const task = await this.findTask(taskId);
     if (!task) {
@@ -159,16 +161,29 @@ export class TaskService {
         throw new Error('Task is not ready to be submitted yet');
       }
     }
-
-    // Create task history
-    await TaskHistory.create({
+    const dataCreate = {
       taskId: task.id,
       accountId: userId,
       pointReward: task.pointReward,
-    });
+    } as TaskHistory;
+    let isOnChain = false;
+    if (task.onChainType) {
+      dataCreate.extrinsicHash = extrinsicHash;
+      dataCreate.network = network;
+      dataCreate.status = TaskHistoryStatus.CHECKING;
+      dataCreate.retry = 0;
+      isOnChain = true;
+    }else {
+      dataCreate.status = TaskHistoryStatus.COMPLETED;
+    }
 
-    // Add point to account
-    await AccountService.instance.addAccountPoint(userId, task.pointReward);
+    // Create task history
+    await TaskHistory.create(dataCreate);
+
+    if (!isOnChain) {
+      // Add point to account
+      await AccountService.instance.addAccountPoint(userId, task.pointReward);
+    }
 
     return {
       success: true,
