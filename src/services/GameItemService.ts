@@ -135,11 +135,11 @@ export class GameItemService {
     try {
       const transactionId = v4();
       let endEffectTime = null;
-      let useAble = true;
+      let usable = true;
       if (gameItem.effectDuration) {
         endEffectTime = new Date();
         endEffectTime.setSeconds(endEffectTime.getSeconds() + gameItem.effectDuration);
-        useAble = false;
+        usable = false;
       }
 
       const gameInventoryData = {
@@ -149,7 +149,7 @@ export class GameItemService {
         gameId: game.id,
         buyTime: new Date(),
         quantity: 1,
-        useAble: useAble,
+        usable: usable,
         transactionId,
         endEffectTime,
       } as GameInventoryItem;
