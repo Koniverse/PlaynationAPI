@@ -1,6 +1,14 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import { GameInventoryItem, GameInventoryItemStatus, GameItem, NO_GROUP_KEY, Receipt, ReceiptEnum } from '@src/models';
+import {
+  GameInventoryItem,
+  GameInventoryItemStatus,
+  GameInventoryLog,
+  GameItem,
+  NO_GROUP_KEY,
+  Receipt,
+  ReceiptEnum,
+} from '@src/models';
 import EnvVars from '@src/constants/EnvVars';
 import { Op } from 'sequelize';
 import { getTodayDateRange } from '@src/utils/date';
@@ -200,7 +208,7 @@ export class GameItemService {
         receiptId: receipt.id,
         inventoryId: gameInventory.id,
         gameItemId: gameItem.id,
-        InventoryQuantity: gameInventory.quantity,
+        inventoryQuantity: gameInventory.quantity,
         itemGroupLevel: gameItem.itemGroupLevel,
       };
     } catch (error) {
@@ -233,7 +241,7 @@ export class GameItemService {
         gameInventoryItem.id,
         gameItem.id,
         newQuantity,
-        `Use inventory gameId Item ${gameItem.id} ,  number of uses old ${gameInventoryItem.quantity} remaining ${newQuantity}`,
+        `Use inventory Item ${gameItem.id} ,  quantity ${gameInventoryItem.quantity} remaining ${newQuantity}`,
       );
       return {
         success: true,
@@ -282,27 +290,12 @@ export class GameItemService {
   }
 
   async getInventoryLogs(accountId: number, isUsed = false) {
-    const queryUsed = isUsed ? "AND i.status = 'used'" : '';
     await quickGet.requireAccount(accountId);
-    const sql = `
-    SELECT
-    gi.id as "gameItemId",
-    i.id as "gameInventoryItemId",
-    gi.name,
-    gi.description,
-    gi.price,
-    i."buyTime",
-    i."usedTime",
-    i."endEffectTime",
-    i.status
-    from game_inventory_item i JOIN game_item gi on i."gameItemId" = gi.id
-where i."accountId" = ${accountId} ${queryUsed}
-    `;
-    const data = await this.sequelizeService.sequelize.query(sql);
-    if (data.length > 0) {
-      return data[0];
-    }
-    return [];
+    return await GameInventoryLog.findAll({
+      where: {
+        accountId: accountId,
+      },
+    });
   }
 
   // Singleton

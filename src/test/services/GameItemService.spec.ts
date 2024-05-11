@@ -164,7 +164,7 @@ describe('Game Item Test', () => {
       point: result.point,
       receiptId: result.receiptId,
       gameItemId: result.gameItemId,
-      InventoryQuantity: result.InventoryQuantity,
+      inventoryQuantity: result.inventoryQuantity,
       inventoryId: result.inventoryId,
       itemGroupLevel: result.itemGroupLevel,
     });
@@ -184,7 +184,7 @@ describe('Game Item Test', () => {
       receiptId: result.receiptId,
       inventoryId: result.inventoryId,
       gameItemId: result.gameItemId,
-      InventoryQuantity: result.InventoryQuantity,
+      inventoryQuantity: result.inventoryQuantity,
       itemGroupLevel: result.itemGroupLevel,
     });
   });
