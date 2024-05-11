@@ -81,6 +81,10 @@ const Environments = {
     MaxEnergy: parseInt(process.env.MAX_ENERGY || '1440'),
     EnergyRecoverTime: parseInt(process.env.ENGERY_RECOVER_TIME || '60'),
   },
+  TaskOnChain: {
+    IntervalTime: parseInt(process.env.INTERVAL_TASK_ON_CHAIN_TIME || '6000'),
+    RetryMax: parseInt(process.env.INTERVAL_TASK_HISTORY_RETRY_MAX || '3'),
+  },
 };
 
 export default Environments;

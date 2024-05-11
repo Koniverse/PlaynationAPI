@@ -21,12 +21,14 @@ module.exports = {
             status: {
                 type: DataTypes.ENUM('failed', 'checking', 'completed'),
             },
+            completedAt: DataTypes.DATE,
         };
 
         await queryInterface.addColumn('task_history', 'network', newCols.network);
         await queryInterface.addColumn('task_history', 'retry', newCols.retry);
         await queryInterface.addColumn('task_history', 'status', newCols.status);
         await queryInterface.addColumn('task_history', 'extrinsicHash', newCols.extrinsicHash);
+        await queryInterface.addColumn('task_history', 'completedAt', newCols.completedAt);
     },
 
     async down(queryInterface, Sequelize) {
@@ -34,5 +36,6 @@ module.exports = {
         await queryInterface.removeColumn('task_history', 'retry');
         await queryInterface.removeColumn('task_history', 'status');
         await queryInterface.removeColumn('task_history', 'extrinsicHash');
+        await queryInterface.removeColumn('task_history', 'completedAt');
     }
 };

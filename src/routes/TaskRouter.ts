@@ -3,7 +3,6 @@ import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {requireLogin, requireSecret} from '@src/routes/helper';
 import {TaskContentCms, TaskService, TaskSubmitParams} from '@src/services/TaskService';
-import {checkTaskOnChange} from "@src/cron/cronTaskOnChain";
 
 const TaskRouter = Router();
 
@@ -27,18 +26,12 @@ const routerMap = {
     const {taskId, network, extrinsicHash} = req.body;
     const response = await TaskService.instance.submit(userId, taskId, extrinsicHash, network);
     return res.status(200).json(response);
-  },
-  checkTaskHistory: async (req: IReq<TaskSubmitParams>, res: IRes) => {
-    const userId = req.user?.id || 0;
-    await checkTaskOnChange();
-    return res.status(200).json({});
-  },
+  }
 };
 
 TaskRouter.post('/sync', requireSecret, routerMap.sync);
 TaskRouter.get('/history', requireLogin, routerMap.history);
 TaskRouter.get('/fetch', requireLogin, routerMap.fetch);
 TaskRouter.post('/submit', requireLogin, routerMap.submit);
-TaskRouter.get('/checkHistory', routerMap.checkTaskHistory);
 
 export default TaskRouter;

@@ -92,12 +92,8 @@ export class TaskService {
   async listTaskHistory(userId: number) {
     const sql = `
         SELECT t.*,
-       CASE
-       WHEN th.id IS NOT NULL
-           THEN 1
-       ELSE 0
-       END AS status,
-       th."createdAt" as "completedAt"
+       th.status,
+       th."completedAt"
         FROM task AS t
         LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
     `;
@@ -168,13 +164,17 @@ export class TaskService {
     } as TaskHistory;
     let isOnChain = false;
     if (task.onChainType) {
+      if (!extrinsicHash) {
+        throw new Error('Extrinsic hash is required');
+      }
       dataCreate.extrinsicHash = extrinsicHash;
       dataCreate.network = network;
       dataCreate.status = TaskHistoryStatus.CHECKING;
       dataCreate.retry = 0;
       isOnChain = true;
-    }else {
+    } else {
       dataCreate.status = TaskHistoryStatus.COMPLETED;
+      dataCreate.completedAt = now;
     }
 
     // Create task history

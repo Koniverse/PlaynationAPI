@@ -19,6 +19,7 @@ export class TaskHistory extends Model<InferAttributes<TaskHistory>, InferCreati
   declare retry: CreationOptional<number>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  declare completedAt: CreationOptional<Date>;
 }
 
 TaskHistory.init({
@@ -61,6 +62,7 @@ TaskHistory.init({
   },
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
+  completedAt: DataTypes.DATE,
 }, {
   indexes: [{unique: false, fields: ['accountId', 'taskId']}, {unique: false, fields: ['accountId']}],
   tableName: 'task_history',
