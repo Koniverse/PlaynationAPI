@@ -149,6 +149,12 @@ export class QuickGetService {
     });
   }
 
+  async getInventoryByAccount(accountId: number) {
+    return await GameInventoryItem.findAll({
+      where: { accountId },
+    });
+  }
+
   // Singleton
   private static _instance: QuickGetService;
   static get instance(): QuickGetService {

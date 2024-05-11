@@ -190,8 +190,7 @@ export class GameItemService {
         gameItem.itemGroupLevel !== gameData.level + 1
       ) {
         throw new Error('Cannot use item before level up');
-      }
-      if (
+      } else if (
         gameItem.effectDuration === EnvVars.GameItem.EternalItem &&
         gameItem.itemGroup === EnvVars.GameItem.ItemLevel &&
         gameItem.itemGroupLevel === gameData.level + 1
@@ -290,13 +289,18 @@ export class GameItemService {
     }
   }
 
-  async getInventoryLogs(accountId: number, isUsed = false) {
+  async getInventoryLogs(accountId: number) {
     await quickGet.requireAccount(accountId);
     return await GameInventoryLog.findAll({
       where: {
         accountId: accountId,
       },
     });
+  }
+
+  async getInventoryByAccount(accountId: number) {
+    await quickGet.requireAccount(accountId);
+    return await quickGet.getInventoryByAccount(accountId);
   }
 
   // Singleton

@@ -1,6 +1,6 @@
-import {IReq, IRes} from '@src/routes/types';
-import {Router} from 'express';
-import {Query} from 'express-serve-static-core';
+import { IReq, IRes } from '@src/routes/types';
+import { Router } from 'express';
+import { Query } from 'express-serve-static-core';
 import {
   GameContentCms,
   GameInventoryItemParams,
@@ -8,8 +8,8 @@ import {
   newGamePlayParams,
   SubmitGamePlayParams,
 } from '@src/services/GameService';
-import {requireLogin, requireSecret} from '@src/routes/helper';
-import {GameItemService} from '@src/services/GameItemService';
+import { requireLogin, requireSecret } from '@src/routes/helper';
+import { GameItemService } from '@src/services/GameItemService';
 
 const GameRouter = Router();
 type NewGameParams = newGamePlayParams & Query;
@@ -62,15 +62,14 @@ const routerMap = {
 
   usedGameItem: async (req: IReq<GameInventoryItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {gameInventoryItemId} = req.body;
+    const { gameInventoryItemId } = req.body;
     const result = await gameService.useGameInventoryItem(userId, gameInventoryItemId);
     return res.status(200).json(result);
   },
 
-
   getInventoryLogs: async (req: IReq<Query>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const response = await GameItemService.instance.getInventoryLogs(userId, true);
+    const response = await GameItemService.instance.getInventoryLogs(userId);
     return res.status(200).json(response);
   },
 };

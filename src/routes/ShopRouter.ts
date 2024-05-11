@@ -71,7 +71,13 @@ const routerMap = {
   // Get inventories
   getInventoryLogs: async (req: IReq<GetItemLogsParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const response = await gameItemService.getInventoryLogs(userId, req.body.isUsed);
+    const response = await gameItemService.getInventoryLogs(userId);
+    return res.status(200).json(response);
+  },
+
+  getInventoryByAccount: async (req: IReq<GetItemLogsParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const response = await gameItemService.getInventoryByAccount(userId);
     return res.status(200).json(response);
   },
 };
@@ -86,7 +92,10 @@ ShopRouter.post('/buy-energy', requireLogin, routerMap.buyEnergy);
 ShopRouter.post('/buy-item', requireLogin, routerMap.buyItem);
 ShopRouter.post('/use-inventory-item', requireLogin, routerMap.useInventoryItem);
 
-// Get inventories
+// Get inventories logs
 ShopRouter.get('/get-inventory-logs', requireLogin, routerMap.getInventoryLogs);
+
+// Get Inventory list by account
+ShopRouter.get('/get-inventory', requireLogin, routerMap.getInventoryByAccount);
 
 export default ShopRouter;
