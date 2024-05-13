@@ -7,6 +7,7 @@ import { getTodayDateRange } from '@src/utils/date';
 import { v4 } from 'uuid';
 import { QuickGetService } from '@src/services/QuickGetService';
 import multiJson from '../data/multi.json';
+import { AccountService } from '@src/services/AccountService';
 
 export interface GameItemContentCms {
   id: number;
@@ -28,6 +29,7 @@ export interface GameItemSearchParams {
 }
 
 const quickGet = QuickGetService.instance;
+const accountService = AccountService.instance;
 
 export class GameItemService {
   constructor(private sequelizeService: SequelizeService) {}
@@ -305,10 +307,10 @@ export class GameItemService {
       const multiplier = multiJson.find((item) => item.itemGroupLevel === gameItem.itemGroupLevel);
       const multiplierPoint = multiplier ? multiplier.value : 0;
       const usePoint = multiplierPoint * quantity;
-      const currentPoint = account.point + usePoint;
+      await accountService.addAccountPoint(accountId, usePoint);
       return {
         success: true,
-        point: currentPoint,
+        point: usePoint,
         receiptId: null,
         inventoryId: null,
         gameItemId: gameItem.id,
