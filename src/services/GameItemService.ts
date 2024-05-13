@@ -6,7 +6,7 @@ import { Op } from 'sequelize';
 import { getTodayDateRange } from '@src/utils/date';
 import { v4 } from 'uuid';
 import { QuickGetService } from '@src/services/QuickGetService';
-import multiJson from '@src/data/multi.json';
+import multiJson from '@src/data/multiplier.json';
 import { AccountService } from '@src/services/AccountService';
 
 export interface GameItemContentCms {
