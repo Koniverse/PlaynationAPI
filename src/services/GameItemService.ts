@@ -6,6 +6,7 @@ import { Op } from 'sequelize';
 import { getTodayDateRange } from '@src/utils/date';
 import { v4 } from 'uuid';
 import { QuickGetService } from '@src/services/QuickGetService';
+import multiJson from '../data/multi.json';
 
 export interface GameItemContentCms {
   id: number;
@@ -106,11 +107,14 @@ export class GameItemService {
     }
   }
 
-  async buyItem(accountId: number, gameItemId: number, quantity = 1) {
+  async buyItem(accountId: number, gameItemId: number, quantity = 1, buyType?: string) {
     const account = await quickGet.requireAccount(accountId);
-    const gameItem = await quickGet.requireGameItemID(gameItemId);
-    const game = await quickGet.requireGame(gameItem.gameId);
     const accountAttribute = await quickGet.requireAccountAttribute(account.id);
+    const gameItem = await quickGet.requireGameItemID(gameItemId);
+    if (buyType && buyType === EnvVars.GameItem.BuyType) {
+      return this.handleMultiPlayer(accountId, gameItem, quantity);
+    }
+    const game = await quickGet.requireGame(gameItem.gameId);
     const gameData = await quickGet.requireGameData(accountId, game.id);
 
     if (gameItem.maxBuy && quantity > gameItem.maxBuy) {
@@ -293,6 +297,27 @@ export class GameItemService {
       maxEnergy: EnvVars.Game.MaxEnergy,
       energyOneBuy: EnvVars.Game.EnergyOneBuy,
     };
+  }
+
+  async handleMultiPlayer(accountId: number, gameItem: GameItem, quantity = 1) {
+    try {
+      const account = await quickGet.requireAccountAttribute(accountId);
+      const multiplier = multiJson.find((item) => item.itemGroupLevel === gameItem.itemGroupLevel);
+      const multiplierPoint = multiplier ? multiplier.value : 0;
+      const usePoint = multiplierPoint * quantity;
+      const currentPoint = account.point + usePoint;
+      return {
+        success: true,
+        point: currentPoint,
+        receiptId: null,
+        inventoryId: null,
+        gameItemId: gameItem.id,
+        inventoryQuantity: null,
+        itemGroupLevel: null,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Singleton

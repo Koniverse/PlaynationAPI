@@ -16,6 +16,7 @@ export type BuyEnergyParams = BuyParams;
 export interface BuyGameItemParams extends BuyParams {
   gameItemId: number;
   quantity?: number;
+  buyType?: string;
 }
 
 export interface UseItemParams extends BuyParams {
@@ -58,8 +59,8 @@ const routerMap = {
   // Buy items
   buyItem: async (req: IReq<BuyGameItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const { gameItemId, quantity } = req.body;
-    const response = await gameItemService.buyItem(userId, gameItemId, quantity);
+    const { gameItemId, quantity, buyType } = req.body;
+    const response = await gameItemService.buyItem(userId, gameItemId, quantity, buyType);
     return res.status(200).json(response);
   },
 
