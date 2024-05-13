@@ -303,7 +303,6 @@ export class GameItemService {
 
   async handleMultiPlayer(accountId: number, gameItem: GameItem, quantity = 1) {
     try {
-      const account = await quickGet.requireAccountAttribute(accountId);
       const multiplier = multiJson.find((item) => item.itemGroupLevel === gameItem.itemGroupLevel);
       const multiplierPoint = multiplier ? multiplier.value : 0;
       const usePoint = multiplierPoint * quantity;
