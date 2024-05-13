@@ -28,6 +28,10 @@ export interface TaskSubmitParams{
   network?: string,
 }
 
+export interface TaskHistoryParams{
+  taskHistoryId: number
+}
+
 export class TaskService {
   private taskMap: Record<string, Task> | undefined;
   constructor(private sequelizeService: SequelizeService) {
@@ -80,7 +84,6 @@ export class TaskService {
     const currentTime = new Date().getTime();
     return Object.values(taskMap).filter((item) => {
       if (item.startTime && item.endTime) {
-        console.log(item.startTime.getTime(), item.endTime.getTime(), currentTime);
         const startTime = item.startTime.getTime();
         const endTime = item.endTime.getTime();
         return currentTime >= startTime && currentTime <= endTime;
@@ -89,11 +92,21 @@ export class TaskService {
     });
   }
 
+  async checkCompleteTask(userId: number, taskHistoryId: number) {
+    let completed = false;
+    const taskHistory = await TaskHistory.findByPk(taskHistoryId);
+    if (taskHistory && taskHistory.accountId === userId) {
+      completed = taskHistory.status === TaskHistoryStatus.COMPLETED;
+    }
+    return {completed};
+
+  }
   async listTaskHistory(userId: number) {
     const sql = `
         SELECT t.*,
-       th.status,
-       th."completedAt"
+        th.id AS "taskHistoryId",
+        th.status,
+        th."completedAt"
         FROM task AS t
         LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
     `;

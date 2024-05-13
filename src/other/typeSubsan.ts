@@ -7,28 +7,28 @@ export interface ExtrinsicSubscanResult {
 }
 
 export interface ExtrinsicSubscanData {
-  blockTimestamp: number;
-  blockNum: number;
-  extrinsicIndex: string;
-  callModuleFunction: string;
-  callModule: string;
-  accountId: string;
+  block_timestamp: number;
+  block_num: number;
+  extrinsic_index: string;
+  call_module_function: string;
+  call_module: string;
+  account_id: string;
   signature: string;
   nonce: number;
-  extrinsicHash: string;
+  extrinsic_hash: string;
   success: boolean;
   params: Param[];
   transfer: null;
   event: Event[];
-  eventCount: number;
+  event_count: number;
   fee: string;
   feeUsed: string;
   error: null;
   finalized: boolean;
   lifetime: Lifetime;
   tip: string;
-  accountDisplay: AccountDisplay;
-  blockHash: string;
+  account_display: AccountDisplay;
+  block_hash: string;
   pending: boolean;
   subCalls: null;
 }
@@ -36,22 +36,22 @@ export interface ExtrinsicSubscanData {
 export interface Param {
   name: string;
   type: string;
-  typeName: string;
+  type_name: string;
   value: string;
 }
 
 interface Event {
-  eventIndex: string;
-  blockNum: number;
-  extrinsicIdx: number;
-  moduleId: string;
-  eventId: string;
+  event_index: string;
+  block_num: number;
+  extrinsic_idx: number;
+  module_id: string;
+  event_id: string;
   params: string;
   phase: number;
-  eventIdx: number;
-  extrinsicHash: string;
+  event_idx: number;
+  extrinsic_hash: string;
   finalized: boolean;
-  blockTimestamp: number;
+  block_timestamp: number;
 }
 
 interface Lifetime {

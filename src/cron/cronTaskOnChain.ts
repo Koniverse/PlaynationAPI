@@ -69,7 +69,6 @@ async function checkExtrinsicHashOnSubscan(extrinsicHash: string, network: strin
     return false;
   }
   const url = `https://${slug}.api.subscan.io/api/scan/extrinsic`;
-  console.log('url:', url);
   const response = await fetch(
     url,
     {
@@ -82,27 +81,12 @@ async function checkExtrinsicHashOnSubscan(extrinsicHash: string, network: strin
     });
   const extrinsicSubscanResult = await response.json() as ExtrinsicSubscanResult;
   const now = new Date();
-  const date = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-  const data = extrinsicSubscanResult.data;
-  if (!data) {
+  const extrinsicDate = new Date(extrinsicSubscanResult.data.block_timestamp * 1000);
+
+  if (now.getFullYear() !== extrinsicDate.getFullYear() || now.getMonth() !== extrinsicDate.getMonth() || now.getDate() !== extrinsicDate.getDate())  {
     return false;
   }
-  const params = data.params;
-  if (params.length === 0) {
-    return false;
-  }
-  const valueData = JSON.parse(params[0].value) as {
-    date: string,
-    address: string,
-  
-  };
-  if (!valueData) {
-    return false;
-  }
-  if (valueData.date !== date) {
-    return false;
-  }
-  return true;
+  return extrinsicSubscanResult.data.success;
 }
 
 if (INTERVAL_TIME > 0) {
