@@ -114,11 +114,12 @@ export class GameItemService {
     const accountAttribute = await quickGet.requireAccountAttribute(account.id);
     const gameItem = await quickGet.requireGameItemID(gameItemId);
     if (gameItem.itemGroup === EnvVars.GameItem.ItemMulti && !buyType) {
-      throw new Error('Please specify buy type');
+      throw new Error('Buy type must be specified for multiplayer items');
     }
-    if (buyType && buyType === EnvVars.GameItem.BuyType && gameItem.itemGroup === EnvVars.GameItem.ItemMulti) {
+    if (buyType === EnvVars.GameItem.BuyType && gameItem.itemGroup === EnvVars.GameItem.ItemMulti) {
       return this.handleMultiPlayer(accountId, gameItem, quantity);
     }
+
     const game = await quickGet.requireGame(gameItem.gameId);
     const gameData = await quickGet.requireGameData(accountId, game.id);
 
