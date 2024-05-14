@@ -156,17 +156,17 @@ describe('Game Item Test', () => {
     await createGameData(accountId);
     const getGameItem = await GameItem.findOne({ where: { effectDuration: EnvVars.GameItem.EternalItem } });
     const gameIdItem = getGameItem?.id ?? 100;
-    const result = await gameItemService.buyItem(accountId, gameIdItem, 1);
+    const result = await gameItemService.buyItem(accountId, gameIdItem, 1, '');
     const account = await quickGet.requireAccountAttribute(accountId);
     expect(result.point).toBe(account.point);
     expect(result).toEqual({
       success: true,
       point: result.point,
-      receiptId: result.receiptId,
+      receiptId: result.receiptId ?? 0,
       gameItemId: result.gameItemId,
-      inventoryQuantity: result.inventoryQuantity,
-      inventoryId: result.inventoryId,
-      itemGroupLevel: result.itemGroupLevel,
+      inventoryQuantity: result.inventoryQuantity ?? 0,
+      inventoryId: result.inventoryId ?? 0,
+      itemGroupLevel: result.itemGroupLevel ?? 0,
     });
   });
 
@@ -181,11 +181,11 @@ describe('Game Item Test', () => {
     expect(result).toEqual({
       success: true,
       point: result.point,
-      receiptId: result.receiptId,
-      inventoryId: result.inventoryId,
+      receiptId: result.receiptId ?? 0,
       gameItemId: result.gameItemId,
-      inventoryQuantity: result.inventoryQuantity,
-      itemGroupLevel: result.itemGroupLevel,
+      inventoryQuantity: result.inventoryQuantity ?? 0,
+      inventoryId: result.inventoryId ?? 0,
+      itemGroupLevel: result.itemGroupLevel ?? 0,
     });
   });
 
@@ -212,8 +212,9 @@ describe('Game Item Test', () => {
     const getGameItem = await GameItem.findOne({ where: { effectDuration: EnvVars.GameItem.EternalItem } });
     const gameItemId: number = getGameItem?.id ?? 100;
     const gameItemResult = await gameItemService.buyItem(accountId, gameItemId, 1);
+    const gameItemInventoryId = gameItemResult.inventoryId ?? 0;
     let errorOccurred = false;
-    await gameItemService.useInventoryItem(accountId, gameItemResult.inventoryId).catch((error: Error) => {
+    await gameItemService.useInventoryItem(accountId, gameItemInventoryId).catch((error: Error) => {
       errorOccurred = true;
       expect(error.message).toBe('Inventory item not found');
     });

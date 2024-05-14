@@ -113,9 +113,12 @@ export class GameItemService {
     const account = await quickGet.requireAccount(accountId);
     const accountAttribute = await quickGet.requireAccountAttribute(account.id);
     const gameItem = await quickGet.requireGameItemID(gameItemId);
-    // if (buyType && buyType === EnvVars.GameItem.BuyType) {
-    //   return this.handleMultiPlayer(accountId, gameItem, quantity);
-    // }
+    if (gameItem.itemGroup === EnvVars.GameItem.ItemMulti && !buyType) {
+      throw new Error('Please specify buy type');
+    }
+    if (buyType && buyType === EnvVars.GameItem.BuyType && gameItem.itemGroup === EnvVars.GameItem.ItemMulti) {
+      return this.handleMultiPlayer(accountId, gameItem, quantity);
+    }
     const game = await quickGet.requireGame(gameItem.gameId);
     const gameData = await quickGet.requireGameData(accountId, game.id);
 
