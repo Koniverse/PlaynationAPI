@@ -22,6 +22,7 @@ export interface GameItemContentCms {
   itemGroup: number;
   itemGroupLevel: number;
   effectDuration: number;
+  icon:string
 }
 
 export interface GameItemSearchParams {
