@@ -1,5 +1,4 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
-import Game from '@src/models/Game';
 import { GameInventoryItem, GameInventoryLog, GameItem, NO_GROUP_KEY, Receipt, ReceiptEnum } from '@src/models';
 import EnvVars from '@src/constants/EnvVars';
 import { Op } from 'sequelize';
@@ -22,7 +21,7 @@ export interface GameItemContentCms {
   itemGroup: number;
   itemGroupLevel: number;
   effectDuration: number;
-  icon:string
+  icon: string;
 }
 
 export interface GameItemSearchParams {
@@ -58,9 +57,6 @@ export class GameItemService {
     for (const item of data) {
       const itemData = { ...item } as unknown as GameItem;
       const existed = await GameItem.findOne({ where: { contentId: item.id } });
-      const gameData = await Game.findOne({
-        where: { contentId: item.gameId },
-      });
       if (existed) {
         await existed.update(itemData);
       } else {
