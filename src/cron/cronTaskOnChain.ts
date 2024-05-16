@@ -22,6 +22,7 @@ export async function checkTaskOnChange() {
           [Op.not]: null,
         },
       } as never,
+      limit: EnvVars.TaskOnChain.Limit
     });
     for (const taskHistory of taskHistoryChecking) {
       const extrinsicHash = taskHistory.extrinsicHash;

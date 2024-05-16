@@ -83,7 +83,8 @@ const Environments = {
   },
   TaskOnChain: {
     IntervalTime: parseInt(process.env.INTERVAL_TASK_ON_CHAIN_TIME || '6000'),
-    RetryMax: parseInt(process.env.INTERVAL_TASK_HISTORY_RETRY_MAX || '3'),
+    RetryMax: parseInt(process.env.TASK_HISTORY_RETRY_MAX || '3'),
+    Limit: parseInt(process.env.TASK_HISTORY_LIMIT || '20'),
   },
 };
 
