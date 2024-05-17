@@ -24,6 +24,10 @@ export interface GameItemContentCms {
   icon: string;
 }
 
+interface InventoryResult {
+  [key: string]: number;
+}
+
 export interface GameItemSearchParams {
   gameId: number;
 }
@@ -289,7 +293,13 @@ export class GameItemService {
 
   async getInventoryByAccount(accountId: number) {
     await quickGet.requireAccount(accountId);
-    return await quickGet.getInventoryByAccount(accountId);
+    const item = await quickGet.getInventoryByAccount(accountId);
+    const itemInGame = await this.getInventoryByAccountInGame(accountId);
+    return {
+      success: true,
+      inventory: item,
+      inventoryInGame: itemInGame,
+    };
   }
 
   async getConfigBuyEnergy() {
@@ -320,6 +330,71 @@ export class GameItemService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async getInventoryByAccountInGame(accountId: number) {
+    const sql = `
+  SELECT
+      gi.slug AS item,
+      SUM(i."quantity") AS quantity
+  FROM 
+      game_inventory_item i 
+  JOIN 
+      game_item gi 
+  ON 
+      i."gameItemId" = gi.id
+  WHERE 
+      i."accountId" = ${accountId}
+  GROUP BY 
+      gi.slug;`;
+
+    const data = await this.sequelizeService.sequelize.query(sql);
+
+    let result: Partial<InventoryResult> = {};
+
+    data[0].forEach((row: any) => {
+      const { item }: any = row;
+      result[item as keyof InventoryResult] = 0;
+    });
+
+    const newResult = { ...result };
+    Object.keys(newResult).forEach((item: string) => {
+      const row = data[0].find((row: any) => row.item === item) as any;
+      result[item as keyof InventoryResult] = parseInt(row.quantity);
+    });
+    return result;
+  }
+
+  async getItemInGame(gameId?: number) {
+    const data: any = await GameItem.findAll({});
+    const result = data.reduce(
+      (
+        acc: Record<
+          string,
+          {
+            id: string;
+            name: string;
+            price: number;
+            gameItemId: number;
+          }
+        >,
+        item: any,
+      ) => {
+        acc[item.slug] = {
+          id: item.slug,
+          name: item.name,
+          price: item.price,
+          gameItemId: item.id,
+        };
+        return acc;
+      },
+      {},
+    );
+
+    return {
+      success: true,
+      items: result,
+    };
   }
 
   // Singleton

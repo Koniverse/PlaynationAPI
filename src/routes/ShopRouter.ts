@@ -24,8 +24,12 @@ export interface UseItemParams extends BuyParams {
 }
 
 type GetItemLogsParams = {
-  isUsed?: boolean;
+  used?: boolean;
 } & Query;
+
+interface GetItemInGame {
+  gameId: number;
+}
 
 const gameItemService = GameItemService.instance;
 
@@ -84,6 +88,12 @@ const routerMap = {
     const response = await gameItemService.getInventoryByAccount(userId);
     return res.status(200).json(response);
   },
+
+  getItemInGame: async (req: IReq<GetItemInGame>, res: IRes) => {
+    const gameId = req.body.gameId || 0;
+    const response = await gameItemService.getItemInGame(gameId);
+    return res.status(200).json(response);
+  },
 };
 
 ShopRouter.post('/sync', requireSecret, routerMap.sync);
@@ -102,5 +112,6 @@ ShopRouter.get('/get-inventory-logs', requireLogin, routerMap.getInventoryLogs);
 
 // Get Inventory list by account
 ShopRouter.get('/get-inventory', requireLogin, routerMap.getInventoryByAccount);
+ShopRouter.get('/get-item-in-game', requireLogin, routerMap.getItemInGame);
 
 export default ShopRouter;
