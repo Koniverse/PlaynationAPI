@@ -3,7 +3,7 @@ import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {GameContentCms, GameService, newGamePlayParams, SubmitGamePlayParams} from '@src/services/GameService';
 import {requireLogin, requireSecret} from '@src/routes/helper';
-import * as console from "node:console";
+import {LeaderboardParams, LeaderBoardService} from '@src/services/LeaderBoardService';
 
 const GameRouter = Router();
 type NewGameParams = newGamePlayParams & Query;
@@ -53,12 +53,20 @@ const routerMap = {
     const result = await gameService.getTotalLeaderboard(userId);
     return res.status(200).json(result);
   },
+
+  getLeaderBoardByType: async (req: IReq<LeaderboardParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const {type, startDate, endDate, gameId} = req.body;
+    const result = await LeaderBoardService.instance.getTotalLeaderboard(userId, gameId, startDate, endDate, type);
+    return res.status(200).json(result);
+  },
 };
 
 GameRouter.post('/sync', requireSecret, routerMap.sync);
 GameRouter.get('/fetch', requireLogin, routerMap.fetch);
 GameRouter.get('/histories', requireLogin, routerMap.getHistories);
 GameRouter.get('/leader-board', requireLogin, routerMap.getLeaderBoard);
+GameRouter.post('/leader-board-with-type', requireLogin, routerMap.getLeaderBoardByType);
 
 GameRouter.post('/new-game', requireLogin, routerMap.newGame);
 GameRouter.post('/submit', requireLogin, routerMap.submitGameplay);
