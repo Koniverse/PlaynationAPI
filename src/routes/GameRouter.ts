@@ -56,8 +56,8 @@ const routerMap = {
 
   getLeaderBoardByType: async (req: IReq<LeaderboardParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {type, startDate, endDate, gameId} = req.body;
-    const result = await LeaderBoardService.instance.getTotalLeaderboard(userId, gameId, startDate, endDate, type);
+    const {type, startDate, endDate, gameId, limit} = req.body;
+    const result = await LeaderBoardService.instance.getTotalLeaderboard(userId, gameId, startDate, endDate, limit, type);
     return res.status(200).json(result);
   },
 };

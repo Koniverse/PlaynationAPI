@@ -7,6 +7,7 @@ export interface LeaderboardParams {
     startDate: string;
     endDate: string;
     type: 'accumulatePoint' | 'game' | 'task' | 'referral';
+    limit: number;
 }
 
 interface LeaderboardRecord {
@@ -48,7 +49,7 @@ export class LeaderBoardService {
             ORDER BY rank asc)
             select *
             from RankedUsers
-            where rank <= 100
+            where rank <= :limit
                or mine = true;
         `;
     return sql;
@@ -75,7 +76,7 @@ export class LeaderBoardService {
             ORDER BY rank asc)
             select *
             from RankedUsers
-            where rank <= 100
+            where rank <= :limit
                or mine = true;
         `;
     return sql;
@@ -112,7 +113,7 @@ export class LeaderBoardService {
                    ra.point            AS point
             FROM rankedUsers ra
                      JOIN account a ON ra.accountId = a.id
-            where ra.rank <= 100
+            where ra.rank <= :limit
                or a.id = :accountId
             ORDER BY point DESC;
         `;
@@ -142,14 +143,14 @@ export class LeaderBoardService {
                    avatar,
                    mine
             FROM RankedUsers
-            WHERE rank <= 100
+            WHERE rank <= :limit
                OR mine = true
             ORDER BY rank;
         `;
     return sql;
   }
 
-  async getTotalLeaderboard(accountId: number, gameId: number, startDate: string, endDate: string, typeQuery = 'game') {
+  async getTotalLeaderboard(accountId: number, gameId: number, startDate: string, endDate: string, limit=100, typeQuery = 'game') {
     let sql = this.getReferralLogQuery();
     if (typeQuery === 'game') {
       sql = this.getGameQuery();
@@ -163,7 +164,7 @@ export class LeaderBoardService {
 
     try {
       const data = await this.sequelizeService.sequelize.query<LeaderboardRecord>(sql, {
-        replacements: {accountId, gameId, startDate, endDate},  // Use replacements for parameterized queries
+        replacements: {accountId, gameId, startDate, endDate, limit},  // Use replacements for parameterized queries
         type: QueryTypes.SELECT,
       });
 
