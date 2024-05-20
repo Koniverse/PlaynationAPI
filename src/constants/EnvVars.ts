@@ -89,7 +89,9 @@ const Environments = {
     EternalItem: parseInt(process.env.ETERNAL_ITEM || '-1'),
     DisposableItem: parseInt(process.env.DISPOSABLE_ITEM || '0'),
     ItemLevel: process.env.ITEM_LEVEL || 'LEVEL',
+    ItemMulti: process.env.ITEM_MULTIPLIER || 'MULTIPLIER',
     ItemMaxLevel: parseInt(process.env.ITEM_MAX_LEVEL || '100'),
+    BuyType: process.env.BUY_TYPE || 'BUY_MULTI',
   },
 };
 

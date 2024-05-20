@@ -1,19 +1,12 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
-import Game from '@src/models/Game';
-import {
-  GameData,
-  GameInventoryItem,
-  GameInventoryItemStatus,
-  GameItem,
-  NO_GROUP_KEY,
-  Receipt,
-  ReceiptEnum,
-} from '@src/models';
+import { GameInventoryItem, GameInventoryLog, GameItem, NO_GROUP_KEY, Receipt, ReceiptEnum } from '@src/models';
 import EnvVars from '@src/constants/EnvVars';
 import { Op } from 'sequelize';
 import { getTodayDateRange } from '@src/utils/date';
 import { v4 } from 'uuid';
 import { QuickGetService } from '@src/services/QuickGetService';
+import multiJson from '@src/data/multiplier.json';
+import { AccountService } from '@src/services/AccountService';
 
 export interface GameItemContentCms {
   id: number;
@@ -28,6 +21,11 @@ export interface GameItemContentCms {
   itemGroup: number;
   itemGroupLevel: number;
   effectDuration: number;
+  icon: string;
+}
+
+interface InventoryResult {
+  [key: string]: number;
 }
 
 export interface GameItemSearchParams {
@@ -35,12 +33,12 @@ export interface GameItemSearchParams {
 }
 
 const quickGet = QuickGetService.instance;
+const accountService = AccountService.instance;
 
 export class GameItemService {
   constructor(private sequelizeService: SequelizeService) {}
 
   async listItemByGroup(gameId?: number) {
-    console.log(gameId);
     const items = await quickGet.listGameItem(gameId);
     const result: Record<string, GameItem[]> = {};
 
@@ -50,7 +48,7 @@ export class GameItemService {
         result[group] = [];
       }
 
-      result[item.itemGroup].push(item);
+      result[group].push(item);
     });
 
     return result;
@@ -63,13 +61,6 @@ export class GameItemService {
     for (const item of data) {
       const itemData = { ...item } as unknown as GameItem;
       const existed = await GameItem.findOne({ where: { contentId: item.id } });
-      const gameData = await Game.findOne({
-        where: { contentId: item.gameId },
-      });
-      if (!gameData) {
-        continue;
-      }
-      itemData.gameId = gameData.id;
       if (existed) {
         await existed.update(itemData);
       } else {
@@ -119,11 +110,18 @@ export class GameItemService {
     }
   }
 
-  async buyItem(accountId: number, gameItemId: number, quantity = 1) {
+  async buyItem(accountId: number, gameItemId: number, quantity = 1, buyType?: string) {
     const account = await quickGet.requireAccount(accountId);
-    const gameItem = await quickGet.requireGameItem(gameItemId);
-    const game = await quickGet.requireGame(gameItem.gameId);
     const accountAttribute = await quickGet.requireAccountAttribute(account.id);
+    const gameItem = await quickGet.requireGameItemID(gameItemId);
+    if (gameItem.itemGroup === EnvVars.GameItem.ItemMulti && !buyType) {
+      throw new Error('Buy type must be specified for multiplayer items');
+    }
+    if (buyType === EnvVars.GameItem.BuyType && gameItem.itemGroup === EnvVars.GameItem.ItemMulti) {
+      return this.handleMultiPlayer(accountId, gameItem, quantity);
+    }
+
+    const game = await quickGet.requireGame(gameItem.gameId);
     const gameData = await quickGet.requireGameData(accountId, game.id);
 
     if (gameItem.maxBuy && quantity > gameItem.maxBuy) {
@@ -134,40 +132,50 @@ export class GameItemService {
       await this.validateMaxDailyPurchases(account.id, ReceiptEnum.BUY_ITEM, gameItem.maxBuyDaily);
     }
 
-    await this.validateMaxBuyItem(accountId, quantity, gameItem.maxBuy);
-    await this.validateMaxDailyPurchases(account.id, ReceiptEnum.BUY_ITEM, gameItem.maxBuyDaily);
     const usePoint = this.calculateTotalCost(gameItem.price, quantity);
     const remainingPoint = this.calculateRemainingPoints(accountAttribute.point, usePoint);
+
     if (remainingPoint < 0) {
       throw new Error('Not enough points');
     }
 
     try {
-      const inventoryStatus = this.determineInventoryStatus(gameItem);
-
       const transactionId = v4();
-      let endEffectTime: Date | null = null;
-
+      let endEffectTime = null;
+      let usable = true;
       if (gameItem.effectDuration) {
         endEffectTime = new Date();
         endEffectTime.setSeconds(endEffectTime.getSeconds() + gameItem.effectDuration);
+        usable = false;
       }
-      if (gameItem.effectDuration && gameItem.effectDuration === EnvVars.GameItem.EternalItem) {
-        if (gameItem.itemGroup === EnvVars.GameItem.ItemLevel) {
-          await this.handleLevelPurchase(gameData, gameItem);
-        }
-      }
+
       const gameInventoryData = {
         accountId,
         gameItemId: gameItem.id,
         gameDataId: gameData.id,
         gameId: game.id,
         buyTime: new Date(),
-        status: inventoryStatus,
+        quantity: 1,
+        usable: usable,
         transactionId,
         endEffectTime,
       } as GameInventoryItem;
-      const gameInventory: GameInventoryItem = await GameInventoryItem.create(gameInventoryData);
+
+      const existingInventory = await GameInventoryItem.findOne({
+        where: {
+          accountId: accountId,
+          gameItemId: gameItem.id,
+          gameDataId: gameData.id,
+        },
+      });
+
+      let gameInventory;
+      if (!existingInventory) {
+        gameInventory = await GameInventoryItem.create(gameInventoryData);
+      } else {
+        gameInventory = await existingInventory.update({ quantity: existingInventory.quantity + 1 });
+      }
+
       const receipt = await Receipt.create({
         type: gameItem.itemGroup === EnvVars.GameItem.ItemLevel ? ReceiptEnum.BUY_LEVEL : ReceiptEnum.BUY_ITEM,
         userId: accountId,
@@ -176,6 +184,20 @@ export class GameItemService {
         gameItemId: gameItem.id,
         game_inventory_item_id: gameInventory.id,
       });
+      if (
+        gameItem.effectDuration === EnvVars.GameItem.EternalItem &&
+        gameItem.itemGroup === EnvVars.GameItem.ItemLevel &&
+        gameItem.itemGroupLevel !== gameData.level + 1
+      ) {
+        throw new Error('Cannot use item before level up');
+      } else if (
+        gameItem.effectDuration === EnvVars.GameItem.EternalItem &&
+        gameItem.itemGroup === EnvVars.GameItem.ItemLevel &&
+        gameItem.itemGroupLevel === gameData.level + 1
+      ) {
+        await gameData.update({ level: gameData.level + 1 });
+      }
+
       await accountAttribute.update({
         point: remainingPoint,
       });
@@ -184,64 +206,50 @@ export class GameItemService {
         point: remainingPoint,
         receiptId: receipt.id,
         inventoryId: gameInventory.id,
+        gameItemId: gameItem.id,
+        inventoryQuantity: gameInventory.quantity,
         itemGroupLevel: gameItem.itemGroupLevel,
       };
     } catch (error) {
-      throw new Error('Failed to buy Item');
+      throw error;
     }
   }
 
-  async useInventoryItem(accountId: number, inventoryId: number) {
+  async useInventoryItem(accountId: number, gameItemId: number) {
     const account = await quickGet.requireAccount(accountId);
-    const gameInventoryItem = await quickGet.requireInventoryGame(account.id, inventoryId);
+    const gameInventoryItem = await quickGet.requireInventoryGameByGameItemId(account.id, gameItemId);
+    if (!gameInventoryItem) {
+      throw new Error('Inventory item not found');
+    }
     const gameItem = await quickGet.requireGameItem(gameInventoryItem.gameItemId);
-    const gameData = await quickGet.requireGameData(accountId, gameInventoryItem.gameId);
 
     if (gameItem.effectDuration !== EnvVars.GameItem.DisposableItem) {
       throw new Error('Your item is not a disposable item');
     }
-    if (
-      gameInventoryItem.status === GameInventoryItemStatus.INACTIVE ||
-      gameInventoryItem.status === GameInventoryItemStatus.USED
-    ) {
-      throw new Error('Your item is inactive');
+    if (gameInventoryItem.quantity < 1) {
+      throw new Error('Your item has expired');
     }
     try {
-      if (gameItem.itemGroup === EnvVars.GameItem.ItemLevel) {
-        await this.handleLevelPurchase(gameData, gameItem);
-      }
+      const newQuantity = gameInventoryItem.quantity - 1;
+      const oldQuantity = gameInventoryItem.quantity;
       await gameInventoryItem.update({
-        status: GameInventoryItemStatus.USED,
+        quantity: newQuantity,
       });
-      const countInventory = await quickGet.requireCountInventoryActiveGame(accountId);
+      await quickGet.createGameInventoryLog(
+        gameInventoryItem.gameId,
+        accountId,
+        gameInventoryItem.id,
+        gameItem.id,
+        newQuantity,
+        `Use inventory Item ${gameItem.id} ,  quantity ${oldQuantity} remaining ${newQuantity}`,
+      );
       return {
         success: true,
         inventoryStatus: gameInventoryItem.status,
-        remainingItem: countInventory,
+        quantity: gameInventoryItem.quantity,
       };
     } catch (error) {
-      throw new Error('Failed to use Item');
-    }
-  }
-
-  private determineInventoryStatus(gameItem: GameItem) {
-    if (gameItem.effectDuration === EnvVars.GameItem.EternalItem) {
-      return GameInventoryItemStatus.USED;
-    }
-    return GameInventoryItemStatus.ACTIVE;
-  }
-
-  async handleLevelPurchase(gameData: GameData, gameItem: GameItem) {
-    if (gameData.level + 1 <= EnvVars.GameItem.ItemMaxLevel && gameItem.itemGroupLevel === 1) {
-      await gameData.update({
-        level: gameData.level + 1,
-      });
-    } else {
-      throw new Error(
-        `You can only purchase the next level. Current level: ${gameData.level}, Purchasable level: ${
-          gameData.level + 1
-        }`,
-      );
+      throw error;
     }
   }
 
@@ -269,50 +277,124 @@ export class GameItemService {
         },
       },
     });
-    if (countReceipt >= maxDailyPurchases) {
+    if (maxDailyPurchases > 0 && countReceipt >= maxDailyPurchases) {
       throw new Error('You have reached your daily purchase limit. Please try again tomorrow.');
     }
   }
 
-  async validateMaxBuyItem(accountId: number, quantity: number, maxBuy: number) {
-    const { startOfDay, endOfDay } = getTodayDateRange();
-    const countReceipt = await Receipt.count({
+  async getInventoryLogs(accountId: number) {
+    await quickGet.requireAccount(accountId);
+    return await GameInventoryLog.findAll({
       where: {
-        userId: accountId,
-        type: ReceiptEnum.BUY_ITEM,
-        createdAt: {
-          [Op.gte]: startOfDay,
-          [Op.lte]: endOfDay,
-        },
+        accountId: accountId,
       },
     });
-    if (countReceipt >= maxBuy) {
-      throw new Error('You have purchased the maximum number of items');
+  }
+
+  async getInventoryByAccount(accountId: number) {
+    await quickGet.requireAccount(accountId);
+    const item = await quickGet.getInventoryByAccount(accountId);
+    const itemInGame = await this.getInventoryByAccountInGame(accountId);
+    return {
+      success: true,
+      inventory: item,
+      inventoryInGame: itemInGame,
+    };
+  }
+
+  async getConfigBuyEnergy() {
+    return {
+      success: true,
+      energyPrice: EnvVars.Game.EnergyPrice,
+      energyBuyLimit: EnvVars.Game.EnergyBuyLimit,
+      maxEnergy: EnvVars.Game.MaxEnergy,
+      energyOneBuy: EnvVars.Game.EnergyOneBuy,
+    };
+  }
+
+  async handleMultiPlayer(accountId: number, gameItem: GameItem, quantity = 1) {
+    try {
+      const multiplier = multiJson.find((item) => item.itemGroupLevel === gameItem.itemGroupLevel);
+      const multiplierPoint = multiplier ? multiplier.value : 0;
+      const usePoint = multiplierPoint * quantity;
+      await accountService.addAccountPoint(accountId, usePoint);
+      return {
+        success: true,
+        point: usePoint,
+        receiptId: null,
+        inventoryId: null,
+        gameItemId: gameItem.id,
+        inventoryQuantity: null,
+        itemGroupLevel: null,
+      };
+    } catch (error) {
+      throw error;
     }
   }
 
-  async getInventoryLogs(accountId: number, isUsed = false) {
-    const queryUsed = isUsed ? "AND i.status = 'used'" : '';
-    await quickGet.requireAccount(accountId);
+  async getInventoryByAccountInGame(accountId: number) {
     const sql = `
-    SELECT
-    gi.id as "gameItemId",
-    i.id as "gameInventoryItemId",
-    gi.name,
-    gi.description,
-    gi.price,
-    i."buyTime",
-    i."usedTime",
-    i."endEffectTime",
-    i.status
-    from game_inventory_item i JOIN game_item gi on i."gameItemId" = gi.id
-where i."accountId" = ${accountId} ${queryUsed}
-    `;
+  SELECT
+      gi.slug AS item,
+      SUM(i."quantity") AS quantity
+  FROM 
+      game_inventory_item i 
+  JOIN 
+      game_item gi 
+  ON 
+      i."gameItemId" = gi.id
+  WHERE 
+      i."accountId" = ${accountId}
+  GROUP BY 
+      gi.slug;`;
+
     const data = await this.sequelizeService.sequelize.query(sql);
-    if (data.length > 0) {
-      return data[0];
-    }
-    return [];
+
+    let result: Partial<InventoryResult> = {};
+
+    data[0].forEach((row: any) => {
+      const { item }: any = row;
+      result[item as keyof InventoryResult] = 0;
+    });
+
+    const newResult = { ...result };
+    Object.keys(newResult).forEach((item: string) => {
+      const row = data[0].find((row: any) => row.item === item) as any;
+      result[item as keyof InventoryResult] = parseInt(row.quantity);
+    });
+    return result;
+  }
+
+  async getItemInGame(gameId?: number) {
+    const data: any = await GameItem.findAll({});
+    const result = data.reduce(
+      (
+        acc: Record<
+          string,
+          {
+            id: string;
+            name: string;
+            price: number;
+            gameItemId: number;
+          }
+        >,
+        item: any,
+      ) => {
+        acc[item.slug] = {
+          id: item.slug,
+          name: item.name,
+          price: item.price,
+          gameItemId: item.id,
+        };
+        return acc;
+      },
+      {},
+    );
+
+    return {
+      success: true,
+      items: result,
+    };
   }
 
   // Singleton

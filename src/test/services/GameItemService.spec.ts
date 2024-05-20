@@ -1,6 +1,6 @@
 import { AccountService } from '@src/services/AccountService';
 import { AccountParams } from '@src/models/Account';
-import { AccountAttribute, GameInventoryItem, GameInventoryItemStatus, GameItem, Receipt } from '@src/models';
+import { AccountAttribute, GameInventoryItem, GameItem, Receipt } from '@src/models';
 import EnvVars from '@src/constants/EnvVars';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import { GameItemService } from '@src/services/GameItemService';
@@ -156,15 +156,17 @@ describe('Game Item Test', () => {
     await createGameData(accountId);
     const getGameItem = await GameItem.findOne({ where: { effectDuration: EnvVars.GameItem.EternalItem } });
     const gameIdItem = getGameItem?.id ?? 100;
-    const result = await gameItemService.buyItem(accountId, gameIdItem, 1);
+    const result = await gameItemService.buyItem(accountId, gameIdItem, 1, '');
     const account = await quickGet.requireAccountAttribute(accountId);
     expect(result.point).toBe(account.point);
     expect(result).toEqual({
       success: true,
       point: result.point,
-      receiptId: result.receiptId,
-      inventoryId: result.inventoryId,
-      itemGroupLevel: result.itemGroupLevel,
+      receiptId: result.receiptId ?? 0,
+      gameItemId: result.gameItemId,
+      inventoryQuantity: result.inventoryQuantity ?? 0,
+      inventoryId: result.inventoryId ?? 0,
+      itemGroupLevel: result.itemGroupLevel ?? 0,
     });
   });
 
@@ -179,9 +181,11 @@ describe('Game Item Test', () => {
     expect(result).toEqual({
       success: true,
       point: result.point,
-      receiptId: result.receiptId,
-      inventoryId: result.inventoryId,
-      itemGroupLevel: result.itemGroupLevel,
+      receiptId: result.receiptId ?? 0,
+      gameItemId: result.gameItemId,
+      inventoryQuantity: result.inventoryQuantity ?? 0,
+      inventoryId: result.inventoryId ?? 0,
+      itemGroupLevel: result.itemGroupLevel ?? 0,
     });
   });
 
@@ -194,11 +198,11 @@ describe('Game Item Test', () => {
     const getGameItem = await GameItem.findOne({ where: { effectDuration: EnvVars.GameItem.DisposableItem } });
     const gameItemId: number = getGameItem?.id ?? 100;
     const gameItemResult = await gameItemService.buyItem(accountId, gameItemId, 1);
-    const result = await gameItemService.useInventoryItem(accountId, gameItemResult.inventoryId);
+    const result = await gameItemService.useInventoryItem(accountId, gameItemResult.gameItemId);
     expect(result).toEqual({
       success: true,
       inventoryStatus: result.inventoryStatus,
-      remainingItem: result.remainingItem,
+      quantity: result.quantity,
     });
   });
 
@@ -208,10 +212,11 @@ describe('Game Item Test', () => {
     const getGameItem = await GameItem.findOne({ where: { effectDuration: EnvVars.GameItem.EternalItem } });
     const gameItemId: number = getGameItem?.id ?? 100;
     const gameItemResult = await gameItemService.buyItem(accountId, gameItemId, 1);
+    const gameItemInventoryId = gameItemResult.inventoryId ?? 0;
     let errorOccurred = false;
-    await gameItemService.useInventoryItem(accountId, gameItemResult.inventoryId).catch((error: Error) => {
+    await gameItemService.useInventoryItem(accountId, gameItemInventoryId).catch((error: Error) => {
       errorOccurred = true;
-      expect(error.message).toBe('Your item is not a disposable item');
+      expect(error.message).toBe('Inventory item not found');
     });
     expect(errorOccurred).toBe(true);
   });
@@ -223,13 +228,10 @@ describe('Game Item Test', () => {
     const gameItemId: number = getGameItem?.id ?? 100;
     const gameItemResult = await gameItemService.buyItem(accountId, gameItemId, 1);
     let errorOccurred = false;
-    await GameInventoryItem.update(
-      { status: GameInventoryItemStatus.INACTIVE || GameInventoryItemStatus.USED },
-      { where: { id: gameItemResult.inventoryId } },
-    );
-    await gameItemService.useInventoryItem(accountId, gameItemResult.inventoryId).catch((error: Error) => {
+    await GameInventoryItem.update({ quantity: 0 }, { where: { gameItemId } });
+    await gameItemService.useInventoryItem(accountId, gameItemResult.gameItemId).catch((error: Error) => {
       errorOccurred = true;
-      expect(error.message).toBe('Your item is inactive');
+      expect(error.message).toBe('Your item has expired');
     });
     expect(errorOccurred).toBe(true);
   });

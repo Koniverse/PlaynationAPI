@@ -1,4 +1,4 @@
-import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
+import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
 import Account from '@src/models/Account';
@@ -11,7 +11,10 @@ export enum GameInventoryItemStatus {
   USED = 'used', // After used item
 }
 
-export class GameInventoryItem extends Model<InferAttributes<GameInventoryItem>, InferCreationAttributes<GameInventoryItem>> {
+export class GameInventoryItem extends Model<
+  InferAttributes<GameInventoryItem>,
+  InferCreationAttributes<GameInventoryItem>
+> {
   declare id: CreationOptional<number>; // id on db
   declare gameId: number;
   declare accountId: number;
@@ -21,6 +24,8 @@ export class GameInventoryItem extends Model<InferAttributes<GameInventoryItem>,
   declare buyTime: Date;
   declare endEffectTime: CreationOptional<Date>;
   declare status: GameInventoryItemStatus;
+  declare quantity: number;
+  declare usable: boolean;
 
   // After validated signature
   declare signature: CreationOptional<string>;
@@ -29,64 +34,76 @@ export class GameInventoryItem extends Model<InferAttributes<GameInventoryItem>,
   declare usedTime: CreationOptional<Date>;
 }
 
-GameInventoryItem.init({
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  },
-  gameId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: Game,
-      key: 'id',
+GameInventoryItem.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    gameId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: Game,
+        key: 'id',
+      },
+    },
+    accountId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: Account,
+        key: 'id',
+      },
+    },
+    gameDataId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: GameData,
+        key: 'id',
+      },
+    },
+    gameItemId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: GameItem,
+        key: 'id',
+      },
+    },
+    transactionId: {
+      type: DataTypes.STRING,
+    },
+    signature: {
+      type: DataTypes.STRING,
+    },
+    buyTime: {
+      type: DataTypes.DATE,
+    },
+    endEffectTime: {
+      type: DataTypes.DATE,
+    },
+    usedTime: {
+      type: DataTypes.DATE,
+    },
+    status: {
+      type: DataTypes.ENUM(
+        GameInventoryItemStatus.INACTIVE,
+        GameInventoryItemStatus.ACTIVE,
+        GameInventoryItemStatus.USED,
+      ),
+    },
+    quantity: {
+      type: DataTypes.INTEGER,
+    },
+    usable: {
+      type: DataTypes.BOOLEAN,
     },
   },
-  accountId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: Account,
-      key: 'id',
-    },
+  {
+    tableName: 'game_inventory_item',
+    sequelize: SequelizeServiceImpl.sequelize,
+    createdAt: true,
+    updatedAt: true,
   },
-  gameDataId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: GameData,
-      key: 'id',
-    },
-  },
-  gameItemId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: GameItem,
-      key: 'id',
-    },
-  },
-  transactionId: {
-    type: DataTypes.STRING,
-  },
-  signature: {
-    type: DataTypes.STRING,
-  },
-  buyTime: {
-    type: DataTypes.DATE,
-  },
-  endEffectTime: {
-    type: DataTypes.DATE,
-  },
-  usedTime: {
-    type: DataTypes.DATE,
-  },
-  status: {
-    type: DataTypes.ENUM(GameInventoryItemStatus.INACTIVE, GameInventoryItemStatus.ACTIVE, GameInventoryItemStatus.USED),
-  },
-}, {
-  indexes: [{unique: false, fields: ['gameDataId']}],
-  tableName: 'game_inventory_item',
-  sequelize: SequelizeServiceImpl.sequelize,
-  createdAt: true,
-  updatedAt: true,
-});
+);
 
 export default GameInventoryItem;

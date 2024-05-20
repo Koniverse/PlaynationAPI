@@ -1,13 +1,8 @@
-import {IReq, IRes} from '@src/routes/types';
-import {Router} from 'express';
-import {Query} from 'express-serve-static-core';
-import {requireLogin, requireSecret} from '@src/routes/helper';
-import {
-  GameItemContentCms,
-  GameItemService,
-  GameItemSearchParams,
-} from '@src/services/GameItemService';
-import {QuickGetService} from '@src/services/QuickGetService';
+import { IReq, IRes } from '@src/routes/types';
+import { Router } from 'express';
+import { Query } from 'express-serve-static-core';
+import { requireLogin, requireSecret } from '@src/routes/helper';
+import { GameItemContentCms, GameItemSearchParams, GameItemService } from '@src/services/GameItemService';
 
 const ShopRouter = Router();
 
@@ -16,19 +11,25 @@ interface BuyParams {
   transactionId?: string;
 }
 
-export type BuyEnergyParams = BuyParams
+export type BuyEnergyParams = BuyParams;
 
-export interface BuyGameItemParams extends BuyParams{
-  gameItemId: number,
-  quantity?: number
+export interface BuyGameItemParams extends BuyParams {
+  gameItemId: number;
+  quantity?: number;
+  buyType?: string;
 }
-export interface UseItemParams extends BuyParams{
-  inventoryId: number
+
+export interface UseItemParams extends BuyParams {
+  gameItemId: number;
 }
 
 type GetItemLogsParams = {
-  isUsed?: boolean;
+  used?: boolean;
 } & Query;
+
+interface GetItemInGame {
+  gameId: number;
+}
 
 const gameItemService = GameItemService.instance;
 
@@ -42,7 +43,7 @@ const routerMap = {
 
   // Get list of items
   listItems: async (req: IReq<GameItemSearchParams>, res: IRes) => {
-    const {gameId} = req.body;
+    const { gameId } = req.body;
 
     const response = await gameItemService.listItemByGroup(gameId);
 
@@ -55,27 +56,42 @@ const routerMap = {
     const response = await gameItemService.buyEnergy(userId);
     return res.status(200).json(response);
   },
-
+  getConfigBuyEnergy: async (req: IReq<Query>, res: IRes) => {
+    const response = await gameItemService.getConfigBuyEnergy();
+    return res.status(200).json(response);
+  },
   // Buy items
   buyItem: async (req: IReq<BuyGameItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {gameItemId,quantity} = req.body;
-    const response = await gameItemService.buyItem(userId, gameItemId,quantity);
+    const { gameItemId, quantity, buyType } = req.body;
+    const response = await gameItemService.buyItem(userId, gameItemId, quantity, buyType);
     return res.status(200).json(response);
   },
 
   // Use Item
   useInventoryItem: async (req: IReq<UseItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {inventoryId} = req.body;
-    const response = await gameItemService.useInventoryItem(userId, inventoryId);
+    const { gameItemId } = req.body;
+    const response = await gameItemService.useInventoryItem(userId, gameItemId);
     return res.status(200).json(response);
   },
 
   // Get inventories
   getInventoryLogs: async (req: IReq<GetItemLogsParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const response = await gameItemService.getInventoryLogs(userId, req.body.isUsed);
+    const response = await gameItemService.getInventoryLogs(userId);
+    return res.status(200).json(response);
+  },
+
+  getInventoryByAccount: async (req: IReq<GetItemLogsParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const response = await gameItemService.getInventoryByAccount(userId);
+    return res.status(200).json(response);
+  },
+
+  getItemInGame: async (req: IReq<GetItemInGame>, res: IRes) => {
+    const gameId = req.body.gameId || 0;
+    const response = await gameItemService.getItemInGame(gameId);
     return res.status(200).json(response);
   },
 };
@@ -87,10 +103,15 @@ ShopRouter.post('/list-items', requireLogin, routerMap.listItems);
 
 // Buy items
 ShopRouter.post('/buy-energy', requireLogin, routerMap.buyEnergy);
+ShopRouter.get('/get-config-buy-energy', routerMap.getConfigBuyEnergy);
 ShopRouter.post('/buy-item', requireLogin, routerMap.buyItem);
 ShopRouter.post('/use-inventory-item', requireLogin, routerMap.useInventoryItem);
 
-// Get inventories
+// Get inventories logs
 ShopRouter.get('/get-inventory-logs', requireLogin, routerMap.getInventoryLogs);
+
+// Get Inventory list by account
+ShopRouter.get('/get-inventory', requireLogin, routerMap.getInventoryByAccount);
+ShopRouter.get('/get-item-in-game', requireLogin, routerMap.getItemInGame);
 
 export default ShopRouter;

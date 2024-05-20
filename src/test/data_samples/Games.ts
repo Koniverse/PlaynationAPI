@@ -48,6 +48,7 @@ export async function createSampleGameData() {
         maxBuyDaily: EnvVars.Game.EnergyBuyLimit,
         price: 100,
         effectDuration: index < 50 ? EnvVars.GameItem.EternalItem : EnvVars.GameItem.DisposableItem,
+        icon:''
       };
     });
   }

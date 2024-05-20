@@ -4,7 +4,7 @@ import {
   Game,
   GameData,
   GameInventoryItem,
-  GameInventoryItemStatus,
+  GameInventoryLog,
   GameItem,
   Task,
 } from '@src/models';
@@ -46,6 +46,14 @@ export class QuickGetService {
     return game;
   }
 
+  async requireGameItemID(gameItemId: number) {
+    const gameItem = await this.findGameItem(gameItemId);
+    if (!gameItem) {
+      throw new Error(`GameItem not found: ${gameItemId}`);
+    }
+    return gameItem;
+  }
+
   // API for GameItem
   async buildGameItemMap() {
     const data = await GameItem.findAll();
@@ -59,16 +67,12 @@ export class QuickGetService {
   }
 
   async findGameItem(id: number) {
-    const gameItemMap = !!this.gameItemMap
-      ? this.gameItemMap
-      : await this.buildGameItemMap();
+    const gameItemMap = !!this.gameItemMap ? this.gameItemMap : await this.buildGameItemMap();
     return gameItemMap[id.toString()];
   }
 
   async listGameItem(gameId?: number) {
-    const gameItemMap = !!this.gameItemMap
-      ? this.gameItemMap
-      : await this.buildGameItemMap();
+    const gameItemMap = !!this.gameItemMap ? this.gameItemMap : await this.buildGameItemMap();
     if (!gameId) {
       return Object.values(gameItemMap);
     }
@@ -105,12 +109,10 @@ export class QuickGetService {
   }
 
   async requireGameData(accountId: number, gameId: number) {
-    const gameData = await GameData.findOne({ where: { accountId, gameId } });
-
+    let gameData = await GameData.findOne({ where: { accountId, gameId } });
     if (!gameData) {
-      throw new Error('GameData not found');
+      gameData = await GameData.create({ accountId, gameId, point: 0, level: 1, rank: 1, dayLimit: 0 });
     }
-
     return gameData;
   }
 
@@ -123,27 +125,34 @@ export class QuickGetService {
     return task;
   }
 
-  async requireInventoryGame(accountId: number, inventoryId: number) {
-    const inventoryGame = await GameInventoryItem.findOne({
-      where: { accountId, id: inventoryId },
+  async requireInventoryGameByGameItemId(accountId: number, gameItemId: number) {
+    return await GameInventoryItem.findOne({
+      where: { accountId, gameItemId },
     });
-    if (!inventoryGame) {
-      throw new Error(`Inventory Item not found: ${inventoryId}`);
-    }
-    return inventoryGame;
   }
 
-  async requireCountInventoryActiveGame(accountId: number) {
-    const inventoryGame = await GameInventoryItem.findAndCountAll({
-      where: {
-        accountId,
-        status: GameInventoryItemStatus.ACTIVE,
-      },
+  async createGameInventoryLog(
+    gameId: number,
+    accountId: number,
+    gameDataId: number,
+    gameItemId: number,
+    quantity: number,
+    note: string,
+  ) {
+    return await GameInventoryLog.create({
+      gameId,
+      accountId,
+      gameDataId,
+      gameItemId,
+      quantity,
+      note,
     });
-    if (!inventoryGame) {
-      throw new Error(`Inventory Item not found: ${accountId}`);
-    }
-    return inventoryGame;
+  }
+
+  async getInventoryByAccount(accountId: number) {
+    return await GameInventoryItem.findAll({
+      where: { accountId },
+    });
   }
 
   // Singleton

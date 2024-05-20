@@ -1,4 +1,4 @@
-import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
+import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
 
@@ -22,65 +22,73 @@ export class GameItem extends Model<InferAttributes<GameItem>, InferCreationAttr
   declare itemGroupLevel: CreationOptional<number>;
 
   declare effectDuration: CreationOptional<number>; // -1 is forever, 0 is one time use, > 0 is duration in seconds
+  declare icon: string;
 }
 
-GameItem.init({
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  },
-  contentId: {
-    type: DataTypes.INTEGER,
-  },
-  gameId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: Game,
-      key: 'id',
+GameItem.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
     },
-    allowNull: true,
+    contentId: {
+      type: DataTypes.INTEGER,
+    },
+    gameId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: Game,
+        key: 'id',
+      },
+      allowNull: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+    },
+    description: {
+      type: DataTypes.STRING,
+    },
+    slug: {
+      type: DataTypes.STRING,
+    },
+    itemGroup: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    itemGroupLevel: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    price: {
+      type: DataTypes.INTEGER,
+    },
+    tokenPrice: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    maxBuy: {
+      type: DataTypes.INTEGER,
+    },
+    maxBuyDaily: {
+      type: DataTypes.INTEGER,
+    },
+    effectDuration: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    icon: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
-  name: {
-    type: DataTypes.STRING,
+  {
+    indexes: [{ unique: false, fields: ['gameId'] }],
+    tableName: 'game_item',
+    sequelize: SequelizeServiceImpl.sequelize,
+    createdAt: true,
+    updatedAt: true,
   },
-  description: {
-    type: DataTypes.STRING,
-  },
-  slug: {
-    type: DataTypes.STRING,
-  },
-  itemGroup: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  itemGroupLevel: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
-  price: {
-    type: DataTypes.INTEGER,
-  },
-  tokenPrice: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
-  maxBuy: {
-    type: DataTypes.INTEGER,
-  },
-  maxBuyDaily: {
-    type: DataTypes.INTEGER,
-  },
-  effectDuration: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
-}, {
-  indexes: [{unique: false, fields: ['gameId']}],
-  tableName: 'game_item',
-  sequelize: SequelizeServiceImpl.sequelize,
-  createdAt: true,
-  updatedAt: true,
-});
+);
 
 export default GameItem;
