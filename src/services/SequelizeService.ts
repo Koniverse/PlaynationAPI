@@ -1,7 +1,7 @@
-import {Model, QueryTypes, Sequelize} from 'sequelize';
+import { Model, QueryTypes, Sequelize, Transaction } from 'sequelize';
 import EnvVars from '@src/constants/EnvVars';
-import {createPromise} from '@src/utils';
-import {SyncOptions} from 'sequelize/types/sequelize';
+import { createPromise } from '@src/utils';
+import { SyncOptions } from 'sequelize/types/sequelize';
 
 export class SequelizeService {
   public readonly sequelize: Sequelize;
@@ -11,7 +11,7 @@ export class SequelizeService {
   private sequenceKeys: Record<string, number> = {};
 
   public constructor(connectionString?: string) {
-    const {promise, resolve, reject} = createPromise<Sequelize>();
+    const { promise, resolve, reject } = createPromise<Sequelize>();
     this.isReady = promise;
     const dbUrl = connectionString || EnvVars.SEQUELIZE_DB;
 
@@ -19,11 +19,13 @@ export class SequelizeService {
       logging: EnvVars.NodeEnv === 'development' ? console.log : false,
     });
 
-    this.sequelize.authenticate()
+    this.sequelize
+      .authenticate()
       .then(() => {
         console.log('Connection with Sequelize DB has been established successfully.');
         resolve(this.sequelize);
-      }).catch((err) => {
+      })
+      .catch((err) => {
         console.error('Unable to connect with Sequelize DB:', err);
         reject(err);
       });
@@ -48,13 +50,29 @@ export class SequelizeService {
   public async truncateDB(): Promise<void> {
     await this.syncAll();
 
-    await this.sequelize.truncate({force: true, cascade: true});
+    await this.sequelize.transaction(async (transaction: Transaction) => {
+      await this.sequelize.truncate({ force: true, cascade: true, transaction });
+    });
   }
 
   public async syncWithOptions(options?: SyncOptions): Promise<void> {
-    for (const sync of this.syncList) {
-      await sync(options);
-    }
+    await this.sequelize.transaction(async (transaction: Transaction) => {
+      for (const sync of this.syncList) {
+        await sync(options);
+      }
+    });
+  }
+
+  public async startTransaction(): Promise<Transaction> {
+    return this.sequelize.transaction();
+  }
+
+  public async commitTransaction(transaction: Transaction): Promise<void> {
+    await transaction.commit();
+  }
+
+  public async rollbackTransaction(transaction: Transaction): Promise<void> {
+    await transaction.rollback();
   }
 
   /**
@@ -79,11 +97,11 @@ export class SequelizeService {
     // Retrieve the next value from the sequence
     const result = (await this.sequelize.query(getNextValueQuery, {
       type: QueryTypes.SELECT,
-    })) as [{nextval: number}];
+    })) as [{ nextval: number }];
 
     return result[0].nextval;
   }
 }
 
-const SequelizeServiceImpl =  new SequelizeService();
+const SequelizeServiceImpl = new SequelizeService();
 export default SequelizeServiceImpl;

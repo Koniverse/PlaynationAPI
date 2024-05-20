@@ -14,7 +14,6 @@
   },
   "rules": {
     "@typescript-eslint/ban-ts-comment": "warn",
-    "@typescript-eslint/explicit-member-accessibility": "warn",
     "@typescript-eslint/no-misused-promises": 0,
     "@typescript-eslint/no-floating-promises": 0,
     "max-len": [
@@ -34,8 +33,10 @@
       "error",
       { "ignores" : ["modules"] }
     ],
-    "node/no-missing-import": 1,
-    "node/no-unpublished-import": 0
+    "node/no-unpublished-import": 0,
+    "node/no-missing-import": "off" ,
+    "@typescript-eslint/explicit-member-accessibility": "off",
+    "@typescript-eslint/no-unused-vars": 0
   },
   "settings": {
     "node": {
