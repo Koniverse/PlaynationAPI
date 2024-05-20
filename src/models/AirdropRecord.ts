@@ -84,3 +84,4 @@ AirdropRecord.init(
     tableName: 'airdrop_records',
   },
 );
+export default AirdropRecord;

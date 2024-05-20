@@ -41,3 +41,4 @@ AirdropRecordLog.init(
     sequelize: SequelizeServiceImpl.sequelize,
   },
 );
+export default AirdropRecordLog;

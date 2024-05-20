@@ -1,5 +1,5 @@
-import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
+import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from 'sequelize';
 
 export enum AirdropCampaignStatus {
   ACTIVE = 'ACTIVE',
@@ -111,4 +111,4 @@ AirdropCampaign.init(
   },
 );
 
-module.exports = AirdropCampaign;
+export default AirdropCampaign;

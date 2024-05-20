@@ -63,3 +63,4 @@ AirdropSnapshot.init(
     tableName: 'airdrop_records',
   },
 );
+export default AirdropSnapshot;
