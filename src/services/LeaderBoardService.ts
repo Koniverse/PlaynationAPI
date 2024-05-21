@@ -32,12 +32,13 @@ export class LeaderBoardService {
     const sql = `
             with RankedUsers as (SELECT gd."accountId",
                                         a."telegramUsername",
+                                        a.address,
                                         a."firstName",
                                         a."lastName",
                                         a."photoUrl"        as avatar,
                                         (a.id = :accountId) as mine,
                 SUM (coalesce(gd.point, 0)) AS point,
-                RANK() OVER (ORDER BY SUM (gd.point) DESC) as rank
+                RANK() OVER (ORDER BY SUM (coalesce(gd.point, 0)) DESC) as rank
             FROM game_play gd
                 JOIN
                 account a
@@ -45,7 +46,7 @@ export class LeaderBoardService {
             where gd."createdAt" >= :startDate
               and gd."createdAt" <= :endDate
               and gd."gameId" = :gameId
-            GROUP BY 1, 2, 3, 4, 5, 6
+            GROUP BY 1, 2, 3, 4, 5, 6, 7
             ORDER BY rank asc)
             select *
             from RankedUsers
@@ -60,19 +61,20 @@ export class LeaderBoardService {
             with RankedUsers as (SELECT t."accountId",
                                         a."telegramUsername",
                                         a."firstName",
+                                        a.address,
                                         a."lastName",
                                         a."photoUrl"        as avatar,
                                         (a.id = :accountId) as mine,
                 SUM(coalesce(t."pointReward", 0)) AS point,
                 MIN(t."createdAt") as "createdAt",
-                RANK() OVER (ORDER BY SUM (t."pointReward") DESC, MIN(t."createdAt") asc) as rank
+                RANK() OVER (ORDER BY SUM (coalesce(t."pointReward", 0)) DESC, MIN(t."createdAt") asc) as rank
             FROM task_history t
                 JOIN
                 account a
             ON t."accountId" = a.id
             where t."createdAt" >= :startDate
               and t."createdAt" <= :endDate
-            GROUP BY 1, 2, 3, 4, 5, 6
+            GROUP BY 1, 2, 3, 4, 5, 6, 7
             ORDER BY rank asc)
             select *
             from RankedUsers
@@ -102,7 +104,7 @@ export class LeaderBoardService {
                                         RANK() OVER (ORDER BY SUM(point) DESC) as rank, SUM(point) AS point
                                  FROM combinedPoints
                                  GROUP BY accountId)
-            SELECT a.id,
+            SELECT a.id as "accountId",
                    a."address",
                    a."firstName",
                    a."lastName",
@@ -162,8 +164,9 @@ export class LeaderBoardService {
                                   RANK()        OVER (ORDER BY sum(point) DESC) AS rank
                            FROM RankedUsers
                            group by 1)
-        SELECT accountId,
+        SELECT accountId as "accountId",
                a."telegramUsername",
+               a.address,
                a."firstName",
                a."lastName",
                a."photoUrl"             as avatar,

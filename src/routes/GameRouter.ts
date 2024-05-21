@@ -54,20 +54,12 @@ const routerMap = {
     const result = await LeaderBoardService.instance.getTotalLeaderboard(userId, gameId, startDate, endDate, limit, type);
     return res.status(200).json(result);
   },
-
-  getLeaderBoardByType: async (req: IReq<LeaderboardParams>, res: IRes) => {
-    const userId = req.user?.id || 0;
-    const {type, startDate, endDate, gameId, limit} = req.body;
-    const result = await LeaderBoardService.instance.getTotalLeaderboard(userId, gameId, startDate, endDate, limit, type);
-    return res.status(200).json(result);
-  },
 };
 
 GameRouter.post('/sync', requireSecret, routerMap.sync);
 GameRouter.get('/fetch', requireLogin, routerMap.fetch);
 GameRouter.get('/histories', requireLogin, routerMap.getHistories);
 GameRouter.post('/leader-board', requireLogin, routerMap.getLeaderBoard);
-GameRouter.post('/leader-board-with-type', routerMap.getLeaderBoardByType);
 
 GameRouter.post('/new-game', requireLogin, routerMap.newGame);
 GameRouter.post('/submit', requireLogin, routerMap.submitGameplay);
