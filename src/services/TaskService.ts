@@ -88,6 +88,7 @@ export class TaskService {
        th."createdAt" as "completedAt"
         FROM task AS t
         LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
+        where t."endTime" > now() or t."endTime" is null
     `;
     const data = await this.sequelizeService.sequelize.query(sql);
     return data.length > 0 ? data[0] : [];
