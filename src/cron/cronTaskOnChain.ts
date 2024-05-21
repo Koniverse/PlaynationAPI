@@ -1,15 +1,14 @@
 import EnvVars from '@src/constants/EnvVars';
 import {Account, Task, TaskHistory, TaskHistoryStatus} from '@src/models';
 import {Op} from 'sequelize';
-import fetch from 'node-fetch';
 import {ExtrinsicSubscanResult} from '@src/other/typeSubsan';
 import * as console from 'console';
 import {AccountService} from '@src/services/AccountService';
+import {SubscanService} from '@src/services/SubscanService';
 
 const INTERVAL_TIME = EnvVars.TaskOnChain.IntervalTime;
-const MAP_NETWORK = {
-  'alephTest': 'alephzero-testnet',
-} as Record<string, string>;
+const ACTION_URL = '/api/scan/extrinsic';
+
 export async function checkTaskOnChange() {
   try {
     const taskHistoryChecking: TaskHistory[] = await TaskHistory.findAll({
@@ -22,7 +21,7 @@ export async function checkTaskOnChange() {
           [Op.not]: null,
         },
       } as never,
-      limit: EnvVars.TaskOnChain.Limit
+      limit: EnvVars.TaskOnChain.Limit,
     });
     for (const taskHistory of taskHistoryChecking) {
       const extrinsicHash = taskHistory.extrinsicHash;
@@ -62,28 +61,13 @@ export async function checkTaskOnChange() {
 }
 
 async function checkExtrinsicHashOnSubscan(extrinsicHash: string, network: string) {
-  const raw = JSON.stringify({
+  const raw = {
     'hash': extrinsicHash,
-  });
-  const slug = MAP_NETWORK[network] ||  null;
-  if (!slug) {
-    return false;
-  }
-  const url = `https://${slug}.api.subscan.io/api/scan/extrinsic`;
-  const response = await fetch(
-    url,
-    {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      method: 'POST',
-      body: raw,
-      redirect: 'follow',
-    });
-  const extrinsicSubscanResult = await response.json() as ExtrinsicSubscanResult;
+  };
+  const extrinsicSubscanResult = await SubscanService.instance.addAction<ExtrinsicSubscanResult>(network, ACTION_URL, raw);
   const now = new Date();
   const extrinsicDate = new Date(extrinsicSubscanResult.data.block_timestamp * 1000);
-
+  //
   if (now.getFullYear() !== extrinsicDate.getFullYear() || now.getMonth() !== extrinsicDate.getMonth() || now.getDate() !== extrinsicDate.getDate())  {
     return false;
   }

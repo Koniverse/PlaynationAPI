@@ -44,7 +44,10 @@ const Environments = {
     IntervalCronTime: Number(process.env.INTERVAL_TELEGRAM_CRON_TIME || '86400000'),
     RateLimit: Number(process.env.TELEGRAM_RATE_LIMIT || '20'),
     CronRateLimit: Number(process.env.TELEGRAM_CRON_RATE_LIMIT || '20'),
-
+  },
+  Subscan: {
+    RateLimit: Number(process.env.SUBSCAN_RATE_LIMIT || '20'),
+    IntervalTime: Number(process.env.INTERVAL_SUBSCAN_TIME || '1000'),
   },
   Mongo: {
     Host: process.env.MONGO_HOST ?? 'localhost',
