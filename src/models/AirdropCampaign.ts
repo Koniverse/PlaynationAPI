@@ -18,7 +18,7 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare eligibility_date: Date;
   declare network: string;
   declare total_tokens: number;
-  declare total_nft: number;
+  declare symbol: string;
   declare decimal: number;
   declare method: string;
   declare raffle_count: number;
@@ -71,9 +71,9 @@ AirdropCampaign.init(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
-    total_nft: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
+    symbol: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     decimal: {
       type: DataTypes.INTEGER,

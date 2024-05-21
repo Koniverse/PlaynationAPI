@@ -11,15 +11,18 @@ export enum AirdropRecordsStatus {
   NOT_ELIGIBLE_FOR_REWARD = 'NOT_ELIGIBLE_FOR_REWARD',
   CANCELED = 'CANCELED',
 }
+
 export class AirdropRecord extends Model<InferAttributes<AirdropRecord>, InferCreationAttributes<AirdropRecord>> {
   declare id: CreationOptional<number>;
   declare campaign_id: CreationOptional<number>;
   declare account: string;
-  declare amount: number;
+  declare token: number;
+  declare symbol: string;
+  declare decimal: number;
   declare network: string;
   declare status: string;
   declare snapshot_data: JSON;
-  declare point_nps: number;
+  declare point: number;
   declare created_at: CreationOptional<Date>;
 }
 
@@ -42,7 +45,7 @@ AirdropRecord.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    amount: {
+    token: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
@@ -54,7 +57,7 @@ AirdropRecord.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    point_nps: {
+    point: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
@@ -65,9 +68,18 @@ AirdropRecord.init(
         AirdropRecordsStatus.ELIGIBLE_FOR_REWARD,
         AirdropRecordsStatus.RECEIVED,
         AirdropRecordsStatus.NOT_ELIGIBLE_FOR_REWARD,
+        AirdropRecordsStatus.PASS_CONDITION_CHECK,
         AirdropRecordsStatus.CANCELED,
       ),
       defaultValue: AirdropRecordsStatus.NEW_REGISTRATION,
+      allowNull: false,
+    },
+    symbol: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    decimal: {
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     created_at: {
