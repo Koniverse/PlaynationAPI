@@ -15,7 +15,7 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare end_snapshot: Date;
   declare start_claim: Date;
   declare end_claim: Date;
-  declare eglibility_date: Date;
+  declare eligibility_date: Date;
   declare network: string;
   declare total_tokens: number;
   declare total_nft: number;
@@ -24,7 +24,8 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare raffle_count: number;
   declare eligibility_criteria: JSON;
   declare status: string;
-  declare createdAt: CreationOptional<Date>;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 AirdropCampaign.init(
@@ -58,7 +59,7 @@ AirdropCampaign.init(
       type: DataTypes.DATE,
       allowNull: false,
     },
-    eglibility_date: {
+    eligibility_date: {
       type: DataTypes.DATE,
       allowNull: false,
     },
@@ -101,6 +102,13 @@ AirdropCampaign.init(
     },
     createdAt: {
       type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: new Date(),
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: new Date(),
     },
   },
   {
@@ -108,6 +116,7 @@ AirdropCampaign.init(
     tableName: 'airdrop_campaigns',
     sequelize: SequelizeServiceImpl.sequelize,
     createdAt: true,
+    updatedAt: true,
   },
 );
 

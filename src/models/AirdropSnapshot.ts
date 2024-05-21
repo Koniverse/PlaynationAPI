@@ -9,8 +9,9 @@ export class AirdropSnapshot extends Model<InferAttributes<AirdropSnapshot>, Inf
   declare amount: number;
   declare network: string;
   declare snapshot_data: JSON;
-  declare point_nps: number;
-  declare created_at: CreationOptional<Date>;
+  declare point: number;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 AirdropSnapshot.init(
@@ -44,23 +45,29 @@ AirdropSnapshot.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    point_nps: {
+    point: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
-
-    created_at: {
+    createdAt: {
       type: DataTypes.DATE,
-      allowNull: true,
+      allowNull: false,
+      defaultValue: new Date(),
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: new Date(),
     },
   },
   {
     indexes: [{ unique: false, fields: ['campaign_id'] }],
     sequelize: SequelizeServiceImpl.sequelize,
     modelName: 'AirdropSnapshot',
-    timestamps: true,
-    underscored: true,
-    tableName: 'airdrop_records',
+    tableName: 'airdrop_snapshot',
+    createdAt: true,
+    updatedAt: true,
   },
 );
+
 export default AirdropSnapshot;
