@@ -6,7 +6,7 @@ export interface LeaderboardParams {
     gameId: number;
     startDate: string;
     endDate: string;
-    type: 'accumulatePoint' | 'game' | 'task' | 'referral';
+    type: 'accumulatePoint' | 'game' | 'task' | 'referral' | 'all';
     limit: number;
 }
 
@@ -36,9 +36,9 @@ export class LeaderBoardService {
                                         a."lastName",
                                         a."photoUrl"        as avatar,
                                         (a.id = :accountId) as mine,
-                SUM (gd.point) AS point,
+                SUM (coalesce(gd.point, 0)) AS point,
                 RANK() OVER (ORDER BY SUM (gd.point) DESC) as rank
-            FROM game_data gd
+            FROM game_play gd
                 JOIN
                 account a
             ON gd."accountId" = a.id
@@ -63,7 +63,7 @@ export class LeaderBoardService {
                                         a."lastName",
                                         a."photoUrl"        as avatar,
                                         (a.id = :accountId) as mine,
-                SUM (t."pointReward") AS point,
+                SUM(coalesce(t."pointReward", 0)) AS point,
                 MIN(t."createdAt") as "createdAt",
                 RANK() OVER (ORDER BY SUM (t."pointReward") DESC, MIN(t."createdAt") asc) as rank
             FROM task_history t
@@ -86,14 +86,14 @@ export class LeaderBoardService {
     const sql = `
 
             with combinedPoints as (SELECT "sourceAccountId" AS accountId,
-                                           SUM(point)        AS point
+                                           SUM(coalesce(point, 0))        AS point
                                     FROM referral_log
                                     where "createdAt" >= :startDate
                                       and "createdAt" <= :endDate
                                     GROUP BY "sourceAccountId"
                                     UNION ALL
                                     SELECT "indirectAccount"    AS accountId,
-                                           SUM("indirectPoint") AS point
+                                           SUM(coalesce("indirectPoint", 0)) AS point
                                     FROM referral_log
                                     where "createdAt" >= :startDate
                                       and "createdAt" <= :endDate
@@ -117,6 +117,66 @@ export class LeaderBoardService {
                or a.id = :accountId
             ORDER BY point DESC;
         `;
+    return sql;
+  }
+
+  getAllDataQuery() {
+    const sql = `
+        with RankedUsers as (SELECT "sourceAccountId" AS accountId,
+                                    SUM(coalesce(point, 0)) AS point
+                             FROM referral_log
+                             where "createdAt" >= :startDate
+                               and "createdAt" <= :endDate
+                             GROUP BY "sourceAccountId"
+                             UNION ALL
+                             SELECT "indirectAccount"                 AS accountId,
+                                    SUM(coalesce("indirectPoint", 0)) AS point
+                             FROM referral_log
+                             where "createdAt" >= :startDate
+                               and "createdAt" <= :endDate
+                             GROUP BY "indirectAccount"
+                             UNION ALL
+                             SELECT "accountId"             AS accountId,
+                                    SUM(coalesce(point, 0)) AS point
+                             FROM game_play
+                             where "createdAt" >= :startDate
+                               and "createdAt" <= :endDate
+                               and "gameId" = :gameId
+                             GROUP BY 1
+                             UNION ALL
+                             SELECT "accountId"             AS accountId,
+                                    SUM(coalesce(point, 0)) AS point
+                             FROM giveaway_point
+                             where "createdAt" >= :startDate
+                               and "createdAt" <= :endDate
+                             GROUP BY 1
+                             UNION ALL
+                             SELECT "accountId"                   AS accountId,
+                                    SUM(coalesce("pointReward", 0)) AS point
+                             FROM task_history
+                             where "createdAt" >= :startDate
+                               and "createdAt" <= :endDate
+                             GROUP BY 1),
+             totalData as (SELECT accountId,
+                                  sum(point) as point,
+                                  RANK()        OVER (ORDER BY sum(point) DESC) AS rank
+                           FROM RankedUsers
+                           group by 1)
+        SELECT accountId,
+               a."telegramUsername",
+               a."firstName",
+               a."lastName",
+               a."photoUrl"             as avatar,
+               (accountId = :accountId) as mine,
+               point,
+               rank
+        FROM totalData r
+                 JOIN account a ON r.accountId = a.id
+        where rank <= :limit
+           or accountId = :accountId
+        order by rank asc;
+
+    `;
     return sql;
   }
 
@@ -150,8 +210,8 @@ export class LeaderBoardService {
     return sql;
   }
 
-  async getTotalLeaderboard(accountId: number, gameId: number, startDate: string, endDate: string, limit=100, typeQuery = 'game') {
-    let sql = this.getReferralLogQuery();
+  async getTotalLeaderboard(accountId: number, gameId: number, startDate: string, endDate: string, limit=100, typeQuery = 'all') {
+    let sql = this.getAllDataQuery();
     if (typeQuery === 'game') {
       sql = this.getGameQuery();
     } else if (typeQuery === 'task') {
