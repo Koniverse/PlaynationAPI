@@ -11,6 +11,7 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare id: CreationOptional<number>;
   declare name: string;
   declare icon: string;
+  declare banner: string;
   declare start_snapshot: Date;
   declare end_snapshot: Date;
   declare start_claim: Date;
@@ -23,6 +24,8 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare method: string;
   declare raffle_count: number;
   declare eligibility_criteria: JSON;
+  declare start: Date;
+  declare end: Date;
   declare status: string;
   declare createdAt: Date;
   declare updatedAt: Date;
@@ -43,29 +46,33 @@ AirdropCampaign.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    banner: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     start_snapshot: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
     },
     end_snapshot: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
     },
     start_claim: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
     },
     end_claim: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
     },
     eligibility_date: {
       type: DataTypes.DATE,
-      allowNull: false,
+      allowNull: true,
     },
     network: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
     total_tokens: {
       type: DataTypes.INTEGER,
@@ -90,7 +97,7 @@ AirdropCampaign.init(
     },
     eligibility_criteria: {
       type: DataTypes.JSON,
-      allowNull: false,
+      allowNull: true,
     },
     status: {
       type: DataTypes.ENUM(
@@ -100,6 +107,14 @@ AirdropCampaign.init(
       ),
       defaultValue: AirdropCampaignStatus.INACTIVE,
       allowNull: false,
+    },
+    start: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    end: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     createdAt: {
       type: DataTypes.DATE,
