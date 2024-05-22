@@ -127,6 +127,7 @@ export class LeaderBoardService {
     const queryGame = gameId ? 'and "gameId" = :gameId' : '';
     const sql = `
         with RankedUsers as (SELECT "sourceAccountId"       AS accountId,
+                                    MIN("createdAt") as "createdAt",
                                     SUM(coalesce(point, 0)) AS point
                              FROM referral_log
                              where "createdAt" >= :startDate
@@ -134,6 +135,7 @@ export class LeaderBoardService {
                              GROUP BY "sourceAccountId"
                              UNION ALL
                              SELECT "indirectAccount"                 AS accountId,
+                                    MIN("createdAt") as "createdAt",
                                     SUM(coalesce("indirectPoint", 0)) AS point
                              FROM referral_log
                              where "createdAt" >= :startDate
@@ -141,6 +143,7 @@ export class LeaderBoardService {
                              GROUP BY "indirectAccount"
                              UNION ALL
                              SELECT "accountId"             AS accountId,
+                                    MIN("createdAt") as "createdAt",
                                     SUM(coalesce(point, 0)) AS point
                              FROM game_play
                              where "createdAt" >= :startDate
@@ -149,6 +152,7 @@ export class LeaderBoardService {
         GROUP BY 1
         UNION ALL
         SELECT "accountId"             AS accountId,
+               MIN("createdAt") as "createdAt",
                SUM(coalesce(point, 0)) AS point
         FROM giveaway_point
         where "createdAt" >= :startDate
@@ -156,6 +160,7 @@ export class LeaderBoardService {
         GROUP BY 1
         UNION ALL
         SELECT "accountId"                     AS accountId,
+               MIN("createdAt") as "createdAt",
                SUM(coalesce("pointReward", 0)) AS point
         FROM task_history
         where "createdAt" >= :startDate
@@ -163,7 +168,7 @@ export class LeaderBoardService {
         GROUP BY 1),
              totalData as (SELECT accountId,
                                   sum(point) as point,
-                                  RANK()        OVER (ORDER BY sum(point) DESC) AS rank
+                                  RANK()        OVER (ORDER BY sum(point) DESC, MIN("createdAt") asc) AS rank
                            FROM RankedUsers
                            group by 1)
         SELECT accountId                as "accountId",
