@@ -195,6 +195,11 @@ export class GameService {
       throw new Error('Point limit exceeded');
     }
 
+    // Validate point <0
+    if (params.point < 0) {
+      throw new Error('Invalid point');
+    }
+
     // Validate submitted
     if (gamePlay.endTime) {
       throw new Error('Game already submitted');
