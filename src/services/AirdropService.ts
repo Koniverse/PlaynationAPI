@@ -29,8 +29,6 @@ export class AirdropService {
     };
     for (const item of data) {
       const itemData = { ...item } as unknown as AirdropCampaign;
-      console.log('🚀 ~ AirdropService ~ syncData ~ itemData:', itemData);
-
       const existed = await AirdropCampaign.findOne({ where: { id: item.id } });
 
       if (existed) {

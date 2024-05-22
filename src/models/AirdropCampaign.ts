@@ -88,7 +88,7 @@ AirdropCampaign.init(
       allowNull: true,
     },
     method: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM('RAFFLE'),
       allowNull: false,
     },
     raffle_count: {
