@@ -1,5 +1,5 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
-import { AirdropCampaign } from '@src/models';
+import { AirdropCampaign, AirdropCampaignStatus } from '@src/models';
 
 export interface AirdropCampaignContentCms {
   id: number;
@@ -29,14 +29,25 @@ export class AirdropService {
     };
     for (const item of data) {
       const itemData = { ...item } as unknown as AirdropCampaign;
+      console.log('🚀 ~ AirdropService ~ syncData ~ itemData:', itemData);
+
       const existed = await AirdropCampaign.findOne({ where: { id: item.id } });
+
       if (existed) {
         await existed.update(itemData);
       } else {
         await AirdropCampaign.create(itemData);
       }
-      return response;
     }
+    return response;
+  }
+
+  async listAirdropCampaign() {
+    return await AirdropCampaign.findAll({
+      where: {
+        status: AirdropCampaignStatus.ACTIVE,
+      },
+    });
   }
 
   // Singleton this class
