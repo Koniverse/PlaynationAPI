@@ -29,7 +29,7 @@ export class LeaderBoardService {
   }
 
   getGameQuery( gameId: number) {
-    const queryGame = gameId ? 'and gd."gameId" = :gameId' : '';
+    const queryGame = gameId > 0 ? 'and gd."gameId" = :gameId' : '';
     const sql = `
             with RankedUsers as (SELECT gd."accountId",
                                         a."telegramUsername",
@@ -124,7 +124,7 @@ export class LeaderBoardService {
   }
 
   getAllDataQuery( gameId: number) {
-    const queryGame = gameId ? 'and "gameId" = :gameId' : '';
+    const queryGame = gameId > 0 ? 'and "gameId" = :gameId' : '';
     const sql = `
         with RankedUsers as (SELECT "sourceAccountId"       AS accountId,
                                     MIN("createdAt") as "createdAt",
