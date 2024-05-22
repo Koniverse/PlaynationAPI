@@ -28,7 +28,8 @@ export class LeaderBoardService {
 
   }
 
-  getGameQuery() {
+  getGameQuery( gameId: number) {
+    const queryGame = gameId ? 'and gd."gameId" = :gameId' : '';
     const sql = `
             with RankedUsers as (SELECT gd."accountId",
                                         a."telegramUsername",
@@ -45,7 +46,7 @@ export class LeaderBoardService {
             ON gd."accountId" = a.id
             where gd."createdAt" >= :startDate
               and gd."createdAt" <= :endDate
-              and gd."gameId" = :gameId
+            ${queryGame}
             GROUP BY 1, 2, 3, 4, 5, 6, 7
             ORDER BY rank asc)
             select *
@@ -122,9 +123,10 @@ export class LeaderBoardService {
     return sql;
   }
 
-  getAllDataQuery() {
+  getAllDataQuery( gameId: number) {
+    const queryGame = gameId ? 'and "gameId" = :gameId' : '';
     const sql = `
-        with RankedUsers as (SELECT "sourceAccountId" AS accountId,
+        with RankedUsers as (SELECT "sourceAccountId"       AS accountId,
                                     SUM(coalesce(point, 0)) AS point
                              FROM referral_log
                              where "createdAt" >= :startDate
@@ -143,28 +145,28 @@ export class LeaderBoardService {
                              FROM game_play
                              where "createdAt" >= :startDate
                                and "createdAt" <= :endDate
-                               and "gameId" = :gameId
-                             GROUP BY 1
-                             UNION ALL
-                             SELECT "accountId"             AS accountId,
-                                    SUM(coalesce(point, 0)) AS point
-                             FROM giveaway_point
-                             where "createdAt" >= :startDate
-                               and "createdAt" <= :endDate
-                             GROUP BY 1
-                             UNION ALL
-                             SELECT "accountId"                   AS accountId,
-                                    SUM(coalesce("pointReward", 0)) AS point
-                             FROM task_history
-                             where "createdAt" >= :startDate
-                               and "createdAt" <= :endDate
-                             GROUP BY 1),
+            ${queryGame}
+        GROUP BY 1
+        UNION ALL
+        SELECT "accountId"             AS accountId,
+               SUM(coalesce(point, 0)) AS point
+        FROM giveaway_point
+        where "createdAt" >= :startDate
+          and "createdAt" <= :endDate
+        GROUP BY 1
+        UNION ALL
+        SELECT "accountId"                     AS accountId,
+               SUM(coalesce("pointReward", 0)) AS point
+        FROM task_history
+        where "createdAt" >= :startDate
+          and "createdAt" <= :endDate
+        GROUP BY 1),
              totalData as (SELECT accountId,
                                   sum(point) as point,
                                   RANK()        OVER (ORDER BY sum(point) DESC) AS rank
                            FROM RankedUsers
                            group by 1)
-        SELECT accountId as "accountId",
+        SELECT accountId                as "accountId",
                a."telegramUsername",
                a.address,
                a."firstName",
@@ -214,9 +216,9 @@ export class LeaderBoardService {
   }
 
   async getTotalLeaderboard(accountId: number, gameId: number, startDate: string, endDate: string, limit=100, typeQuery = 'all') {
-    let sql = this.getAllDataQuery();
+    let sql = this.getAllDataQuery(gameId);
     if (typeQuery === 'game') {
-      sql = this.getGameQuery();
+      sql = this.getGameQuery(gameId);
     } else if (typeQuery === 'task') {
       sql = this.getTaskQuery();
     } else if (typeQuery === 'accumulatePoint') {
