@@ -73,11 +73,12 @@ AirdropCampaign.init(
     },
     symbol: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
+      defaultValue: 'KAR',
     },
     decimal: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     method: {
       type: DataTypes.STRING,
