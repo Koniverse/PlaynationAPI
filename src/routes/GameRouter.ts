@@ -1,6 +1,6 @@
-import {IReq, IRes} from '@src/routes/types';
-import {Router} from 'express';
-import {Query} from 'express-serve-static-core';
+import { IReq, IRes } from '@src/routes/types';
+import { Router } from 'express';
+import { Query } from 'express-serve-static-core';
 import {
   GameContentCms,
   GameInventoryItemParams,
@@ -8,8 +8,9 @@ import {
   newGamePlayParams,
   SubmitGamePlayParams,
 } from '@src/services/GameService';
-import {requireLogin, requireSecret} from '@src/routes/helper';
-import {GameItemService} from '@src/services/GameItemService';
+import { requireLogin, requireSecret } from '@src/routes/helper';
+import { GameItemService } from '@src/services/GameItemService';
+import { LeaderboardParams, LeaderBoardService } from '@src/services/LeaderBoardService';
 
 const GameRouter = Router();
 type NewGameParams = newGamePlayParams & Query;
@@ -54,19 +55,26 @@ const routerMap = {
     return res.status(200).json(result);
   },
 
-  getLeaderBoard: async (req: IReq<Query>, res: IRes) => {
+  getLeaderBoard: async (req: IReq<LeaderboardParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const result = await gameService.getTotalLeaderboard(userId);
+    const { type, startDate, endDate, gameId, limit } = req.body;
+    const result = await LeaderBoardService.instance.getTotalLeaderboard(
+      userId,
+      gameId,
+      startDate,
+      endDate,
+      limit,
+      type,
+    );
     return res.status(200).json(result);
   },
 
   usedGameItem: async (req: IReq<GameInventoryItemParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {gameInventoryItemId} = req.body;
+    const { gameInventoryItemId } = req.body;
     const result = await gameService.useGameInventoryItem(userId, gameInventoryItemId);
     return res.status(200).json(result);
   },
-
 
   getInventoryLogs: async (req: IReq<Query>, res: IRes) => {
     const userId = req.user?.id || 0;
@@ -78,7 +86,7 @@ const routerMap = {
 GameRouter.post('/sync', requireSecret, routerMap.sync);
 GameRouter.get('/fetch', requireLogin, routerMap.fetch);
 GameRouter.get('/histories', requireLogin, routerMap.getHistories);
-GameRouter.get('/leader-board', requireLogin, routerMap.getLeaderBoard);
+GameRouter.post('/leader-board', requireLogin, routerMap.getLeaderBoard);
 
 GameRouter.post('/new-game', requireLogin, routerMap.newGame);
 GameRouter.post('/submit', requireLogin, routerMap.submitGameplay);
