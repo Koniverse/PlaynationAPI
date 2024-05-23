@@ -5,6 +5,7 @@ export interface AirdropCampaignContentCms {
   id: number;
   name: string;
   icon: string;
+  banner: string;
   start_snapshot: Date;
   end_snapshot: Date;
   start_claim: Date;
@@ -17,7 +18,11 @@ export interface AirdropCampaignContentCms {
   method: string;
   raffle_count: number;
   eligibility_criteria: JSON;
+  start: Date;
+  end: Date;
   status: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export class AirdropService {
