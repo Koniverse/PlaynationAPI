@@ -34,6 +34,33 @@ export interface AirdropRecordInsertData {
   limit: number;
 }
 
+const ELIGIBILITY = {
+  TOP_500_LEADERBOARD: {
+    text: 'TOP_500_LEADERBOARD',
+    box: 3,
+  },
+  TOP_1500_LEADERBOARD: {
+    text: 'TOP_1500_LEADERBOARD',
+    box: 3,
+  },
+  TOP_100_USER_INVITE: {
+    text: 'TOP_100_USER_INVITE',
+    box: 2,
+  },
+  TOP_10_MEME_TELEGRAM: {
+    text: 'TOP_10_MEME_TELEGRAM',
+    box: 1,
+  },
+  TOP_100_RANDOM_TELEGRAM: {
+    text: 'TOP_100_RANDOM_TELEGRAM',
+    box: 1,
+  },
+  TOP_100_RANDOM_TWITTER: {
+    text: 'TOP_100_RANDOM_TWITTER',
+    box: 1,
+  },
+};
+
 export class AirdropService {
   constructor(private sequelizeService: SequelizeService) {}
 
@@ -71,20 +98,22 @@ export class AirdropService {
     typeQuery: string,
   ) {
     let sql: string = '';
-    if (typeQuery === 'TOP_500_LEADERBOARD') {
-      sql = this.getAllDataQuery(gameId);
+    if (typeQuery === ELIGIBILITY.TOP_500_LEADERBOARD.text) {
+      sql = this.getTop500And1500(gameId);
     }
     const data = await this.sequelizeService.sequelize.query<AirdropRecordInsertData>(sql, {
       replacements: { accountId, gameId, startDate, endDate, limit },
       type: QueryTypes.SELECT,
     });
+    // insert airdrop snapshot
+
     return data.map((item: any) => ({
       rank: parseInt(item.rank),
       accountId: item.accountId,
     }));
   }
 
-  getAllDataQuery(gameId: number) {
+  getTop500And1500(gameId: number) {
     const queryGame = gameId > 0 ? 'and "gameId" = :gameId' : '';
     return `
         with RankedUsers as (SELECT "sourceAccountId"       AS accountId,

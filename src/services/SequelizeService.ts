@@ -1,4 +1,4 @@
-import { Model, QueryTypes, Sequelize, Transaction } from 'sequelize';
+import { QueryTypes, Sequelize, Transaction } from 'sequelize';
 import EnvVars from '@src/constants/EnvVars';
 import { createPromise } from '@src/utils';
 import { SyncOptions } from 'sequelize/types/sequelize';
