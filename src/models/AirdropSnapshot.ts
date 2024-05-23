@@ -5,7 +5,7 @@ import { AirdropCampaign } from './AirdropCampaign';
 export class AirdropSnapshot extends Model<InferAttributes<AirdropSnapshot>, InferCreationAttributes<AirdropSnapshot>> {
   declare id: CreationOptional<number>;
   declare campaign_id: CreationOptional<number>;
-  declare account: string;
+  declare accountId: number;
   declare token: number;
   declare symbol: string;
   declare decimal: number;
@@ -30,8 +30,8 @@ AirdropSnapshot.init(
         key: 'id',
       },
     },
-    account: {
-      type: DataTypes.STRING,
+    accountId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     token: {

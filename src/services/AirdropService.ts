@@ -1,6 +1,5 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
 import { AirdropCampaign, AirdropCampaignStatus } from '@src/models';
-import { QueryTypes } from 'sequelize';
 
 export interface AirdropCampaignContentCms {
   id: number;
@@ -32,34 +31,8 @@ export interface AirdropRecordInsertData {
   endDate: string;
   gameId: number;
   limit: number;
+  campaignId: number;
 }
-
-const ELIGIBILITY = {
-  TOP_500_LEADERBOARD: {
-    text: 'TOP_500_LEADERBOARD',
-    box: 3,
-  },
-  TOP_1500_LEADERBOARD: {
-    text: 'TOP_1500_LEADERBOARD',
-    box: 3,
-  },
-  TOP_100_USER_INVITE: {
-    text: 'TOP_100_USER_INVITE',
-    box: 2,
-  },
-  TOP_10_MEME_TELEGRAM: {
-    text: 'TOP_10_MEME_TELEGRAM',
-    box: 1,
-  },
-  TOP_100_RANDOM_TELEGRAM: {
-    text: 'TOP_100_RANDOM_TELEGRAM',
-    box: 1,
-  },
-  TOP_100_RANDOM_TWITTER: {
-    text: 'TOP_100_RANDOM_TWITTER',
-    box: 1,
-  },
-};
 
 export class AirdropService {
   constructor(private sequelizeService: SequelizeService) {}
@@ -87,96 +60,6 @@ export class AirdropService {
         status: AirdropCampaignStatus.ACTIVE,
       },
     });
-  }
-
-  async insertAirdropCampaign(
-    accountId: number,
-    gameId: number,
-    startDate: string,
-    endDate: string,
-    limit: number,
-    typeQuery: string,
-  ) {
-    let sql: string = '';
-    if (typeQuery === ELIGIBILITY.TOP_500_LEADERBOARD.text) {
-      sql = this.getTop500And1500(gameId);
-    }
-    const data = await this.sequelizeService.sequelize.query<AirdropRecordInsertData>(sql, {
-      replacements: { accountId, gameId, startDate, endDate, limit },
-      type: QueryTypes.SELECT,
-    });
-    // insert airdrop snapshot
-
-    return data.map((item: any) => ({
-      rank: parseInt(item.rank),
-      accountId: item.accountId,
-    }));
-  }
-
-  getTop500And1500(gameId: number) {
-    const queryGame = gameId > 0 ? 'and "gameId" = :gameId' : '';
-    return `
-        with RankedUsers as (SELECT "sourceAccountId"       AS accountId,
-                                    MIN("createdAt") as "createdAt",
-                                    SUM(coalesce(point, 0)) AS point
-                             FROM referral_log
-                             where "createdAt" >= :startDate
-                               and "createdAt" <= :endDate
-                             GROUP BY "sourceAccountId"
-                             UNION ALL
-                             SELECT "indirectAccount"                 AS accountId,
-                                    MIN("createdAt") as "createdAt",
-                                    SUM(coalesce("indirectPoint", 0)) AS point
-                             FROM referral_log
-                             where "createdAt" >= :startDate
-                               and "createdAt" <= :endDate
-                             GROUP BY "indirectAccount"
-                             UNION ALL
-                             SELECT "accountId"             AS accountId,
-                                    MIN("createdAt") as "createdAt",
-                                    SUM(coalesce(point, 0)) AS point
-                             FROM game_play
-                             where "createdAt" >= :startDate
-                               and "createdAt" <= :endDate
-            ${queryGame}
-        GROUP BY 1
-        UNION ALL
-        SELECT "accountId"             AS accountId,
-               MIN("createdAt") as "createdAt",
-               SUM(coalesce(point, 0)) AS point
-        FROM giveaway_point
-        where "createdAt" >= :startDate
-          and "createdAt" <= :endDate
-        GROUP BY 1
-        UNION ALL
-        SELECT "accountId"                     AS accountId,
-               MIN("createdAt") as "createdAt",
-               SUM(coalesce("pointReward", 0)) AS point
-        FROM task_history
-        where "createdAt" >= :startDate
-          and "createdAt" <= :endDate
-        GROUP BY 1),
-             totalData as (SELECT accountId,
-                                  sum(point) as point,
-                                  RANK()        OVER (ORDER BY sum(point) DESC, MIN("createdAt") asc) AS rank
-                           FROM RankedUsers
-                           group by 1)
-        SELECT accountId                as "accountId",
-               a."telegramUsername",
-               a.address,
-               a."firstName",
-               a."lastName",
-               a."photoUrl"             as avatar,
-               (accountId = :accountId) as mine,
-               point,
-               rank
-        FROM totalData r
-                 JOIN account a ON r.accountId = a.id
-        where rank <= :limit
-           or accountId = :accountId
-        order by rank asc;
-
-    `;
   }
 
   // Singleton this class
