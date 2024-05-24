@@ -7,6 +7,7 @@
 const Environments = {
   NodeEnv: (process.env.NODE_ENV ?? ''),
   Port: (process.env.PORT ?? 0),
+  ChainPort: (process.env.CHAIN_PORT ?? 0),
   INTERVAL_PRICE_TIME: (process.env.INTERVAL_PRICE_TIME ?? 0),
   PRICE_TABLE: (process.env.PRICE_TABLE ?? 'price'),
   CHANNEL_SUBSCRIBE: (process.env.CHANNEL_SUBSCRIBE ?? 'change-data'),
