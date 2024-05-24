@@ -437,7 +437,7 @@ LIMIT 100;
           photoUrl,
           address,
           total_count,
-        } = item;
+        }: any = item;
         const referralSuccessTime = parseFloat(referralsuccesstime as string);
 
         return {
