@@ -9,21 +9,11 @@ import logger from 'jet-logger';
 import 'express-async-errors';
 import cors from 'cors';
 import ApiRouter from '@src/chainServer/routers/api';
-import dotenv from 'dotenv';
-console.log('Hello World');
-dotenv.config({
-  path: '.env-dev',
-});
 import EnvVars from '@src/constants/EnvVars';
 import HttpStatusCodes from '@src/constants/HttpStatusCodes';
 import {NodeEnvs} from '@src/constants/misc';
 import {RouteError} from '@src/other/classes';
 import path from 'path';
-
-import * as process from "node:process";
-console.log(process.env)
-console.log(process.env.PORT)
-
 export async function startServer() {
   // **** Express **** //
   const app = express();

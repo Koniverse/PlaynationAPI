@@ -1,7 +1,5 @@
-import {createClient, RedisClientType} from 'redis';
 import EnvVars from '@src/constants/EnvVars';
-import {createPromise, PromiseObject} from '@src/utils';
-import fetch from "node-fetch";
+import fetch from 'node-fetch';
 
 
 export class CommonService {
@@ -9,13 +7,13 @@ export class CommonService {
   public constructor() {  }
 
   async callActionChainService<T>(action: string, data: any){
-    const  url = `http://localhost:${EnvVars.ChainPort}/api/chain/${action}`;
+    const  url = `http://localhost:${EnvVars.ChainPort}/api/${action}`;
     const response = await fetch(
       url,
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${EnvVars.Secret.Token}`
+          'Authorization': `Bearer ${EnvVars.Secret.Token}`,
         },
         method: 'POST',
         body: JSON.stringify(data),

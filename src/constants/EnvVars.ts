@@ -83,6 +83,10 @@ const Environments = {
     MaxEnergy: parseInt(process.env.MAX_ENERGY || '1440'),
     EnergyRecoverTime: parseInt(process.env.ENGERY_RECOVER_TIME || '60'),
   },
+  ChainService: {
+    Networks: (process.env.CHAIN_SERVICE_NETWORKS ? process.env.CHAIN_SERVICE_NETWORKS.split(',') : []),
+    AddressSend: (process.env.CHAIN_SERVICE_ADDRESS_SEND ?? ''),
+  }
 };
 
 export default Environments;

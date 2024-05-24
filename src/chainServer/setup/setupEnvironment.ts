@@ -29,11 +29,9 @@ const args = parse<IArgs>({
 });
 
 try {
-  console.log('========================')
-  console.log(args.env)
   // Set the env file
   const environmentConfig = dotenv.config({
-    path: path.resolve(process.cwd(), args.env === 'development' ? './.env-chain': './.env-chain'),
+    path: path.resolve(process.cwd(), args.env === 'development' ? './.env-chain-development': './.env-chain'),
   });
   if (environmentConfig.error) {
     throw environmentConfig.error;

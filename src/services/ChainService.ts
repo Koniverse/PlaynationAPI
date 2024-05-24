@@ -12,7 +12,7 @@ import EnvVars from '@src/constants/EnvVars';
 import '@polkadot/types-augment';
 import logger from 'jet-logger';
 import {SubmittableExtrinsic} from '@polkadot/api/promise/types';
-import {u8aToHex} from '@polkadot/util';
+import {BN, u8aToHex} from '@polkadot/util';
 import * as console from 'node:console';
 import * as process from 'node:process';
 
@@ -126,6 +126,17 @@ export class ChainService {
     const api = await this.getApi();
     return (await api.query.system.number()).toPrimitive() as number;
   }
+
+  public async checkBalancesSend(address: string, amount: BN) {
+    const api = await this.getApi();
+    if (!address) {
+      return false;
+    }
+    // @ts-ignore
+    const { data: { free: balance } } = await api.query.system.account(address);
+    return balance.gte(amount);
+  }
+
   
   public async runExtrinsic(extrinsic: Extrinsic) {
     const eid = this.addExtrinsic(extrinsic);

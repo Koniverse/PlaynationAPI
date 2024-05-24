@@ -1,10 +1,7 @@
-import './setupEnvironment';
-import './setupChains';
+import './setup';
 import logger from 'jet-logger';
 import EnvVars from '@src/constants/EnvVars';
 import {startServer} from '@src/chainServer/server';
-
-console.log('Hello World', EnvVars.Port);
 
 startServer()
   .then((app) => {

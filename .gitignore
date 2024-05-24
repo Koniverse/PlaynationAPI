@@ -8,6 +8,7 @@ dist/
 .env-dev
 .env-test
 .env-chain
+.env-chain-development
 .env-docker
 .DS_Store
 docker/.env
