@@ -15,7 +15,7 @@ export enum AirdropRecordsStatus {
 export class AirdropRecord extends Model<InferAttributes<AirdropRecord>, InferCreationAttributes<AirdropRecord>> {
   declare id: CreationOptional<number>;
   declare campaign_id: CreationOptional<number>;
-  declare account: string;
+  declare accountId: number;
   declare token: number;
   declare symbol: string;
   declare decimal: number;
@@ -41,8 +41,8 @@ AirdropRecord.init(
         key: 'id',
       },
     },
-    account: {
-      type: DataTypes.STRING,
+    accountId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     token: {

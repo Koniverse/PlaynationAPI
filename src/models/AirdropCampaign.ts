@@ -16,14 +16,14 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare end_snapshot: Date;
   declare start_claim: Date;
   declare end_claim: Date;
-  declare eligibility_date: Date;
   declare network: string;
   declare total_tokens: number;
   declare symbol: string;
   declare decimal: number;
   declare method: string;
   declare raffle_count: number;
-  declare eligibility_criteria: JSON;
+  declare tokenDistributions: JSON;
+  declare npsDistributions: JSON;
   declare start: Date;
   declare end: Date;
   declare status: string;
@@ -66,10 +66,7 @@ AirdropCampaign.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
-    eligibility_date: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
+
     network: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -95,10 +92,6 @@ AirdropCampaign.init(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
-    eligibility_criteria: {
-      type: DataTypes.JSON,
-      allowNull: true,
-    },
     status: {
       type: DataTypes.ENUM(
         AirdropCampaignStatus.ACTIVE,
@@ -108,6 +101,15 @@ AirdropCampaign.init(
       defaultValue: AirdropCampaignStatus.INACTIVE,
       allowNull: false,
     },
+    npsDistributions: {
+      type: DataTypes.JSON,
+      allowNull: false,
+    },
+    tokenDistributions: {
+      type: DataTypes.JSON,
+      allowNull: false,
+    },
+
     start: {
       type: DataTypes.DATE,
       allowNull: true,
