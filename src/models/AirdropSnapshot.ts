@@ -1,6 +1,5 @@
 import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
-import { AirdropCampaign } from './AirdropCampaign';
 
 export class AirdropSnapshot extends Model<InferAttributes<AirdropSnapshot>, InferCreationAttributes<AirdropSnapshot>> {
   declare id: CreationOptional<number>;
@@ -25,10 +24,6 @@ AirdropSnapshot.init(
     campaign_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: AirdropCampaign,
-        key: 'id',
-      },
     },
     accountId: {
       type: DataTypes.INTEGER,

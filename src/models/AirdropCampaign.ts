@@ -7,6 +7,30 @@ export enum AirdropCampaignStatus {
   CANCELED = 'CANCELED',
 }
 
+export interface AirdropCampaignInterface {
+  id: number;
+  name: string;
+  icon: string;
+  banner: string;
+  start_snapshot: Date;
+  end_snapshot: Date;
+  start_claim: Date;
+  end_claim: Date;
+  network: string;
+  total_tokens: number;
+  symbol: string;
+  decimal: number;
+  method: string;
+  raffle_count: number;
+  start: Date;
+  end: Date;
+  tokenDistributions: JSON;
+  npsDistributions: JSON;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, InferCreationAttributes<AirdropCampaign>> {
   declare id: CreationOptional<number>;
   declare name: string;

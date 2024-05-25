@@ -1,49 +1,29 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
-import { AirdropCampaign, AirdropCampaignStatus, AirdropRecord } from '@src/models';
-
-export interface AirdropCampaignContentCms {
-  id: number;
-  name: string;
-  icon: string;
-  banner: string;
-  start_snapshot: Date;
-  end_snapshot: Date;
-  start_claim: Date;
-  end_claim: Date;
-  eligibility_date: Date;
-  network: string;
-  total_tokens: number;
-  symbol: string;
-  decimal: number;
-  method: string;
-  raffle_count: number;
-  eligibility_criteria: JSON;
-  start: Date;
-  end: Date;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { AirdropCampaign, AirdropCampaignStatus, AirdropSnapshot } from '@src/models';
+import { AirdropCampaignInterface } from '@src/models/AirdropCampaign';
 
 interface AirdropRecordInterface {
   accountId: number;
   token: number;
   nps: number;
   eligibilityId: number;
-  campaign: AirdropCampaign;
+  airdrop_campaign: AirdropCampaign;
+  airdrop_campaign_id?: AirdropCampaign;
 }
 
 export interface AirdropEligibility {
+  airdrop_campaign: AirdropCampaign;
+  airdrop_campaign_id: AirdropCampaign;
+  userId: number;
   name: string;
   userList: JSON;
   boxCount: number;
-  campaign: AirdropCampaign;
 }
 
 export class AirdropService {
   constructor(private sequelizeService: SequelizeService) {}
 
-  async syncData(data: AirdropCampaignContentCms[]) {
+  async syncData(data: AirdropCampaignInterface[]) {
     const response = {
       success: true,
     };
@@ -70,12 +50,6 @@ export class AirdropService {
 
   async createAirdropAndReward(data: AirdropEligibility[]): Promise<{ success: boolean; data: any[] }> {
     const userList: AirdropRecordInterface[] = [];
-    const airDropCampaign = await AirdropCampaign.findByPk(1);
-    if (!airDropCampaign) {
-      throw new Error('Campaign not exist');
-    }
-    const tokenDistributions: Array<JSON> = JSON.parse(JSON.stringify(airDropCampaign.tokenDistributions));
-    const npsDistributions: Array<JSON> = JSON.parse(JSON.stringify(airDropCampaign.npsDistributions));
     data.forEach((user: any) => {
       const dataUserList = user.userList;
       dataUserList.forEach((item: any) => {
@@ -85,58 +59,76 @@ export class AirdropService {
             token: 0,
             nps: 0,
             eligibilityId: user.userId,
-            campaign: user.airdrop_campaign_id,
+            airdrop_campaign: user.airdrop_campaign_id,
           });
         }
       });
     });
-
     for (let i = userList.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [userList[i], userList[j]] = [userList[j], userList[i]];
     }
-
     let currentIndex = 0;
 
-    tokenDistributions.forEach((distribution: any) => {
-      for (let i = 0; i < distribution.count; i++) {
-        if (currentIndex < userList.length) {
-          userList[currentIndex].token = distribution.token;
-          userList[currentIndex].nps = 0;
-          currentIndex++;
+    for (const user of data) {
+      const campaignId: number = user.airdrop_campaign_id.id;
+      const airDropCampaign: any = await AirdropCampaign.findByPk(campaignId);
+      if (!airDropCampaign) {
+        throw new Error(`Campaign with id ${user.airdrop_campaign} does not exist`);
+      }
+      const tokenDistributions: Array<{
+        token: number;
+        count: number;
+      }> = JSON.parse(JSON.stringify(airDropCampaign.tokenDistributions));
+      const npsDistributions: Array<{
+        nps: number;
+        count: number;
+      }> = JSON.parse(JSON.stringify(airDropCampaign.npsDistributions));
+      for (const distribution of tokenDistributions) {
+        for (let i = 0; i < distribution.count; i++) {
+          if (currentIndex < userList.length) {
+            userList[currentIndex].token = distribution.token;
+            userList[currentIndex].nps = 0;
+            currentIndex++;
+          }
         }
       }
-    });
-
-    npsDistributions.forEach((distribution: any) => {
-      for (let i = 0; i < distribution.count; i++) {
-        if (currentIndex < userList.length) {
-          userList[currentIndex].token = 0;
-          userList[currentIndex].nps = distribution.nps;
-          currentIndex++;
+      for (const distribution of npsDistributions) {
+        for (let i = 0; i < distribution.count; i++) {
+          if (currentIndex < userList.length) {
+            userList[currentIndex].token = 0;
+            userList[currentIndex].nps = distribution.nps;
+            currentIndex++;
+          }
         }
       }
-    });
-    await this.insertAirdrop(userList);
+    }
+    await this.insertAirdropSnapshot(userList);
     return {
       success: true,
       data: userList,
     };
   }
 
-  async insertAirdrop(userList: AirdropRecordInterface[]): Promise<void> {
-    // truncate airdrop record
-    await AirdropRecord.truncate();
-    const snapshotData: any = {};
+  async insertAirdropSnapshot(userList: AirdropRecordInterface[]): Promise<void> {
+    await AirdropSnapshot.truncate();
     for (const item of userList) {
-      await AirdropRecord.create({
-        campaign_id: item.campaign.id,
+      const airDropCampaign: any = await AirdropCampaign.findByPk(item.airdrop_campaign.id);
+      if (!airDropCampaign) {
+        throw new Error(`Campaign  does not exist`);
+      }
+      const snapshotData: any = {
+        accountId: item.accountId,
+        eligibilityId: item.eligibilityId,
+        campaign: item.airdrop_campaign_id,
+      };
+      await AirdropSnapshot.create({
+        campaign_id: airDropCampaign.id,
         accountId: item.accountId,
         token: item.token,
-        symbol: item.campaign.symbol,
-        decimal: item.campaign.decimal,
-        network: item.campaign.network,
-        status: 'NEW_REGISTRATION',
+        symbol: airDropCampaign.symbol,
+        decimal: airDropCampaign.decimal,
+        network: airDropCampaign.network,
         snapshot_data: snapshotData,
         point: item.nps,
       });

@@ -1,5 +1,7 @@
 import { IReq, IRes } from '@src/routes/types';
-import { AirdropCampaignContentCms, AirdropEligibility, AirdropService } from '@src/services/AirdropService';
+import { AirdropEligibility, AirdropService } from '@src/services/AirdropService';
+import { AirdropCampaignInterface } from '@src/models/AirdropCampaign';
+
 import { Query } from 'express-serve-static-core';
 import { Router } from 'express';
 
@@ -14,7 +16,7 @@ const routerMap = {
   },
 
   sync: async (req: IReq<Query>, res: IRes) => {
-    const data = req.body.data as unknown as AirdropCampaignContentCms[];
+    const data = req.body.data as unknown as AirdropCampaignInterface[];
     const response = await airdropService.syncData(data);
     return res.status(200).json(response);
   },
