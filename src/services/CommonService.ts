@@ -7,13 +7,14 @@ export class CommonService {
   public constructor() {  }
 
   async callActionChainService<T>(action: string, data: any){
-    const  url = `http://localhost:${EnvVars.ChainPort}/api/${action}`;
+    const  url = `${EnvVars.ChainService.Endpoint}/api/${action}`;
+      console.log(url)
     const response = await fetch(
       url,
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${EnvVars.Secret.Token}`,
+          'Authorization': `Bearer ${EnvVars.ChainService.Token}`,
         },
         method: 'POST',
         body: JSON.stringify(data),

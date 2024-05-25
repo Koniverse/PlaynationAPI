@@ -5,7 +5,7 @@ import EnvVars from '@src/constants/EnvVars';
 import {BN} from '@polkadot/util';
 
 export interface CreateTransactionParams {
-    address: string[];
+    address: string;
     network: string;
     decimal: number;
     amount: number;
@@ -40,24 +40,21 @@ export class ChainListService {
   getChainService(chainName: string) {
     return this.chainServiceList[chainName];
   }
-  public async createTransaction(address: string[], network: string, decimal: number, amount: number) {
+  public async createTransfer(address: string, network: string, decimal: number, amount: number) {
     const chainService = this.getChainService(network);
     if (!chainService) {
       return;
     }
     const api = await chainService.getApi();
     const airdropAccount = amount * 10 ** decimal;
-    const totalAmount = address.length * airdropAccount;
     
     const AIRDROP_AMOUNT = new BN(airdropAccount);
-    const MIN_AMOUNT = new BN(totalAmount);
-    const isCanSend = await chainService.checkBalancesSend(EnvVars.ChainService.AddressSend, MIN_AMOUNT);
+    const isCanSend = await chainService.checkBalancesSend(EnvVars.ChainService.AddressSend, AIRDROP_AMOUNT);
     if (!isCanSend) {
       throw new Error('Not enough balance');
     }
-    const txs = address.map(item => api.tx.balances.transferKeepAlive(item, AIRDROP_AMOUNT));
-    const batch = api.tx.utility.batch(txs);
-    return await chainService.runExtrinsic(batch);
+    const extrinsic = api.tx.balances.transferKeepAlive(address, AIRDROP_AMOUNT);
+    return await chainService.runExtrinsic(extrinsic);
   }
 }
 export const ChainListServiceImpl = new ChainListService();

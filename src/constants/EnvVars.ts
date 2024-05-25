@@ -86,6 +86,8 @@ const Environments = {
   ChainService: {
     Networks: (process.env.CHAIN_SERVICE_NETWORKS ? process.env.CHAIN_SERVICE_NETWORKS.split(',') : []),
     AddressSend: (process.env.CHAIN_SERVICE_ADDRESS_SEND ?? ''),
+    Endpoint: (process.env.CHAIN_SERVICE_ENDPOINT ?? ''),
+    Token: (process.env.CHAIN_SERVICE_TOKEN ?? ''),
   }
 };
 
