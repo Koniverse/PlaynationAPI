@@ -84,8 +84,6 @@ const Environments = {
     EnergyRecoverTime: parseInt(process.env.ENGERY_RECOVER_TIME || '60'),
   },
   ChainService: {
-    Networks: (process.env.CHAIN_SERVICE_NETWORKS ? process.env.CHAIN_SERVICE_NETWORKS.split(',') : []),
-    AddressSend: (process.env.CHAIN_SERVICE_ADDRESS_SEND ?? ''),
     Endpoint: (process.env.CHAIN_SERVICE_ENDPOINT ?? ''),
     Token: (process.env.CHAIN_SERVICE_TOKEN ?? ''),
     networkConfig: chainConfig

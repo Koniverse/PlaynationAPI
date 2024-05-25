@@ -13,7 +13,6 @@ export interface CreateTransactionParams {
 interface ChainData {
     address: string;
     seedPhrase: string;
-
 }
 export class ChainListService {
   public chainServiceList: Record<string, ChainService> = {};
@@ -35,15 +34,6 @@ export class ChainListService {
       }
     });
   }
-
-  // Singleton
-  private static _instance: ChainListService;
-  public static get instance(): ChainListService {
-    if (!this._instance) {
-      this._instance = new ChainListService();
-    }
-    return this._instance;
-  }
   getChainService(chainName: string) {
     return this.chainServiceList[chainName];
   }
@@ -56,7 +46,7 @@ export class ChainListService {
     const airdropAccount = amount * 10 ** decimal;
     
     const AIRDROP_AMOUNT = new BN(airdropAccount);
-    const isCanSend = await chainService.checkBalancesSend(EnvVars.ChainService.AddressSend, AIRDROP_AMOUNT);
+    const isCanSend = await chainService.checkBalancesSend(AIRDROP_AMOUNT);
     if (!isCanSend) {
       throw new Error('Not enough balance');
     }

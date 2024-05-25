@@ -130,11 +130,8 @@ export class ChainService {
     return (await api.query.system.number()).toPrimitive() as number;
   }
 
-  public async checkBalancesSend(address: string, amount: BN) {
+  public async checkBalancesSend(amount: BN) {
     const api = await this.getApi();
-    if (!address) {
-      return false;
-    }
     // @ts-ignore
     const { data: { free: balance } } = await api.query.system.account(this.sendAddress);
     return balance.gte(amount);
