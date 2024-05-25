@@ -1,7 +1,7 @@
 /**
  * Environments variables declared here.
  */
-import chainConfig from '../../chainConfig.json';
+import chainConfig from '@src/data/chainConfig.json';
 /* eslint-disable node/no-process-env */
 
 const Environments = {
