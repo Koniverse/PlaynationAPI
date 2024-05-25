@@ -8,7 +8,6 @@ export class CommonService {
 
   async callActionChainService<T>(action: string, data: any){
     const  url = `${EnvVars.ChainService.Endpoint}/api/${action}`;
-      console.log(url)
     const response = await fetch(
       url,
       {
