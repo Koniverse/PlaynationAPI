@@ -1,7 +1,7 @@
 /**
  * Environments variables declared here.
  */
-
+import chainConfig from '../../chainConfig.json';
 /* eslint-disable node/no-process-env */
 
 const Environments = {
@@ -88,6 +88,8 @@ const Environments = {
     AddressSend: (process.env.CHAIN_SERVICE_ADDRESS_SEND ?? ''),
     Endpoint: (process.env.CHAIN_SERVICE_ENDPOINT ?? ''),
     Token: (process.env.CHAIN_SERVICE_TOKEN ?? ''),
+    networkConfig: chainConfig
+
   }
 };
 

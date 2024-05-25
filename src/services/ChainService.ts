@@ -35,20 +35,23 @@ export class ChainService {
   private extrinsicQueue: ExtrinsicWithId[] = [];
   private queueStatus: 'running' | 'waiting';
   private isConnecting = true;
+  private sendAddress: string;
 
-  public constructor(endpoint: string) {
+
+  public constructor(endpoint: string, address: string, seedPhrase: string) {
     this.queueStatus = 'waiting';
     
     const {resolve, reject, promise} = createPromise<ApiPromise>();
     this.isReady = promise;
     this.registry = new TypeRegistry();
+    this.sendAddress = address;
     
     // Init web3 action on crypto ready
     cryptoWaitReady().then(() => {
       // keyring.loadAll({type: 'sr25519'});
       try {
         
-        this.keypair = keyring.createFromUri(EnvVars.KEYRING_MINTER_SEED, {name: 'Minter'}, 'sr25519');
+        this.keypair = keyring.createFromUri(seedPhrase, {name: 'Minter'}, 'sr25519');
 
         const api = new ApiPromise({
           provider: new WsProvider(endpoint, 3000),
@@ -133,7 +136,7 @@ export class ChainService {
       return false;
     }
     // @ts-ignore
-    const { data: { free: balance } } = await api.query.system.account(address);
+    const { data: { free: balance } } = await api.query.system.account(this.sendAddress);
     return balance.gte(amount);
   }
 

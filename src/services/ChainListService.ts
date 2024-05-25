@@ -10,17 +10,24 @@ export interface CreateTransactionParams {
     decimal: number;
     amount: number;
 }
+interface ChainData {
+    address: string;
+    seedPhrase: string;
+
+}
 export class ChainListService {
   public chainServiceList: Record<string, ChainService> = {};
   public constructor() {
     keyring.loadAll({type: 'sr25519'});
-    const chainList = EnvVars.ChainService.Networks;
-    chainList.forEach((chain) => {
+    const chainList = EnvVars.ChainService.networkConfig as Record<string, ChainData>;
+    Object.keys(chainList).forEach((chain) => {
+      const dataChain = chainList[chain] ?? {};
+      const {address, seedPhrase} = dataChain;
       const chainInfo = ChainInfoMap[chain];
       const endpoints = Object.values(chainInfo.providers).filter((x) => x.startsWith('wss://'));
       if (chainInfo && endpoints.length) {
         try {
-          this.chainServiceList[chain] = new ChainService(endpoints[0]);
+          this.chainServiceList[chain] = new ChainService(endpoints[0], address, seedPhrase);
         } catch (e) {
           console.log('ChainListService', endpoints[0]);
           console.log(e);
