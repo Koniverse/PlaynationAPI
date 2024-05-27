@@ -2,7 +2,7 @@ import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {requireLogin, requireSecret} from '@src/routes/helper';
-import {TaskContentCms, TaskService, TaskSubmitParams} from '@src/services/TaskService';
+import {TaskContentCms, TaskHistoryParams, TaskService, TaskSubmitParams} from '@src/services/TaskService';
 
 const TaskRouter = Router();
 
@@ -21,17 +21,24 @@ const routerMap = {
     const response = await TaskService.instance.listTaskHistory(userId);
     return res.status(200).json(response);
   },
-  submit: async (req: IReq<TaskSubmitParams>, res: IRes) => {
+  checkCompleteTask: async (req: IReq<TaskHistoryParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {taskId} = req.body;
-    const response = await TaskService.instance.submit(userId, taskId);
+    const {taskHistoryId} = req.body
+    const response = await TaskService.instance.checkCompleteTask(userId, taskHistoryId);
     return res.status(200).json(response);
   },
+  submit: async (req: IReq<TaskSubmitParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const {taskId, network, extrinsicHash} = req.body;
+    const response = await TaskService.instance.submit(userId, taskId, extrinsicHash, network);
+    return res.status(200).json(response);
+  }
 };
 
 TaskRouter.post('/sync', requireSecret, routerMap.sync);
 TaskRouter.get('/history', requireLogin, routerMap.history);
 TaskRouter.get('/fetch', requireLogin, routerMap.fetch);
 TaskRouter.post('/submit', requireLogin, routerMap.submit);
+TaskRouter.post('/check-complete-task', requireLogin, routerMap.checkCompleteTask);
 
 export default TaskRouter;

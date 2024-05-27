@@ -45,7 +45,10 @@ const Environments = {
     IntervalCronTime: Number(process.env.INTERVAL_TELEGRAM_CRON_TIME || '86400000'),
     RateLimit: Number(process.env.TELEGRAM_RATE_LIMIT || '20'),
     CronRateLimit: Number(process.env.TELEGRAM_CRON_RATE_LIMIT || '20'),
-
+  },
+  Subscan: {
+    RateLimit: Number(process.env.SUBSCAN_RATE_LIMIT || '20'),
+    IntervalTime: Number(process.env.INTERVAL_SUBSCAN_TIME || '1000'),
   },
   Mongo: {
     Host: process.env.MONGO_HOST ?? 'localhost',
@@ -81,6 +84,11 @@ const Environments = {
   Game: {
     MaxEnergy: parseInt(process.env.MAX_ENERGY || '1440'),
     EnergyRecoverTime: parseInt(process.env.ENGERY_RECOVER_TIME || '60'),
+  },
+  TaskOnChain: {
+    IntervalTime: parseInt(process.env.INTERVAL_TASK_ON_CHAIN_TIME || '6000'),
+    RetryMax: parseInt(process.env.TASK_HISTORY_RETRY_MAX || '3'),
+    Limit: parseInt(process.env.TASK_HISTORY_LIMIT || '20'),
   },
 };
 

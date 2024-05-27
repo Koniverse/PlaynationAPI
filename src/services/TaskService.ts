@@ -1,6 +1,6 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {Task, TaskHistory} from '@src/models';
+import {Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 
 
@@ -14,6 +14,7 @@ export interface TaskContentCms {
     icon: string,
     itemReward: number,
     gameId: number,
+    categoryId: number,
     pointReward: number,
     effectDuration: number,
     interval: number,
@@ -23,6 +24,12 @@ export interface TaskContentCms {
 
 export interface TaskSubmitParams{
   taskId: number,
+  extrinsicHash?: string,
+  network?: string,
+}
+
+export interface TaskHistoryParams{
+  taskHistoryId: number
 }
 
 export class TaskService {
@@ -37,6 +44,7 @@ export class TaskService {
     };
 
     for (const item of data) {
+      console.log(item);
       const itemData = {...item} as unknown as Task;
       const existed = await Task.findOne({where: {contentId: item.id}});
 
@@ -47,6 +55,14 @@ export class TaskService {
           continue;
         }
         itemData.gameId = gameData.id;
+      }
+      // Check if category exists
+      if (item.categoryId) {
+        const categoryData = await TaskCategory.findOne({where: {contentId: item.categoryId}});
+        if (!categoryData) {
+          continue;
+        }
+        itemData.categoryId = categoryData.id;
       }
 
       // Sync data
@@ -68,7 +84,6 @@ export class TaskService {
     const currentTime = new Date().getTime();
     return Object.values(taskMap).filter((item) => {
       if (item.startTime && item.endTime) {
-        console.log(item.startTime.getTime(), item.endTime.getTime(), currentTime);
         const startTime = item.startTime.getTime();
         const endTime = item.endTime.getTime();
         return currentTime >= startTime && currentTime <= endTime;
@@ -77,15 +92,21 @@ export class TaskService {
     });
   }
 
+  async checkCompleteTask(userId: number, taskHistoryId: number) {
+    let completed = false;
+    const taskHistory = await TaskHistory.findByPk(taskHistoryId);
+    if (taskHistory && taskHistory.accountId === userId) {
+      completed = taskHistory.status === TaskHistoryStatus.COMPLETED;
+    }
+    return {completed};
+
+  }
   async listTaskHistory(userId: number) {
     const sql = `
         SELECT t.*,
-       CASE
-       WHEN th.id IS NOT NULL
-           THEN 1
-       ELSE 0
-       END AS status,
-       th."createdAt" as "completedAt"
+        th.id AS "taskHistoryId",
+        th.status,
+        th."completedAt"
         FROM task AS t
         LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
     `;
@@ -98,7 +119,7 @@ export class TaskService {
     return taskMap[taskId.toString()];
   }
 
-  async submit(userId: number, taskId: number) {
+  async submit(userId: number, taskId: number, extrinsicHash?: string|undefined, network?: string|undefined) {
     // Get basic data
     const task = await this.findTask(taskId);
     if (!task) {
@@ -149,16 +170,33 @@ export class TaskService {
         throw new Error('Task is not ready to be submitted yet');
       }
     }
-
-    // Create task history
-    await TaskHistory.create({
+    const dataCreate = {
       taskId: task.id,
       accountId: userId,
       pointReward: task.pointReward,
-    });
+    } as TaskHistory;
+    let isOnChain = false;
+    if (task.onChainType) {
+      if (!extrinsicHash) {
+        throw new Error('Extrinsic hash is required');
+      }
+      dataCreate.extrinsicHash = extrinsicHash;
+      dataCreate.network = network;
+      dataCreate.status = TaskHistoryStatus.CHECKING;
+      dataCreate.retry = 0;
+      isOnChain = true;
+    } else {
+      dataCreate.status = TaskHistoryStatus.COMPLETED;
+      dataCreate.completedAt = now;
+    }
 
-    // Add point to account
-    await AccountService.instance.addAccountPoint(userId, task.pointReward);
+    // Create task history
+    await TaskHistory.create(dataCreate);
+
+    if (!isOnChain) {
+      // Add point to account
+      await AccountService.instance.addAccountPoint(userId, task.pointReward);
+    }
 
     return {
       success: true,

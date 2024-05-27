@@ -2,15 +2,24 @@ import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, M
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Task from '@src/models/Task';
 import Account from '@src/models/Account';
-
+export enum TaskHistoryStatus {
+  FAILED = 'failed',
+  CHECKING = 'checking',
+  COMPLETED = 'completed',
+}
 export class TaskHistory extends Model<InferAttributes<TaskHistory>, InferCreationAttributes<TaskHistory>> {
   declare id: CreationOptional<number>; // id on db
   declare taskId: number;
   declare accountId: number;
   declare pointReward: number;
   declare inventoryId: CreationOptional<number>;
+  declare network: string | undefined;
+  declare extrinsicHash: string | undefined;
+  declare status: CreationOptional<TaskHistoryStatus>;
+  declare retry: CreationOptional<number>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  declare completedAt: CreationOptional<Date>;
 }
 
 TaskHistory.init({
@@ -39,8 +48,21 @@ TaskHistory.init({
   inventoryId: {
     type: DataTypes.INTEGER,
   },
+  network: {
+    type: DataTypes.STRING,
+  },
+  retry: {
+    type: DataTypes.INTEGER,
+  },
+  extrinsicHash: {
+    type: DataTypes.STRING,
+  },
+  status: {
+    type: DataTypes.ENUM(TaskHistoryStatus.FAILED, TaskHistoryStatus.CHECKING, TaskHistoryStatus.COMPLETED),
+  },
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
+  completedAt: DataTypes.DATE,
 }, {
   indexes: [{unique: false, fields: ['accountId', 'taskId']}, {unique: false, fields: ['accountId']}],
   tableName: 'task_history',

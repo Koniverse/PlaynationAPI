@@ -1,10 +1,12 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
+import TaskCategory from '@src/models/TaskCategory';
 
 export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<Task>> {
   declare id: CreationOptional<number>; // id on db
   declare gameId: CreationOptional<number>;
+  declare categoryId: CreationOptional<number>;
   declare contentId: number;
   declare slug: string;
   declare name: string;
@@ -13,9 +15,11 @@ export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<T
   declare url: string;
   declare pointReward: number;
   declare itemReward: CreationOptional<number>;
+  declare onChainType: CreationOptional<string>;
   declare interval: CreationOptional<number>;
   declare startTime: CreationOptional<Date>;
   declare endTime: CreationOptional<Date>;
+  declare active: boolean;
 }
 
 Task.init({
@@ -31,6 +35,13 @@ Task.init({
     type: DataTypes.INTEGER,
     references: {
       model: Game,
+      key: 'id',
+    },
+  },
+  categoryId: {
+    type: DataTypes.INTEGER,
+    references: {
+      model: TaskCategory,
       key: 'id',
     },
   },
@@ -66,6 +77,14 @@ Task.init({
   endTime: {
     type: DataTypes.DATE,
     allowNull: true,
+  },
+  onChainType: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  active: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
 }, {
   indexes: [{unique: true, fields: ['slug']}],

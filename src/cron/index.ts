@@ -1,1 +1,2 @@
 import './cronAvatarTelegram';
+import './cronTaskOnChain';
