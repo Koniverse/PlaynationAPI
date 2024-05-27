@@ -6,7 +6,7 @@ import {checkWalletType} from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
-import {GiveAwayPoint} from '@src/models';
+import {GameData, GiveAwayPoint} from '@src/models';
 import {TelegramService} from '@src/services/TelegramService';
 
 // CMS input
@@ -35,10 +35,15 @@ export class AccountService {
       account.signature = '___';
     }
     const attribute = await this.getAccountAttribute(id);
+    const gameData = await GameData.findAll({
+      where: {
+        accountId: account?.id || 0,
+      }});
 
     return {
       info: account,
       attributes: attribute,
+      gameData,
     };
   }
 

@@ -2,10 +2,11 @@ import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {AccountService, GiveawayPointParams} from '@src/services/AccountService';
-import {AccountParams} from '@src/models';
+import {AccountParams, GameData} from '@src/models';
 import jwt from 'jsonwebtoken';
 import envVars from '@src/constants/EnvVars';
 import {requireLogin, requireSecret} from '@src/routes/helper';
+import {GameService} from "@src/services/GameService";
 
 type SyncAccountQuery = AccountParams & Query;
 
@@ -48,6 +49,8 @@ const routerMap = {
 
     const account = await accountService.findByAddress(address);
     const attributes = await accountService.getAccountAttribute(account?.id || 0);
+    
+    const gameData = await GameService.instance.getGameDataByAccount(account?.id || 0);
 
     if (!account || !attributes) {
       return res.status(404).json({
@@ -61,6 +64,7 @@ const routerMap = {
     return res.status(200).json({
       account,
       attributes,
+      gameData,
     });
   },
 

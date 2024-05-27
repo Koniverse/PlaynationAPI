@@ -118,6 +118,14 @@ export class GameService {
 
     return gameMap[gameId.toString()];
   }
+
+  async getGameDataByAccount(accountId: number) {
+    return GameData.findAll({
+      where: {
+        accountId,
+      },
+    });
+  }
   
   async getGameData(accountId: number, gameId: number) {
     const account = await Account.findByPk(accountId);
