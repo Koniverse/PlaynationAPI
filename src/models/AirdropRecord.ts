@@ -2,7 +2,6 @@ import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, 
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 
 export enum AirdropRecordsStatus {
-  NEW_REGISTRATION = 'NEW_REGISTRATION',
   CHECKING_CONDITIONS = 'CHECKING_CONDITIONS',
   PASS_CONDITION_CHECK = 'PASS_CONDITION_CHECK',
   ELIGIBLE_FOR_REWARD = 'ELIGIBLE_FOR_REWARD',
@@ -58,7 +57,6 @@ AirdropRecord.init(
     },
     status: {
       type: DataTypes.ENUM(
-        AirdropRecordsStatus.NEW_REGISTRATION,
         AirdropRecordsStatus.CHECKING_CONDITIONS,
         AirdropRecordsStatus.ELIGIBLE_FOR_REWARD,
         AirdropRecordsStatus.RECEIVED,
@@ -66,7 +64,7 @@ AirdropRecord.init(
         AirdropRecordsStatus.PASS_CONDITION_CHECK,
         AirdropRecordsStatus.CANCELED,
       ),
-      defaultValue: AirdropRecordsStatus.NEW_REGISTRATION,
+      defaultValue: AirdropRecordsStatus.ELIGIBLE_FOR_REWARD,
       allowNull: false,
     },
     symbol: {
@@ -83,7 +81,7 @@ AirdropRecord.init(
     },
   },
   {
-    indexes: [{ unique: false, fields: ['campaign_id'] }],
+    indexes: [],
     sequelize: SequelizeServiceImpl.sequelize,
     modelName: 'AirdropRecord',
     timestamps: true,

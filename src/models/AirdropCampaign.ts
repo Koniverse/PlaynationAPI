@@ -24,6 +24,7 @@ export interface AirdropCampaignInterface {
   raffle_count: number;
   start: Date;
   end: Date;
+  description: Text;
   tokenDistributions: JSON;
   npsDistributions: JSON;
   status: string;
@@ -48,6 +49,7 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare raffle_count: number;
   declare tokenDistributions: JSON;
   declare npsDistributions: JSON;
+  declare description: Text;
   declare start: Date;
   declare end: Date;
   declare status: string;
@@ -141,6 +143,9 @@ AirdropCampaign.init(
     end: {
       type: DataTypes.DATE,
       allowNull: true,
+    },
+    description: {
+      type: DataTypes.TEXT,
     },
     createdAt: {
       type: DataTypes.DATE,
