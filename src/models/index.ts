@@ -15,7 +15,6 @@ import TaskCategory from '@src/models/TaskCategory';
 import AirdropCampaign from './AirdropCampaign';
 import AirdropRecord from './AirdropRecord';
 import AirdropRecordLog from './AirdropRecordLog';
-import AirdropSnapshot from './AirdropSnapshot';
 
 AccountAttribute.belongsTo(Account, { foreignKey: 'accountId' });
 Account.hasOne(AccountAttribute, { foreignKey: 'accountId' });
@@ -53,7 +52,6 @@ SequelizeServiceImpl.addSync(Receipt.sync.bind(Receipt));
 SequelizeServiceImpl.addSync(AirdropCampaign.sync.bind(AirdropCampaign));
 SequelizeServiceImpl.addSync(AirdropRecord.sync.bind(AirdropRecord));
 SequelizeServiceImpl.addSync(AirdropRecordLog.sync.bind(AirdropRecordLog));
-SequelizeServiceImpl.addSync(AirdropSnapshot.sync.bind(AirdropSnapshot));
 
 export * from '@src/models/AccountAttribute';
 export * from '@src/models/Account';
@@ -71,4 +69,3 @@ export * from '@src/models/Receipt';
 export * from '@src/models/AirdropCampaign';
 export * from '@src/models/AirdropRecord';
 export * from '@src/models/AirdropRecordLog';
-export * from '@src/models/AirdropSnapshot';
