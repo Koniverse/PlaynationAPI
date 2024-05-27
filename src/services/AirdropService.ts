@@ -1,7 +1,9 @@
+// Imports
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
 import { AirdropCampaign, AirdropCampaignStatus, AirdropRecord, AirdropRecordsStatus } from '@src/models';
 import { AirdropCampaignInterface } from '@src/models/AirdropCampaign';
 
+// Interfaces
 interface BoxInterface {
   accountId: number;
   token: number;
@@ -20,6 +22,7 @@ export interface AirdropEligibility {
   boxCount: number;
 }
 
+// AirdropService Class
 export class AirdropService {
   constructor(private sequelizeService: SequelizeService) {}
 
@@ -115,28 +118,50 @@ export class AirdropService {
 
   // Inserts the airdrop snapshot data into the database
   async insertAirdropRecord(userList: BoxInterface[]): Promise<void> {
-    await AirdropRecord.truncate();
-    for (const item of userList) {
-      const airDropCampaign: any = await AirdropCampaign.findByPk(item.airdrop_campaign.id);
-      if (!airDropCampaign) {
-        throw new Error(`Campaign  does not exist`);
+
+    console.log("userListuserListuserListuserList",userList.length)
+    // Start a transaction
+    const transaction = await this.sequelizeService.startTransaction();
+    try {
+      for (const item of userList) {
+        const airDropCampaign: any = await AirdropCampaign.findByPk(item.airdrop_campaign.id);
+        if (!airDropCampaign) {
+          throw new Error(`Campaign does not exist`);
+        }
+
+        // Check if the record already exists
+        const existingRecord = await AirdropRecord.findOne({
+          where: {
+            campaign_id: airDropCampaign.id,
+            accountId: item.accountId,
+          },
+        });
+
+        if (!existingRecord) {
+          const snapshotData: any = {
+            accountId: item.accountId,
+            eligibilityId: item.eligibilityId,
+            campaign: item.airdrop_campaign_id,
+          };
+          await AirdropRecord.create({
+            campaign_id: airDropCampaign.id,
+            accountId: item.accountId,
+            token: item.token,
+            status: AirdropRecordsStatus.ELIGIBLE_FOR_REWARD,
+            symbol: airDropCampaign.symbol,
+            decimal: airDropCampaign.decimal,
+            network: airDropCampaign.network,
+            snapshot_data: snapshotData,
+            point: item.nps,
+          }, { transaction });
+        }
       }
-      const snapshotData: any = {
-        accountId: item.accountId,
-        eligibilityId: item.eligibilityId,
-        campaign: item.airdrop_campaign_id,
-      };
-      await AirdropRecord.create({
-        campaign_id: airDropCampaign.id,
-        accountId: item.accountId,
-        token: item.token,
-        status: AirdropRecordsStatus.ELIGIBLE_FOR_REWARD,
-        symbol: airDropCampaign.symbol,
-        decimal: airDropCampaign.decimal,
-        network: airDropCampaign.network,
-        snapshot_data: snapshotData,
-        point: item.nps,
-      });
+      // Commit the transaction
+      await transaction.commit();
+    } catch (error) {
+      // Rollback the transaction in case of error
+      await transaction.rollback();
+      throw error;
     }
   }
 
