@@ -23,7 +23,7 @@ const routerMap = {
 
   createAirdropAndReward: async (req: IReq<Query>, res: IRes) => {
     const data = req.body.data as unknown as AirdropEligibility[];
-    const response = await airdropService.createAirdropAndReward(data);
+    const response = await airdropService.createAirdropRecordAndDistribute(data);
     return res.status(200).json(response);
   },
 };
