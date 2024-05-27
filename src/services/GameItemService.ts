@@ -1,6 +1,7 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
 import {GameItem} from '@src/models';
+import EnvVars from "@src/constants/EnvVars";
 
 
 export interface GameItemContentCms {
@@ -60,6 +61,16 @@ export class GameItemService {
   async findGameItem(taskId: number) {
     const gameItemMap = !!this.gameItemMap ? this.gameItemMap : await this.buildMap();
     return gameItemMap[taskId.toString()];
+  }
+
+  async getConfigBuyEnergy() {
+    return {
+      success: true,
+      energyPrice: EnvVars.Game.EnergyPrice,
+      energyBuyLimit: EnvVars.Game.EnergyBuyLimit,
+      maxEnergy: EnvVars.Game.MaxEnergy,
+      energyOneBuy: EnvVars.Game.EnergyOneBuy,
+    };
   }
 
   async listGameItem() {
