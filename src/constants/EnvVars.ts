@@ -3,6 +3,7 @@
  */
 
 /* eslint-disable node/no-process-env */
+import chainConfig from '@src/data/chainConfig.json';
 
 const Environments = {
   NodeEnv: process.env.NODE_ENV ?? '',
@@ -92,6 +93,11 @@ const Environments = {
     ItemMulti: process.env.ITEM_MULTIPLIER || 'MULTIPLIER',
     ItemMaxLevel: parseInt(process.env.ITEM_MAX_LEVEL || '100'),
     BuyType: process.env.BUY_TYPE || 'BUY_MULTI',
+  },
+  ChainService: {
+    Endpoint: process.env.CHAIN_SERVICE_ENDPOINT ?? '',
+    Token: process.env.CHAIN_SERVICE_TOKEN ?? '',
+    networkConfig: chainConfig,
   },
 };
 
