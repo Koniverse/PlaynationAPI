@@ -73,7 +73,6 @@ export class AirdropService {
     data: any[];
   }> {
     const campaign: any = await AirdropCampaign.findByPk(campaign_id);
-    console.log(campaign);
     const eligibility = await AirdropEligibility.findAll({
       where: { campaign_id },
     });
