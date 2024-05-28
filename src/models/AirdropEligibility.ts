@@ -17,6 +17,7 @@ export class AirdropEligibility extends Model<
   InferCreationAttributes<AirdropEligibility>
 > {
   declare id: CreationOptional<number>;
+  declare name: string;
   declare campaign_id: CreationOptional<number>;
   declare userList: JSON;
   declare boxCount: number;
@@ -29,6 +30,10 @@ AirdropEligibility.init(
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     campaign_id: {
       type: DataTypes.INTEGER,
