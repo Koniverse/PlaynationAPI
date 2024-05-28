@@ -12,7 +12,9 @@ import EnvVars from '@src/constants/EnvVars';
 import '@polkadot/types-augment';
 import logger from 'jet-logger';
 import {SubmittableExtrinsic} from '@polkadot/api/promise/types';
-import {u8aToHex} from '@polkadot/util';
+import {BN, u8aToHex} from '@polkadot/util';
+import * as console from 'node:console';
+import * as process from 'node:process';
 
 const BATCH_MAX_SIZE = 24;
 export interface ExtrinsicWithId {
@@ -33,51 +35,59 @@ export class ChainService {
   private extrinsicQueue: ExtrinsicWithId[] = [];
   private queueStatus: 'running' | 'waiting';
   private isConnecting = true;
+  private sendAddress: string;
 
-  public constructor(endpoint: string) {
+
+  public constructor(endpoint: string, address: string, seedPhrase: string) {
     this.queueStatus = 'waiting';
     
     const {resolve, reject, promise} = createPromise<ApiPromise>();
     this.isReady = promise;
     this.registry = new TypeRegistry();
+    this.sendAddress = address;
     
     // Init web3 action on crypto ready
     cryptoWaitReady().then(() => {
-      keyring.loadAll({type: 'sr25519'});
-      this.keypair = keyring.createFromUri(EnvVars.KEYRING_MINTER_SEED, {name: 'Minter'}, 'sr25519');
+      // keyring.loadAll({type: 'sr25519'});
+      try {
+        
+        this.keypair = keyring.createFromUri(seedPhrase, {name: 'Minter'}, 'sr25519');
 
-      const api = new ApiPromise({
-        provider: new WsProvider(endpoint, 3000),
-        registry: this.registry,
-      });
-      this.api = api;
+        const api = new ApiPromise({
+          provider: new WsProvider(endpoint, 3000),
+          registry: this.registry,
+        });
+        this.api = api;
 
-      api.isReady.then(() => {
-        console.log('Api is ready');
-        this.isConnecting = false;
-        resolve(api);
-      });
-      
-      let reconnectInterval: NodeJS.Timeout;
-      
-      api.on('connected', () => {
-        if (this.isConnecting) {
-          clearInterval(reconnectInterval);
+        api.isReady.then(() => {
+          console.log('Api is ready', endpoint);
           this.isConnecting = false;
-        }
-      });
+          resolve(api);
+        });
       
-      api.on('disconnected', () => {
-        if (!this.isConnecting) {
-          this.isConnecting = true;
+        let reconnectInterval: NodeJS.Timeout;
+      
+        api.on('connected', () => {
+          if (this.isConnecting) {
+            clearInterval(reconnectInterval);
+            this.isConnecting = false;
+          }
+        });
+      
+        api.on('disconnected', () => {
+          if (!this.isConnecting) {
+            this.isConnecting = true;
           
-          reconnectInterval = setInterval(async () => {
-            await this.disconnect();
-            await this.connect();
-          }, 30000);
-        }
-      });
-    }).catch(reject);
+            reconnectInterval = setInterval(async () => {
+              await this.disconnect();
+              await this.connect();
+            }, 30000);
+          }
+        });
+      }catch (e) {
+        console.log('error:', e);
+      }
+    }).catch(e => console.log('error:' ,e ));
   }
 
   public async getKeypairPublicKey() {
@@ -119,6 +129,14 @@ export class ChainService {
     const api = await this.getApi();
     return (await api.query.system.number()).toPrimitive() as number;
   }
+
+  public async checkBalancesSend(amount: BN) {
+    const api = await this.getApi();
+    // @ts-ignore
+    const { data: { free: balance } } = await api.query.system.account(this.sendAddress);
+    return balance.gte(amount);
+  }
+
   
   public async runExtrinsic(extrinsic: Extrinsic) {
     const eid = this.addExtrinsic(extrinsic);
@@ -238,5 +256,3 @@ export class ChainService {
   }
 }
 
-const ChainServiceImpl = new ChainService(EnvVars.DefaultData.KusamaEndpoint);
-export default ChainServiceImpl;
