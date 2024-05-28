@@ -8,6 +8,7 @@ import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
 import {GiveAwayPoint} from '@src/models';
 import {TelegramService} from '@src/services/TelegramService';
+import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 
 // CMS input
 export interface GiveawayPointParams {
@@ -281,25 +282,23 @@ export class AccountService {
     }
     const rankData = rankJson.find((item) => item.rank === rank );
     if (rankData) {
-      
       const invitePoint = Number(account.isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
       const indirectPoint = invitePoint * EnvVars.INDIRECT_POINT_RATE;
       const indirectAccount = referralLog.indirectAccount;
-      const newPoint = referralLog.point += invitePoint;
-      const newIndirectPoint = referralLog.indirectPoint += indirectPoint;
-      const   dataSave = {
-        point: newPoint,
-        indirectPoint: 0,
-      };
-      if (indirectAccount > 0) {
-        dataSave.indirectPoint = newIndirectPoint;
-      }
-      await referralLog.update(dataSave);
     
       await this.addAccountPoint(referralLog.sourceAccountId, invitePoint);
       if (indirectAccount > 0) {
         await this.addAccountPoint(indirectAccount, indirectPoint);
       }
+      ReferralUpgradeLog.create({
+        referralLogId: referralLog.id,
+        sourceAccountId: referralLog.sourceAccountId,
+        indirectAccount,
+        indirectPoint: indirectAccount > 0 ? indirectPoint : 0,
+        invitedAccountId: referralLog.invitedAccountId,
+        point: invitePoint,
+        rank,
+      });
     }
   }
 

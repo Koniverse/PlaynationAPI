@@ -2,7 +2,23 @@ import {AccountService} from '@src/services/AccountService';
 import {Account} from '@src/models/Account';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {createSampleAccounts} from '@src/test/data_samples/Accounts';
+import rankJson from '@src/data/ranks.json';
+import { AccountAttributeRank } from '@src/models';
+import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
+import * as console from 'node:console';
 
+interface Rank {
+    rank: string;
+    minPoint: number;
+    maxPoint: number;
+    invitePoint: number;
+    premiumInvitePoint: number;
+}
+function getRankPoint(rank: string): Rank | undefined{
+  console.log('Rank', rank);
+  const dataRank = rankJson.find((r) => r.rank === rank);
+  return dataRank;
+}
 
 describe('Referral Test', () => {
   const accountService = AccountService.instance;
@@ -125,5 +141,42 @@ describe('Referral Test', () => {
     const accLv1Point04 = await accountService.getAccountAttribute(accountLv1.id).then((attrs) => attrs.point);
     console.log('Account 1', accLv1Point03, '==>', accLv1Point04);
     expect(accLv1Point04).toEqual(accLv1Point03 + 75);
+    console.log('Check log rank');
+    await checkLogRank(AccountAttributeRank.BRONZE, accountLv2);
+    await checkLogRank(AccountAttributeRank.SILVER, accountLv2);
+    await checkLogRank(AccountAttributeRank.GOLD, accountLv2);
+    await checkLogRank(AccountAttributeRank.PLATINUM, accountLv2);
+    await checkLogRank(AccountAttributeRank.DIAMOND, accountLv2);
+    await checkLogRank(AccountAttributeRank.BRONZE, accountLv3);
+    await checkLogRank(AccountAttributeRank.SILVER, accountLv3);
+    await checkLogRank(AccountAttributeRank.GOLD, accountLv3);
+    await checkLogRank(AccountAttributeRank.PLATINUM, accountLv3);
+    await checkLogRank(AccountAttributeRank.DIAMOND, accountLv3);
   });
+  async function checkLogRank(rank: AccountAttributeRank, account: Account) {
+    const rankData = getRankPoint(rank.toString());
+    if (!rankData) {
+      return;
+    }
+    const giveAccountPoint = {
+      inviteCode: account.inviteCode,
+      point: rankData.minPoint,
+      rank,
+    };
+    await accountService.giveAccountPoint(giveAccountPoint);
+    const referralLog = await ReferralUpgradeLog.findOne({
+      where: {
+        invitedAccountId: account.id,
+        rank,
+      },
+    });
+    if (!referralLog) {
+      throw new Error('Not found log');
+    }
+    const point = account.isPremium ? rankData.premiumInvitePoint : rankData.invitePoint;
+    console.log(`Check log f1 with rank ${rank} acccount ${account.telegramUsername}: ${point} points`);
+    expect(referralLog.point).toEqual(point);
+    console.log(`Check log f2 with rank ${rank}  acccount ${account.telegramUsername} indirect point: ${point * 0.05} points`);
+    expect(referralLog.indirectPoint).toEqual(point * 0.05);
+  }
 });

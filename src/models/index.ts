@@ -10,6 +10,7 @@ import Task from '@src/models/Task';
 import TaskHistory from '@src/models/TaskHistory';
 import ReferralLog from '@src/models/ReferralLog';
 import GiveAwayPoint from '@src/models/GiveAwayPoint';
+import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 
 AccountAttribute.belongsTo(Account, {foreignKey: 'accountId'});
 Account.hasOne(AccountAttribute, {foreignKey: 'accountId'});
@@ -42,6 +43,7 @@ SequelizeServiceImpl.addSync(Task.sync.bind(Task));
 SequelizeServiceImpl.addSync(TaskHistory.sync.bind(TaskHistory));
 SequelizeServiceImpl.addSync(ReferralLog.sync.bind(ReferralLog));
 SequelizeServiceImpl.addSync(GiveAwayPoint.sync.bind(GiveAwayPoint));
+SequelizeServiceImpl.addSync(ReferralUpgradeLog.sync.bind(ReferralUpgradeLog));
 
 export * from '@src/models/AccountAttribute';
 export * from '@src/models/Account';
