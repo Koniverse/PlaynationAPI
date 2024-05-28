@@ -1,6 +1,6 @@
 import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
-import {requireSecret} from '@src/routes/helper';
+import {requireChainSecret} from '@src/routes/helper';
 import {ChainListServiceImpl, CreateTransactionParams} from '@src/services/ChainListService';
 
 const ChainRouter = Router();
@@ -22,7 +22,7 @@ const routerMap = {
     return res.status(200).json(data);
   },
 };
-ChainRouter.post('/create-transfer', requireSecret, routerMap.createTransfer);
+ChainRouter.post('/create-transfer', requireChainSecret, routerMap.createTransfer);
 ChainRouter.get('/test', routerMap.test);
 
 export default ChainRouter;

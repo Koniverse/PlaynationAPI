@@ -30,6 +30,15 @@ export function requireSecret(req: IReq<any>, res: Response, next: NextFunction)
   return next();
 }
 
+export function requireChainSecret(req: IReq<any>, res: Response, next: NextFunction) {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (token !== EnvVars.ChainService.Token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  return next();
+}
+
 export function getUserAddress(req: IReq<any>) {
   req.user?.address;
 }
