@@ -1,14 +1,9 @@
 // Imports
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
-import {
-  AirdropCampaign,
-  AirdropCampaignStatus,
-  AirdropEligibility,
-  AirdropRecord,
-  AirdropRecordsStatus,
-} from '@src/models';
+import { AirdropCampaign, AirdropEligibility, AirdropRecord, AirdropRecordsStatus } from '@src/models';
 import { AirdropCampaignInterface } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
+import { QueryTypes } from 'sequelize';
 
 // Interfaces
 interface BoxInterface {
@@ -47,6 +42,7 @@ export class AirdropService {
         boxCount: item.boxCount,
         userList: JSON.stringify(item.userList),
         campaign_id: item.campaign_id.id,
+        type: item.type,
       } as unknown as AirdropEligibility;
       const existed = await AirdropEligibility.findByPk(item.id);
       if (existed) {
@@ -60,11 +56,43 @@ export class AirdropService {
 
   // Lists all active airdrop campaigns
   async listAirdropCampaign() {
-    return await AirdropCampaign.findAll({
-      where: {
-        status: AirdropCampaignStatus.ACTIVE,
-      },
+    const results = await this.sequelizeService.sequelize.query(
+      `SELECT airdrop_campaigns.*,
+              airdrop_eligibility.name AS eligibility_name,
+              airdrop_eligibility.type AS eligibility_type
+       FROM airdrop_campaigns
+                JOIN airdrop_eligibility ON airdrop_campaigns.id = airdrop_eligibility.campaign_id
+       WHERE airdrop_campaigns.status = 'ACTIVE';`,
+      { type: QueryTypes.SELECT },
+    );
+    const campaigns: any = {};
+    results.forEach((item: any) => {
+      if (!campaigns[item.campaign_id]) {
+        campaigns[item.campaign_id] = {
+          name: item.name,
+          icon: item.icon,
+          banner: item.banner,
+          start_snapshot: item.start_snapshot,
+          end_snapshot: item.end_snapshot,
+          start_claim: item.start_claim,
+          end_claim: item.end_claim,
+          network: item.network,
+          total_tokens: item.total_tokens,
+          symbol: item.symbol,
+          decimal: item.decimal,
+          method: item.method,
+          start: item.start,
+          end: item.end,
+          eligibilityList: [],
+          description: item.description,
+        };
+      }
+      campaigns[item.campaign_id].eligibilityList.push({
+        name: item.eligibility_name,
+        type: item.eligibility_type,
+      });
     });
+    return Object.values(campaigns);
   }
 
   // Main method to create airdrop and reward users based on provided eligibility data
