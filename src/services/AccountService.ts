@@ -1,14 +1,16 @@
-import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import Account, {AccountParams, ReferralRecord} from '@src/models/Account';
-import AccountAttribute, {AccountAttributeRank} from '@src/models/AccountAttribute';
-import {generateRandomString, validateSignature} from '@src/utils';
-import {checkWalletType} from '@src/utils/wallet';
+import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
+import Account, { AccountParams, ReferralRecord } from '@src/models/Account';
+import AccountAttribute, { AccountAttributeRank } from '@src/models/AccountAttribute';
+import { generateRandomString, validateSignature } from '@src/utils';
+import { checkWalletType } from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
 import {GameData, GiveAwayPoint} from '@src/models';
 import {TelegramService} from '@src/services/TelegramService';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
+import { GiveAwayPoint } from '@src/models';
+import { TelegramService } from '@src/services/TelegramService';
 
 // CMS input
 export interface GiveawayPointParams {
@@ -32,7 +34,7 @@ export class AccountService {
 
   public async fetchAccountWithDetails(id: number) {
     const account = await this.findById(id);
-    if(account) {
+    if (account) {
       account.signature = '___';
     }
     const attribute = await this.getAccountAttribute(id);
@@ -50,7 +52,7 @@ export class AccountService {
 
   // Create a new account and its attributes
   public async createAccount(params: AccountParams) {
-    const {referralCode, ...info} = params;
+    const { referralCode, ...info } = params;
 
     // Ensure the database is synchronized
     await this.sequelizeService.syncAll();
@@ -88,16 +90,15 @@ export class AccountService {
       lastEnergyUpdated: new Date(),
       rank: AccountAttributeRank.IRON,
       accumulatePoint: 0, // Assuming starting points is 0
-      point: 0,   // Assuming starting points is 0
+      point: 0, // Assuming starting points is 0
     });
 
     return newAccount;
-
   }
 
   // Sync account data with Telegram data
   public async syncAccountData(info: AccountParams, code?: string, validateSign = true) {
-    const { signature, telegramUsername, address} = info;
+    const { signature, telegramUsername, address } = info;
 
     info.type = checkWalletType(address);
     if (!info.type) {
@@ -105,7 +106,7 @@ export class AccountService {
     }
 
     const message = `Login as ${telegramUsername}`;
-    const validSignature = validateSignature(address, message , signature);
+    const validSignature = validateSignature(address, message, signature);
 
     if (validateSign && !validSignature) {
       throw new Error('Invalid signature ' + message);
@@ -116,29 +117,32 @@ export class AccountService {
     if (!account) {
       account = await this.createAccount(info);
       // Add  point from inviteCode
-      code && await this.addInvitePoint(account.id, code, account.isPremium);
-      
-      const {telegramId} = info;
+      code && (await this.addInvitePoint(account.id, code, account.isPremium));
+
+      const { telegramId } = info;
       if (telegramId) {
         await TelegramService.instance.saveTelegramAccountAvatar(telegramId);
       }
     }
 
-
     // Update account info if changed
     if (
       account.firstName !== info.firstName ||
-        account.lastName !== info.lastName ||
-        account.photoUrl !== info.photoUrl ||
-        !!account.addedToAttachMenu !== !!info.addedToAttachMenu || // Convert to boolean
-        account.languageCode !== info.languageCode
+      account.lastName !== info.lastName ||
+      account.photoUrl !== info.photoUrl ||
+      !!account.addedToAttachMenu !== !!info.addedToAttachMenu || // Convert to boolean
+      account.languageCode !== info.languageCode
     ) {
       console.log('Updating account info');
       await account.update(info);
     }
 
     // Update signature, telegramId, telegramUsername
-    if (account.signature !== info.signature || parseInt(account.telegramId.toString()) !== info.telegramId || account.telegramUsername !== info.telegramUsername) {
+    if (
+      account.signature !== info.signature ||
+      parseInt(account.telegramId.toString()) !== info.telegramId ||
+      account.telegramUsername !== info.telegramUsername
+    ) {
       await account.update({
         ...info,
         sessionTime: new Date(),
@@ -160,7 +164,6 @@ export class AccountService {
     return AccountAttributeRank.IRON;
   }
 
-
   async addInvitePoint(accountId: number, code: string, isPremium = false) {
     if (code) {
       const account = await Account.findOne({
@@ -176,10 +179,10 @@ export class AccountService {
             sourceAccountId: account.id,
           },
         });
-        if (existed){
+        if (existed) {
           return;
         }
-        const rankData = rankJson.find((item) => item.rank === AccountAttributeRank.IRON );
+        const rankData = rankJson.find((item) => item.rank === AccountAttributeRank.IRON);
         if (rankData) {
           // Check log invite from this account
           const referralLogIndirect = await ReferralLog.findOne({
@@ -248,7 +251,9 @@ export class AccountService {
         });
       } else {
         accountAttribute.energy = energy;
-        accountAttribute.lastEnergyUpdated = new Date(lastEnergyUpdatedTimestamp + energyToAdd * EnvVars.Game.EnergyRecoverTime * 1000);
+        accountAttribute.lastEnergyUpdated = new Date(
+          lastEnergyUpdatedTimestamp + energyToAdd * EnvVars.Game.EnergyRecoverTime * 1000,
+        );
       }
     }
 
@@ -269,9 +274,9 @@ export class AccountService {
       lastEnergyUpdated: new Date(),
     });
   }
-  
+
   async updateIndirectAccountPoint(accountId: number, rank: AccountAttributeRank) {
-  // Find the account attribute for the given account
+    // Find the account attribute for the given account
     const referralLog = await ReferralLog.findOne({
       where: {
         invitedAccountId: accountId,
@@ -290,7 +295,7 @@ export class AccountService {
       const invitePoint = Number(account.isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
       const indirectPoint = invitePoint * EnvVars.INDIRECT_POINT_RATE;
       const indirectAccount = referralLog.indirectAccount;
-    
+
       await this.addAccountPoint(referralLog.sourceAccountId, invitePoint);
       if (indirectAccount > 0) {
         await this.addAccountPoint(indirectAccount, indirectPoint);
@@ -309,8 +314,8 @@ export class AccountService {
 
   async addAccountPoint(accountId: number, point: number) {
     const accountAttribute = await this.getAccountAttribute(accountId, false);
-    const newPoint = accountAttribute.point += point;
-    const newAccumulatePoint = accountAttribute.accumulatePoint += point;
+    const newPoint = (accountAttribute.point += point);
+    const newAccumulatePoint = (accountAttribute.accumulatePoint += point);
     const rank = this.checkAccountAttributeRank(newAccumulatePoint);
 
     // Update indirect account point
@@ -325,8 +330,21 @@ export class AccountService {
     });
   }
 
+  async useAccountPoint(accountId: number, point: number) {
+    const accountAttribute = await this.getAccountAttribute(accountId, false);
+    const newPoint = (accountAttribute.point -= point);
+
+    if (newPoint < 0) {
+      throw new Error('Not enough point');
+    }
+
+    await accountAttribute.update({
+      point: newPoint,
+    });
+  }
+
   async giveAccountPoint(params: GiveawayPointParams) {
-    const {contentId, inviteCode, point, note} = params;
+    const { contentId, inviteCode, point, note } = params;
     // Find account by invite code
     const account = await Account.findOne({
       where: {
@@ -347,9 +365,10 @@ export class AccountService {
 
     await this.addAccountPoint(account.id, point);
   }
+
   async syncGiveAccountPoint(params: GiveawayPointParams[]) {
     for (const param of params) {
-      const {contentId, inviteCode, point, note} = param;
+      const { contentId, inviteCode, point, note } = param;
       const _contentId = contentId || 0;
       const account = await Account.findOne({
         where: {
@@ -380,7 +399,15 @@ export class AccountService {
 
       await this.addAccountPoint(account.id, point);
     }
-    return {success: true};
+    return { success: true };
+  }
+
+  async addEnergy(accountId: number, energy: number) {
+    const accountAttribute = await this.getAccountAttribute(accountId, false);
+    const newEnergy = (accountAttribute.energy += energy);
+    await accountAttribute.update({
+      energy: newEnergy,
+    });
   }
 
   async getReferralLog(accountId: number) {
@@ -406,7 +433,17 @@ LIMIT 100;
     if (data.length > 0) {
       return data[0].map((item) => {
         // @ts-ignore
-        const {point, lastName, telegramUsername, firstName, referralsuccesstime, id, photoUrl, address, total_count} = item;
+        const {
+          point,
+          lastName,
+          telegramUsername,
+          firstName,
+          referralsuccesstime,
+          id,
+          photoUrl,
+          address,
+          total_count,
+        }: any = item;
         const referralSuccessTime = parseFloat(referralsuccesstime as string);
 
         return {
@@ -425,6 +462,16 @@ LIMIT 100;
       });
     }
     return [];
+  }
+
+  // update energy
+
+  async updateAccountEnergy(accountId: number, energy: number) {
+    const accountAttribute = await this.getAccountAttribute(accountId);
+    await accountAttribute.update({
+      energy,
+    });
+    return accountAttribute;
   }
 
   // Singleton this class

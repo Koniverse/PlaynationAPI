@@ -10,26 +10,32 @@ import Task from '@src/models/Task';
 import TaskHistory from '@src/models/TaskHistory';
 import ReferralLog from '@src/models/ReferralLog';
 import GiveAwayPoint from '@src/models/GiveAwayPoint';
+import Receipt from './Receipt';
 import TaskCategory from '@src/models/TaskCategory';
+import AirdropCampaign from './AirdropCampaign';
+import AirdropRecord from './AirdropRecord';
+import AirdropRecordLog from './AirdropRecordLog';
+import AirdropEligibility from '@src/models/AirdropEligibility';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 
-AccountAttribute.belongsTo(Account, {foreignKey: 'accountId'});
-Account.hasOne(AccountAttribute, {foreignKey: 'accountId'});
-Account.hasOne(TaskHistory, {foreignKey: 'accountId'});
+AccountAttribute.belongsTo(Account, { foreignKey: 'accountId' });
+Account.hasOne(AccountAttribute, { foreignKey: 'accountId' });
+Account.hasOne(TaskHistory, { foreignKey: 'accountId' });
 
-GamePlay.belongsTo(Game, {foreignKey: 'gameId'});
-GamePlay.belongsTo(Account, {foreignKey: 'AccountId'});
+GamePlay.belongsTo(Game, { foreignKey: 'gameId' });
+GamePlay.belongsTo(Account, { foreignKey: 'AccountId' });
 
-GameItem.belongsTo(Game, {foreignKey: 'gameId'});
+GameItem.belongsTo(Game, { foreignKey: 'gameId' });
 
-GameInventoryItem.belongsTo(Game, {foreignKey: 'gameId'});
-GameInventoryItem.belongsTo(Account, {foreignKey: 'accountId'});
-GameInventoryItem.belongsTo(GameItem, {foreignKey: 'itemId'});
-GameInventoryItem.belongsTo(GameData, {foreignKey: 'gameDataId'});
+GameInventoryItem.belongsTo(Game, { foreignKey: 'gameId' });
+GameInventoryItem.belongsTo(Account, { foreignKey: 'accountId' });
+GameInventoryItem.belongsTo(GameItem, { foreignKey: 'itemId' });
+GameInventoryItem.belongsTo(GameData, { foreignKey: 'gameDataId' });
 
-TaskHistory.belongsTo(Task, {foreignKey: 'taskId'});
-TaskHistory.belongsTo(Account, {foreignKey: 'accountId'});
+TaskHistory.belongsTo(Task, { foreignKey: 'taskId' });
+TaskHistory.belongsTo(Account, { foreignKey: 'accountId' });
 
+Task.belongsTo(Game, { foreignKey: 'gameId' });
 Task.belongsTo(Game, {foreignKey: 'gameId'});
 
 // Sync all models
@@ -46,6 +52,11 @@ SequelizeServiceImpl.addSync(TaskHistory.sync.bind(TaskHistory));
 SequelizeServiceImpl.addSync(ReferralLog.sync.bind(ReferralLog));
 SequelizeServiceImpl.addSync(GiveAwayPoint.sync.bind(GiveAwayPoint));
 SequelizeServiceImpl.addSync(ReferralUpgradeLog.sync.bind(ReferralUpgradeLog));
+SequelizeServiceImpl.addSync(Receipt.sync.bind(Receipt));
+SequelizeServiceImpl.addSync(AirdropCampaign.sync.bind(AirdropCampaign));
+SequelizeServiceImpl.addSync(AirdropRecord.sync.bind(AirdropRecord));
+SequelizeServiceImpl.addSync(AirdropRecordLog.sync.bind(AirdropRecordLog));
+SequelizeServiceImpl.addSync(AirdropEligibility.sync.bind(AirdropEligibility));
 
 export * from '@src/models/AccountAttribute';
 export * from '@src/models/Account';
@@ -59,4 +70,9 @@ export * from '@src/models/Task';
 export * from '@src/models/TaskHistory';
 export * from '@src/models/ReferralLog';
 export * from '@src/models/GiveAwayPoint';
+export * from '@src/models/Receipt';
+export * from '@src/models/AirdropCampaign';
+export * from '@src/models/AirdropRecord';
+export * from '@src/models/AirdropRecordLog';
+export * from '@src/models/AirdropEligibility';
 export * from '@src/models/ReferralUpgradeLog';

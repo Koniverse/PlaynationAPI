@@ -6,9 +6,9 @@ import GameData from '@src/models/GameData';
 import GameItem from '@src/models/GameItem';
 
 export enum GameInventoryItemStatus {
-  READY = 'ready',
-  ACTIVE = 'inactive',
-  USED = 'used',
+  INACTIVE = 'inactive', // After buy item request
+  ACTIVE = 'active', // After validate signature
+  USED = 'used', // After used item
 }
 
 export class GameInventoryItem extends Model<InferAttributes<GameInventoryItem>, InferCreationAttributes<GameInventoryItem>> {
@@ -17,10 +17,16 @@ export class GameInventoryItem extends Model<InferAttributes<GameInventoryItem>,
   declare accountId: number;
   declare gameDataId: number;
   declare gameItemId: number;
+  declare transactionId: string; // random UUID
   declare buyTime: Date;
-  declare useTime: CreationOptional<Date>;
   declare endEffectTime: CreationOptional<Date>;
   declare status: GameInventoryItemStatus;
+
+  // After validated signature
+  declare signature: CreationOptional<string>;
+
+  // After used item
+  declare usedTime: CreationOptional<Date>;
 }
 
 GameInventoryItem.init({
@@ -57,20 +63,26 @@ GameInventoryItem.init({
       key: 'id',
     },
   },
-  buyTime: {
-    type: DataTypes.DATE,
+  transactionId: {
+    type: DataTypes.STRING,
   },
-  useTime: {
+  signature: {
+    type: DataTypes.STRING,
+  },
+  buyTime: {
     type: DataTypes.DATE,
   },
   endEffectTime: {
     type: DataTypes.DATE,
   },
+  usedTime: {
+    type: DataTypes.DATE,
+  },
   status: {
-    type: DataTypes.ENUM(GameInventoryItemStatus.READY, GameInventoryItemStatus.ACTIVE, GameInventoryItemStatus.USED),
+    type: DataTypes.ENUM(GameInventoryItemStatus.INACTIVE, GameInventoryItemStatus.ACTIVE, GameInventoryItemStatus.USED),
   },
 }, {
-  indexes: [{unique: true, fields: ['gameDataId']}, {unique: true, fields: ['gameId', 'accountId']}],
+  indexes: [{unique: false, fields: ['gameDataId']}],
   tableName: 'game_inventory_item',
   sequelize: SequelizeServiceImpl.sequelize,
   createdAt: true,

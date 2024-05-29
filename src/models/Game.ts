@@ -59,6 +59,7 @@ Game.init({
   },
   rankDefinition: {
     type: DataTypes.TEXT,
+    allowNull: true,
   },
   startTime: {
     type: DataTypes.DATE,

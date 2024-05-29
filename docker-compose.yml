@@ -56,6 +56,24 @@ services:
       - nft-minting-services_net
     restart: always
 
+  node_worker-chain:
+    build: .
+    depends_on:
+      - postgres
+    ports:
+      - "8109:3001"
+    secrets:
+      - source: environment-config
+        target: /app/.env
+        mode: 0444
+    volumes:
+      - ./:/app
+    working_dir: /app
+    command: npm run start-chain
+    networks:
+      - nft-minting-services_net
+    restart: always
+
 networks:
   nft-minting-services_net:
 
