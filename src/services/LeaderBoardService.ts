@@ -100,7 +100,22 @@ export class LeaderBoardService {
                                     FROM referral_log
                                     where "createdAt" >= :startDate
                                       and "createdAt" <= :endDate
-                                    GROUP BY "indirectAccount"),
+                                    GROUP BY "indirectAccount"
+                                    UNION ALL
+                                    SELECT "sourceAccountId" AS accountId,
+                                           SUM(coalesce(point, 0))        AS point
+                                    FROM referral_upgrade_log
+                                    where "createdAt" >= :startDate
+                                      and "createdAt" <= :endDate
+                                    GROUP BY "sourceAccountId"
+                                    UNION ALL
+                                    SELECT "indirectAccount"    AS accountId,
+                                           SUM(coalesce("indirectPoint", 0)) AS point
+                                    FROM referral_upgrade_log
+                                    where "createdAt" >= :startDate
+                                      and "createdAt" <= :endDate
+                                    GROUP BY "indirectAccount"
+                                    ),
                  rankedUsers as (SELECT accountId,
                                         RANK() OVER (ORDER BY SUM(point) DESC) as rank, SUM(point) AS point
                                  FROM combinedPoints
@@ -141,6 +156,24 @@ export class LeaderBoardService {
                              where "createdAt" >= :startDate
                                and "createdAt" <= :endDate
                              GROUP BY "indirectAccount"
+                             
+                            UNION ALL
+                            SELECT "sourceAccountId" AS accountId,
+                                   MIN("createdAt") as "createdAt",
+                                   SUM(coalesce(point, 0))        AS point
+                            FROM referral_upgrade_log
+                            where "createdAt" >= :startDate
+                              and "createdAt" <= :endDate
+                            GROUP BY "sourceAccountId"
+                            UNION ALL
+                            SELECT "indirectAccount"    AS accountId,
+                                   MIN("createdAt") as "createdAt",
+                                   SUM(coalesce("indirectPoint", 0)) AS point
+                            FROM referral_upgrade_log
+                            where "createdAt" >= :startDate
+                              and "createdAt" <= :endDate
+                            GROUP BY "indirectAccount"
+                            
                              UNION ALL
                              SELECT "accountId"             AS accountId,
                                     MIN("createdAt") as "createdAt",

@@ -11,6 +11,7 @@ import TaskHistory from '@src/models/TaskHistory';
 import ReferralLog from '@src/models/ReferralLog';
 import GiveAwayPoint from '@src/models/GiveAwayPoint';
 import TaskCategory from '@src/models/TaskCategory';
+import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 
 AccountAttribute.belongsTo(Account, {foreignKey: 'accountId'});
 Account.hasOne(AccountAttribute, {foreignKey: 'accountId'});
@@ -30,7 +31,6 @@ TaskHistory.belongsTo(Task, {foreignKey: 'taskId'});
 TaskHistory.belongsTo(Account, {foreignKey: 'accountId'});
 
 Task.belongsTo(Game, {foreignKey: 'gameId'});
-Task.belongsTo(TaskCategory, {foreignKey: 'categoryId'});
 
 // Sync all models
 SequelizeServiceImpl.addSync(Account.sync.bind(Account));
@@ -45,6 +45,7 @@ SequelizeServiceImpl.addSync(Task.sync.bind(Task));
 SequelizeServiceImpl.addSync(TaskHistory.sync.bind(TaskHistory));
 SequelizeServiceImpl.addSync(ReferralLog.sync.bind(ReferralLog));
 SequelizeServiceImpl.addSync(GiveAwayPoint.sync.bind(GiveAwayPoint));
+SequelizeServiceImpl.addSync(ReferralUpgradeLog.sync.bind(ReferralUpgradeLog));
 
 export * from '@src/models/AccountAttribute';
 export * from '@src/models/Account';
