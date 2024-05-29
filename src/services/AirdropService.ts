@@ -60,11 +60,18 @@ export class AirdropService {
 
   // Lists all active airdrop campaigns
   async listAirdropCampaign() {
-    return await AirdropCampaign.findAll({
-      where: {
-        status: AirdropCampaignStatus.ACTIVE,
-      },
-    });
+    try {
+      const sql = `SELECT *
+                   FROM airdrop_campaigns
+                            left join airdrop_eligibility on airdrop_campaigns.id = airdrop_eligibility.campaign_id
+                   WHERE status = '${AirdropCampaignStatus.ACTIVE}'`;
+
+      const campaigns = await this.sequelizeService.sequelize.query(sql);
+      return campaigns;
+    } catch (error) {
+      console.error('Error listing airdrop campaigns:', error);
+      throw error;
+    }
   }
 
   // Main method to create airdrop and reward users based on provided eligibility data

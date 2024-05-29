@@ -22,6 +22,13 @@ export class AirdropEligibility extends Model<
   declare userList: JSON;
   declare boxCount: number;
   declare created_at: CreationOptional<Date>;
+
+  static associate(models: any) {
+    AirdropEligibility.belongsTo(models.AirdropCampaign, {
+      foreignKey: 'campaign_id',
+      as: 'campaign',
+    });
+  }
 }
 
 AirdropEligibility.init(
@@ -38,6 +45,10 @@ AirdropEligibility.init(
     campaign_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      references: {
+        model: AirdropCampaign,
+        key: 'id',
+      },
     },
     boxCount: {
       type: DataTypes.INTEGER,
@@ -61,4 +72,5 @@ AirdropEligibility.init(
     tableName: 'airdrop_eligibility',
   },
 );
+
 export default AirdropEligibility;

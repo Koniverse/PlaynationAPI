@@ -35,6 +35,7 @@ TaskHistory.belongsTo(Task, { foreignKey: 'taskId' });
 TaskHistory.belongsTo(Account, { foreignKey: 'accountId' });
 
 Task.belongsTo(Game, { foreignKey: 'gameId' });
+AirdropEligibility.belongsTo(AirdropCampaign, { foreignKey: 'campaign_id' });
 
 // Sync all models
 SequelizeServiceImpl.addSync(Account.sync.bind(Account));
