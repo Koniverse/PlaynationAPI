@@ -56,3 +56,4 @@ export * from '@src/models/Task';
 export * from '@src/models/TaskHistory';
 export * from '@src/models/ReferralLog';
 export * from '@src/models/GiveAwayPoint';
+export * from '@src/models/ReferralUpgradeLog';
