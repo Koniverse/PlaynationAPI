@@ -16,7 +16,6 @@ import AirdropCampaign from './AirdropCampaign';
 import AirdropRecord from './AirdropRecord';
 import AirdropRecordLog from './AirdropRecordLog';
 import AirdropEligibility from '@src/models/AirdropEligibility';
-import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 
 AccountAttribute.belongsTo(Account, { foreignKey: 'accountId' });
 Account.hasOne(AccountAttribute, { foreignKey: 'accountId' });
@@ -36,7 +35,7 @@ TaskHistory.belongsTo(Task, { foreignKey: 'taskId' });
 TaskHistory.belongsTo(Account, { foreignKey: 'accountId' });
 
 Task.belongsTo(Game, { foreignKey: 'gameId' });
-Task.belongsTo(Game, {foreignKey: 'gameId'});
+AirdropEligibility.belongsTo(AirdropCampaign, { foreignKey: 'campaign_id' });
 
 // Sync all models
 SequelizeServiceImpl.addSync(Account.sync.bind(Account));
@@ -51,7 +50,6 @@ SequelizeServiceImpl.addSync(Task.sync.bind(Task));
 SequelizeServiceImpl.addSync(TaskHistory.sync.bind(TaskHistory));
 SequelizeServiceImpl.addSync(ReferralLog.sync.bind(ReferralLog));
 SequelizeServiceImpl.addSync(GiveAwayPoint.sync.bind(GiveAwayPoint));
-SequelizeServiceImpl.addSync(ReferralUpgradeLog.sync.bind(ReferralUpgradeLog));
 SequelizeServiceImpl.addSync(Receipt.sync.bind(Receipt));
 SequelizeServiceImpl.addSync(AirdropCampaign.sync.bind(AirdropCampaign));
 SequelizeServiceImpl.addSync(AirdropRecord.sync.bind(AirdropRecord));
@@ -75,4 +73,3 @@ export * from '@src/models/AirdropCampaign';
 export * from '@src/models/AirdropRecord';
 export * from '@src/models/AirdropRecordLog';
 export * from '@src/models/AirdropEligibility';
-export * from '@src/models/ReferralUpgradeLog';
