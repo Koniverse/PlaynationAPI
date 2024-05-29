@@ -16,6 +16,11 @@ interface SubscanAction {
 
 const MAP_NETWORK = {
   'alephTest': 'alephzero-testnet',
+  'polkadot': 'polkadot',
+  'kusama': 'kusama',
+  'goldberg_testnet': 'goldberg_testnet',
+  'karura': 'karura',
+  'acala': 'acala',
 } as Record<string, string>;
 
 export class SubscanService {
@@ -24,7 +29,7 @@ export class SubscanService {
 
   constructor(private sequelizeService: SequelizeService) {}
   getActionUrl(network: string, action: string){
-    const slug = MAP_NETWORK[network] ||  'alephzero-testnet';
+    const slug = MAP_NETWORK[network] ||  network;
     return `https://${slug}.api.subscan.io${action}`;
   }
 
