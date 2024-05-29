@@ -57,7 +57,8 @@ export class AirdropService {
   // Lists all active airdrop campaigns
   async listAirdropCampaign() {
     const results = await this.sequelizeService.sequelize.query(
-      `SELECT airdrop_campaigns.name,
+      `SELECT airdrop_campaigns.id     AS campaign_id,
+              airdrop_campaigns.name,
               airdrop_campaigns.icon,
               airdrop_campaigns.banner,
               airdrop_campaigns.start_snapshot,
@@ -75,26 +76,44 @@ export class AirdropService {
               airdrop_eligibility.name AS eligibility_name,
               airdrop_eligibility.type AS eligibility_type
        FROM airdrop_campaigns
-                JOIN airdrop_eligibility ON airdrop_campaigns.id = airdrop_eligibility.campaign_id
+                LEFT JOIN airdrop_eligibility ON airdrop_campaigns.id = airdrop_eligibility.campaign_id
        WHERE airdrop_campaigns.status = 'ACTIVE';`,
       { type: QueryTypes.SELECT },
     );
+
     const campaigns: any = {};
+
     results.forEach((item: any) => {
       if (!campaigns[item.campaign_id]) {
         campaigns[item.campaign_id] = {
-          ...item,
+          campaign_id: item.campaign_id,
+          name: item.name,
+          icon: item.icon,
+          banner: item.banner,
+          start_snapshot: item.start_snapshot,
+          end_snapshot: item.end_snapshot,
+          start_claim: item.start_claim,
+          end_claim: item.end_claim,
+          network: item.network,
+          total_tokens: item.total_tokens,
+          symbol: item.symbol,
+          decimal: item.decimal,
+          method: item.method,
+          start: item.start,
+          end: item.end,
+          description: item.description,
           eligibilityList: [],
         };
       }
-      campaigns[item.campaign_id].eligibilityList.push({
-        name: item.eligibility_name,
-        type: item.eligibility_type,
-      });
-      // remove eligibility_name in the result
-      delete campaigns[item.campaign_id].eligibility_name;
-      delete campaigns[item.campaign_id].eligibility_type;
+
+      if (item.eligibility_name && item.eligibility_type) {
+        campaigns[item.campaign_id].eligibilityList.push({
+          name: item.eligibility_name,
+          type: item.eligibility_type,
+        });
+      }
     });
+
     return Object.values(campaigns);
   }
 
