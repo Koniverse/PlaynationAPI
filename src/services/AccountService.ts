@@ -9,8 +9,6 @@ import ReferralLog from '@src/models/ReferralLog';
 import {GameData, GiveAwayPoint} from '@src/models';
 import {TelegramService} from '@src/services/TelegramService';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
-import { GiveAwayPoint } from '@src/models';
-import { TelegramService } from '@src/services/TelegramService';
 
 // CMS input
 export interface GiveawayPointParams {
