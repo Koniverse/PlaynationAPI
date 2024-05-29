@@ -57,7 +57,21 @@ export class AirdropService {
   // Lists all active airdrop campaigns
   async listAirdropCampaign() {
     const results = await this.sequelizeService.sequelize.query(
-      `SELECT airdrop_campaigns.*,
+      `SELECT airdrop_campaigns.name,
+              airdrop_campaigns.icon,
+              airdrop_campaigns.banner,
+              airdrop_campaigns.start_snapshot,
+              airdrop_campaigns.end_snapshot,
+              airdrop_campaigns.start_claim,
+              airdrop_campaigns.end_claim,
+              airdrop_campaigns.network,
+              airdrop_campaigns.total_tokens,
+              airdrop_campaigns.symbol,
+              airdrop_campaigns.decimal,
+              airdrop_campaigns.method,
+              airdrop_campaigns.start,
+              airdrop_campaigns.end,
+              airdrop_campaigns.description,
               airdrop_eligibility.name AS eligibility_name,
               airdrop_eligibility.type AS eligibility_type
        FROM airdrop_campaigns
@@ -69,30 +83,44 @@ export class AirdropService {
     results.forEach((item: any) => {
       if (!campaigns[item.campaign_id]) {
         campaigns[item.campaign_id] = {
-          name: item.name,
-          icon: item.icon,
-          banner: item.banner,
-          start_snapshot: item.start_snapshot,
-          end_snapshot: item.end_snapshot,
-          start_claim: item.start_claim,
-          end_claim: item.end_claim,
-          network: item.network,
-          total_tokens: item.total_tokens,
-          symbol: item.symbol,
-          decimal: item.decimal,
-          method: item.method,
-          start: item.start,
-          end: item.end,
+          ...item,
           eligibilityList: [],
-          description: item.description,
         };
       }
       campaigns[item.campaign_id].eligibilityList.push({
         name: item.eligibility_name,
         type: item.eligibility_type,
       });
+      // remove eligibility_name in the result
+      delete campaigns[item.campaign_id].eligibility_name;
+      delete campaigns[item.campaign_id].eligibility_type;
     });
     return Object.values(campaigns);
+  }
+
+  async checkEligibility(account_id: number, campaign_id: number) {
+    const results = await AirdropEligibility.findAll({
+      where: { campaign_id },
+    });
+
+    if (!results || results.length === 0) {
+      throw new Error('Campaign not found');
+    }
+    let eligibility = false;
+    let raffleTotal = 0;
+    results.forEach((item: any) => {
+      const userList = JSON.parse(item.userList);
+      userList.forEach((user: any) => {
+        if (user.accountInfo.id === account_id) {
+          eligibility = true;
+          raffleTotal++;
+        }
+      });
+    });
+    return {
+      eligibility: eligibility,
+      raffleTotal: raffleTotal,
+    };
   }
 
   // Main method to create airdrop and reward users based on provided eligibility data

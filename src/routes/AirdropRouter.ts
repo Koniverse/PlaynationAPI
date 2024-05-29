@@ -5,6 +5,7 @@ import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
 
 import { Query } from 'express-serve-static-core';
 import { Router } from 'express';
+import { requireLogin, requireSecret } from '@src/routes/helper';
 
 const AirdropRouter = Router();
 
@@ -36,10 +37,17 @@ const routerMap = {
     const response = await airdropService.generateAirdropRecordAndDistribute(campaign_id);
     return res.status(200).json(response);
   },
+  checkEligibility: async (req: IReq<AirdropRecordAndDistribute>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const campaign_id = req.body.campaign_id;
+    const response = await airdropService.checkEligibility(userId, campaign_id);
+    return res.status(200).json(response);
+  },
 };
 AirdropRouter.post('/sync-airdrop-campaign', routerMap.syncAirdropCampaign);
 AirdropRouter.post('/sync-airdrop-eligibility', routerMap.syncDataEligibility);
-AirdropRouter.post('/generate-airdrop-record', routerMap.generateAirdropRecordAndDistribute);
-AirdropRouter.get('/list-airdrop-campaign', routerMap.listAirdropCampaign);
+AirdropRouter.post('/generate-airdrop-record', requireSecret, routerMap.generateAirdropRecordAndDistribute);
+AirdropRouter.get('/list-airdrop-campaign', requireLogin, routerMap.listAirdropCampaign);
+AirdropRouter.post('/check-eligibility', requireLogin, routerMap.checkEligibility);
 
 export default AirdropRouter;
