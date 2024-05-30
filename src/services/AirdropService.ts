@@ -9,6 +9,7 @@ import {
   AirdropRecord,
   AirdropRecordLog,
   AirdropRecordsStatus,
+  AirdropTransactionLog,
 } from '@src/models';
 import { AirdropCampaignInterface } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
@@ -25,6 +26,14 @@ interface BoxInterface {
   eligibilityId: number;
   airdrop_campaign: AirdropCampaign;
   campaign_id?: AirdropCampaign;
+}
+
+interface TransactionInterface {
+  extrinsicHash: string;
+  blockHash: string;
+  blockNumber: number;
+  amount: number;
+  point: number;
 }
 
 const commonService = CommonService.instance;
@@ -321,10 +330,40 @@ export class AirdropService {
           decimal: airdropRecordLog.decimal,
           amount: airdropRecordLog.amount,
         };
-        const transaction = await commonService.callActionChainService('chain/create-transfer', data);
-        console.log(data);
-        console.log(transaction);
-        // save transaction log
+        const transactionLog: TransactionInterface[] = await commonService.callActionChainService(
+          'chain/create-transfer',
+          data,
+        );
+        if (transactionLog && transactionLog.length > 0) {
+          const { extrinsicHash, blockHash, blockNumber } = transactionLog[0];
+          await AirdropTransactionLog.create(
+            {
+              name: airdropRecordLog.name,
+              extrinsicHash,
+              blockHash,
+              account_id,
+              blockNumber,
+              amount: airdropRecordLog.amount,
+              point: 0,
+              status: 'SUCCESS',
+            },
+            { transaction },
+          );
+        } else {
+          await AirdropTransactionLog.create(
+            {
+              name: airdropRecordLog.name,
+              extrinsicHash: '',
+              blockHash: '',
+              account_id,
+              blockNumber: 0,
+              amount: airdropRecordLog.amount,
+              point: 0,
+              status: 'FAILED',
+            },
+            { transaction },
+          );
+        }
       } else {
         // send NPS
         await accountService.addAccountPoint(account_id, airdropRecordLog.amount);
