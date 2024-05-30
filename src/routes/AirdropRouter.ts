@@ -43,11 +43,19 @@ const routerMap = {
     const response = await airdropService.checkEligibility(userId, campaign_id);
     return res.status(200).json(response);
   },
+
+  handleRaffle: async (req: IReq<AirdropRecordAndDistribute>, res: IRes) => {
+    const account_id = req.user?.id || 0;
+    const campaign_id = req.body.campaign_id;
+    const response = await airdropService.handleRaffle(account_id, campaign_id);
+    return res.status(200).json(response);
+  },
 };
 AirdropRouter.post('/sync-airdrop-campaign', routerMap.syncAirdropCampaign);
 AirdropRouter.post('/sync-airdrop-eligibility', routerMap.syncDataEligibility);
 AirdropRouter.post('/generate-airdrop-record', requireSecret, routerMap.generateAirdropRecordAndDistribute);
 AirdropRouter.get('/list-airdrop-campaign', requireLogin, routerMap.listAirdropCampaign);
 AirdropRouter.post('/check-eligibility', requireLogin, routerMap.checkEligibility);
+AirdropRouter.post('/raffle', requireLogin, routerMap.handleRaffle);
 
 export default AirdropRouter;

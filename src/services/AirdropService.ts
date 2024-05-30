@@ -1,6 +1,15 @@
 // Imports
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
-import { AirdropCampaign, AirdropEligibility, AirdropRecord, AirdropRecordsStatus } from '@src/models';
+import {
+  Account,
+  AIRDROP_LOG_STATUS,
+  AIRDROP_LOG_TYPE,
+  AirdropCampaign,
+  AirdropEligibility,
+  AirdropRecord,
+  AirdropRecordLog,
+  AirdropRecordsStatus,
+} from '@src/models';
 import { AirdropCampaignInterface } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
 import { QueryTypes } from 'sequelize';
@@ -58,21 +67,7 @@ export class AirdropService {
   async listAirdropCampaign() {
     const results = await this.sequelizeService.sequelize.query(
       `SELECT airdrop_campaigns.id     AS campaign_id,
-              airdrop_campaigns.name,
-              airdrop_campaigns.icon,
-              airdrop_campaigns.banner,
-              airdrop_campaigns.start_snapshot,
-              airdrop_campaigns.end_snapshot,
-              airdrop_campaigns.start_claim,
-              airdrop_campaigns.end_claim,
-              airdrop_campaigns.network,
-              airdrop_campaigns.total_tokens,
-              airdrop_campaigns.symbol,
-              airdrop_campaigns.decimal,
-              airdrop_campaigns.method,
-              airdrop_campaigns.start,
-              airdrop_campaigns.end,
-              airdrop_campaigns.description,
+              airdrop_campaigns.*,
               airdrop_eligibility.name AS eligibility_name,
               airdrop_eligibility.type AS eligibility_type
        FROM airdrop_campaigns
@@ -102,6 +97,7 @@ export class AirdropService {
           start: item.start,
           end: item.end,
           description: item.description,
+          token_slug: 'karura_evm-NATIVE-KAR',
           eligibilityList: [],
         };
       }
@@ -237,7 +233,7 @@ export class AirdropService {
               campaign_id: campaign.id,
               accountId: item.accountId,
               token: item.token,
-              status: AirdropRecordsStatus.ELIGIBLE_FOR_REWARD,
+              status: AirdropRecordsStatus.CLOSED,
               symbol: campaign.symbol,
               decimal: campaign.decimal,
               network: campaign.network,
@@ -253,6 +249,50 @@ export class AirdropService {
     } catch (error) {
       await transaction.rollback();
       throw error;
+    }
+  }
+
+  async handleRaffle(account_id: number, campaign_id: number) {
+    console.log(account_id);
+    const campaign = await AirdropCampaign.findByPk(campaign_id);
+    const account = await Account.findByPk(account_id);
+    const airdropRecord = await AirdropRecord.findOne({
+      where: {
+        campaign_id,
+        accountId: account_id,
+        status: AirdropRecordsStatus.CLOSED,
+      },
+    });
+    if (!airdropRecord || !campaign || !account) {
+      throw new Error('Record not found');
+    }
+    const type = airdropRecord.token > 0 ? AIRDROP_LOG_TYPE.TOKEN : AIRDROP_LOG_TYPE.NPS;
+    const amount: number = airdropRecord.token > 0 ? airdropRecord.token : airdropRecord.point;
+    const transaction = await this.sequelizeService.startTransaction();
+
+    try {
+      const airdropRecordLog = await AirdropRecordLog.create({
+        name: campaign.name,
+        address: account.address,
+        campaign_method: campaign.method,
+        type: type,
+        account_id: account_id,
+        network: campaign.network,
+        campaign_id: campaign_id,
+        decimal: airdropRecord.decimal,
+        amount: amount,
+        airdrop_record_id: airdropRecord.id,
+        status: AIRDROP_LOG_STATUS.PENDING,
+      });
+      await transaction.commit();
+      return {
+        success: true,
+        rewardType: type,
+        rewardAmount: amount,
+      };
+    } catch (e) {
+      await transaction.rollback();
+      throw e;
     }
   }
 

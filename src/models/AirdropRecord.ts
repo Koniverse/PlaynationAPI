@@ -2,12 +2,8 @@ import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, 
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 
 export enum AirdropRecordsStatus {
-  CHECKING_CONDITIONS = 'CHECKING_CONDITIONS',
-  PASS_CONDITION_CHECK = 'PASS_CONDITION_CHECK',
-  ELIGIBLE_FOR_REWARD = 'ELIGIBLE_FOR_REWARD',
-  RECEIVED = 'RECEIVED',
-  NOT_ELIGIBLE_FOR_REWARD = 'NOT_ELIGIBLE_FOR_REWARD',
-  CANCELED = 'CANCELED',
+  OPEN = 'OPEN',
+  CLOSED = 'CLOSED',
 }
 
 export class AirdropRecord extends Model<InferAttributes<AirdropRecord>, InferCreationAttributes<AirdropRecord>> {
@@ -56,15 +52,8 @@ AirdropRecord.init(
       allowNull: true,
     },
     status: {
-      type: DataTypes.ENUM(
-        AirdropRecordsStatus.CHECKING_CONDITIONS,
-        AirdropRecordsStatus.ELIGIBLE_FOR_REWARD,
-        AirdropRecordsStatus.RECEIVED,
-        AirdropRecordsStatus.NOT_ELIGIBLE_FOR_REWARD,
-        AirdropRecordsStatus.PASS_CONDITION_CHECK,
-        AirdropRecordsStatus.CANCELED,
-      ),
-      defaultValue: AirdropRecordsStatus.ELIGIBLE_FOR_REWARD,
+      type: DataTypes.ENUM(AirdropRecordsStatus.OPEN, AirdropRecordsStatus.CLOSED),
+      defaultValue: AirdropRecordsStatus.CLOSED,
       allowNull: false,
     },
     symbol: {
