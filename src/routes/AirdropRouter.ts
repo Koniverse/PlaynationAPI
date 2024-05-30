@@ -15,6 +15,10 @@ interface AirdropRecordAndDistribute {
   campaign_id: number;
 }
 
+interface AirdropRecordClaim {
+  airdrop_log_id: number;
+}
+
 const routerMap = {
   listAirdropCampaign: async (req: IReq<Query>, res: IRes) => {
     const response = await airdropService.listAirdropCampaign();
@@ -50,6 +54,12 @@ const routerMap = {
     const response = await airdropService.handleRaffle(account_id, campaign_id);
     return res.status(200).json(response);
   },
+  handleClaim: async (req: IReq<AirdropRecordClaim>, res: IRes) => {
+    const account_id = req.user?.id || 0;
+    const airdrop_log_id = req.body.airdrop_log_id;
+    const response = await airdropService.handleClaim(account_id, airdrop_log_id);
+    return res.status(200).json(response);
+  },
 };
 AirdropRouter.post('/sync-airdrop-campaign', routerMap.syncAirdropCampaign);
 AirdropRouter.post('/sync-airdrop-eligibility', routerMap.syncDataEligibility);
@@ -57,5 +67,6 @@ AirdropRouter.post('/generate-airdrop-record', requireSecret, routerMap.generate
 AirdropRouter.get('/list-airdrop-campaign', requireLogin, routerMap.listAirdropCampaign);
 AirdropRouter.post('/check-eligibility', requireLogin, routerMap.checkEligibility);
 AirdropRouter.post('/raffle', requireLogin, routerMap.handleRaffle);
+AirdropRouter.post('/claim', requireLogin, routerMap.handleClaim);
 
 export default AirdropRouter;

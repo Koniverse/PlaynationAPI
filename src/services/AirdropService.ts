@@ -13,6 +13,9 @@ import {
 import { AirdropCampaignInterface } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
 import { QueryTypes } from 'sequelize';
+import { CommonService } from '@src/services/CommonService';
+import { AccountService } from '@src/services/AccountService';
+import * as console from 'node:console';
 
 // Interfaces
 interface BoxInterface {
@@ -23,6 +26,9 @@ interface BoxInterface {
   airdrop_campaign: AirdropCampaign;
   campaign_id?: AirdropCampaign;
 }
+
+const commonService = CommonService.instance;
+const accountService = AccountService.instance;
 
 // AirdropService Class
 export class AirdropService {
@@ -271,7 +277,7 @@ export class AirdropService {
     const transaction = await this.sequelizeService.startTransaction();
 
     try {
-      const airdropRecordLog = await AirdropRecordLog.create({
+      const airdropRecordLogResult = await AirdropRecordLog.create({
         name: campaign.name,
         address: account.address,
         campaign_method: campaign.method,
@@ -284,11 +290,49 @@ export class AirdropService {
         airdrop_record_id: airdropRecord.id,
         status: AIRDROP_LOG_STATUS.PENDING,
       });
+      // update airdrop record status
+      await airdropRecord.update({ status: AirdropRecordsStatus.OPEN }, { transaction });
       await transaction.commit();
       return {
         success: true,
+        airdropRecordLogId: airdropRecordLogResult.id,
         rewardType: type,
         rewardAmount: amount,
+      };
+    } catch (e) {
+      await transaction.rollback();
+      throw e;
+    }
+  }
+
+  async handleClaim(account_id: number, airdrop_log_id: number) {
+    const airdropRecordLog = await AirdropRecordLog.findByPk(airdrop_log_id);
+    if (!airdropRecordLog) {
+      throw new Error('Record not found');
+    }
+    const transaction = await this.sequelizeService.startTransaction();
+    try {
+      // send token to user if type is token, otherwise send NPS
+      if (airdropRecordLog.type === AIRDROP_LOG_TYPE.TOKEN) {
+        // send token
+        const data = {
+          address: airdropRecordLog.address,
+          network: airdropRecordLog.network,
+          decimal: airdropRecordLog.decimal,
+          amount: airdropRecordLog.amount,
+        };
+        const transaction = await commonService.callActionChainService('chain/create-transfer', data);
+        console.log(data);
+        console.log(transaction);
+        // save transaction log
+      } else {
+        // send NPS
+        await accountService.addAccountPoint(account_id, airdropRecordLog.amount);
+      }
+      await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.RECEIVED }, { transaction });
+      await transaction.commit();
+      return {
+        success: true,
       };
     } catch (e) {
       await transaction.rollback();
