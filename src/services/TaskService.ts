@@ -103,10 +103,12 @@ export class TaskService {
   }
   async listTaskHistory(userId: number) {
     const sql = `
-        SELECT t.*,
+         SELECT t.*,
         th.id AS "taskHistoryId",
         th.status,
-        th."completedAt"
+        case
+            when t."onChainType" is null or th."completedAt" is null then th."createdAt"
+        else th."completedAt" end as "completedAt"
         FROM task AS t
         LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
     `;
