@@ -2,6 +2,8 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import Game from '@src/models/Game';
 import {Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
+import { dateDiffInDays } from '@src/utils/date';
+import {QueryTypes} from 'sequelize';
 
 
 export interface TaskContentCms {
@@ -31,6 +33,14 @@ export interface TaskSubmitParams{
 export interface TaskHistoryParams{
   taskHistoryId: number
 }
+interface TaskHistoryLog  {
+  taskHistoryId: number,
+  status: TaskHistoryStatus,
+  daysDiff: number,
+  completedAt: Date,
+}
+
+type TaskHistoryRecord = Task & TaskHistoryLog;
 
 export class TaskService {
   private taskMap: Record<string, Task> | undefined;
@@ -104,14 +114,60 @@ export class TaskService {
   async listTaskHistory(userId: number) {
     const sql = `
         SELECT t.*,
-        th.id AS "taskHistoryId",
-        th.status,
-        th."completedAt"
+               extract(day from now() - th."createdAt"::date) as "daysDiff",
+               th.id                                          as "taskHistoryId",
+               th.status,
+               case
+                   when t."onChainType" is null or th."completedAt" is null then th."createdAt"
+                   else th."completedAt" end                  as "completedAt"
         FROM task AS t
-        LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
+                 LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
+        order by th."createdAt" desc;
     `;
-    const data = await this.sequelizeService.sequelize.query(sql);
-    return data.length > 0 ? data[0] : [];
+    const data = await this.sequelizeService.sequelize.query<TaskHistoryRecord>(sql, {
+      type: QueryTypes.SELECT,
+    });
+    if  (!data) {
+      return [];
+    }
+    const mapTask = data.reduce((acc: Record<string, TaskHistoryRecord[]>, item: TaskHistoryRecord) => {
+      if (!acc[item.id]) {
+        acc[item.id] = [];
+      }
+      acc[item.id].push(item);
+
+      return acc;
+    }, {});
+    const result: TaskHistoryRecord[] = [];
+    const keys = Object.keys(mapTask);
+    for (const key of keys) {
+      const items = mapTask[key];
+      const item = items[0];
+      if (item && item.interval && item.interval > 0) {
+        let check = false;
+        for (const task of items) {
+          const {daysDiff, interval} = task;
+          const diffInDays = parseInt(String(daysDiff ?? '0'));
+          if (diffInDays < interval) {
+            check = true;
+            break;
+          }
+        }
+        //  if daily task is not completed, remove task history
+        if (!check) {
+          // @ts-ignore
+          item.taskHistoryId = null;
+          // @ts-ignore
+          item.status = null;
+          // @ts-ignore
+          item.completedAt = null;
+        }
+        result.push(item);
+      }else {
+        result.push(item);
+      }
+    }
+    return result;
   }
 
   async findTask(taskId: number) {
@@ -163,10 +219,8 @@ export class TaskService {
     // Validate repeat task
     if (latestLast.length > 0 && interval > 0) {
       const lastSubmit = latestLast[0];
-      const lastSubmitTime = lastSubmit.createdAt.getTime();
-      const diff = currentTime - lastSubmitTime;
-      const diffInSeconds = diff / 1000;
-      if (diffInSeconds < interval) {
+      const diffInDays = dateDiffInDays(lastSubmit.createdAt, now);
+      if (diffInDays < interval) {
         throw new Error('Task is not ready to be submitted yet');
       }
     }

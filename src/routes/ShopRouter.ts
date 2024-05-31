@@ -78,6 +78,12 @@ const routerMap = {
     const response = await gameItemService.getInventoryLogs(userId, req.body.isUsed);
     return res.status(200).json(response);
   },
+
+
+  getConfigBuyEnergy: async (req: IReq<Query>, res: IRes) => {
+    const response = await gameItemService.getConfigBuyEnergy();
+    return res.status(200).json(response);
+  },
 };
 
 ShopRouter.post('/sync', requireSecret, routerMap.sync);
@@ -92,5 +98,7 @@ ShopRouter.post('/use-inventory-item', requireLogin, routerMap.useInventoryItem)
 
 // Get inventories
 ShopRouter.get('/get-inventory-logs', requireLogin, routerMap.getInventoryLogs);
+
+ShopRouter.get('/get-config-buy-energy', routerMap.getConfigBuyEnergy);
 
 export default ShopRouter;

@@ -315,6 +315,16 @@ where i."accountId" = ${accountId} ${queryUsed}
     return [];
   }
 
+  async getConfigBuyEnergy() {
+    return {
+      success: true,
+      energyPrice: EnvVars.Game.EnergyPrice,
+      energyBuyLimit: EnvVars.Game.EnergyBuyLimit,
+      maxEnergy: EnvVars.Game.MaxEnergy,
+      energyOneBuy: EnvVars.Game.EnergyOneBuy,
+    };
+  }
+
   // Singleton
   private static _instance: GameItemService;
   public static get instance() {
