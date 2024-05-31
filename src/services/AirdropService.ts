@@ -83,12 +83,13 @@ export class AirdropService {
   // Lists all active airdrop campaigns
   async listAirdropCampaign() {
     const results = await this.sequelizeService.sequelize.query(
-      `SELECT airdrop_campaigns.id      AS campaign_id,
+      `SELECT airdrop_campaigns.id          AS campaign_id,
               airdrop_campaigns.*,
-              airdrop_eligibility.name  AS eligibility_name,
-              airdrop_eligibility.type  AS eligibility_type,
-              airdrop_eligibility.start AS eligibility_start,
-              airdrop_eligibility.end   AS eligibility_end
+              airdrop_eligibility.name      AS eligibility_name,
+              airdrop_eligibility.type      AS eligibility_type,
+              airdrop_eligibility.start     AS eligibility_start,
+              airdrop_eligibility.end       AS eligibility_end,
+              airdrop_eligibility.box_count AS eligibility_box
        FROM airdrop_campaigns
                 LEFT JOIN airdrop_eligibility ON airdrop_campaigns.id = airdrop_eligibility.campaign_id
        WHERE airdrop_campaigns.status = 'ACTIVE';`,
@@ -125,8 +126,10 @@ export class AirdropService {
         campaigns[item.campaign_id].eligibilityList.push({
           name: item.eligibility_name,
           type: item.eligibility_type,
+          boxCount: item.eligibility_box,
           start: item.eligibility_start,
           end: item.eligibility_end,
+          note: '',
         });
       }
     });
