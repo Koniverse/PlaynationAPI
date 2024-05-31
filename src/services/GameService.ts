@@ -172,9 +172,18 @@ export class GameService {
     }
   }
 
+  checkGameActive(game: Game) {
+    const now = new Date();
+    const checkActive = game.active &&  (!game.endTime || now <= game.endTime);
+    if (!checkActive) {
+      throw new Error('Game is not active');
+    }
+  }
+
   async newGamePlay(accountId: number, gameId: number) {
     const gameData = await this.getGameData(accountId, gameId);
     const game = await this.findGame(gameId);
+    this.checkGameActive(game);
     const usedEnergy = game?.energyPerGame || 0;
 
     await accountService.useAccountEnergy(accountId, usedEnergy);
@@ -209,6 +218,7 @@ export class GameService {
     if (!game) {
       throw new Error('Game not found');
     }
+    this.checkGameActive(game);
 
     // Validate max point
     if (params.point > game.maxPointPerGame) {
