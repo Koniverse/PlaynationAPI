@@ -67,6 +67,8 @@ export class AirdropService {
         userList: JSON.stringify(item.userList),
         campaign_id: item.campaign_id.id,
         type: item.type,
+        start: item.start,
+        end: item.end,
       } as unknown as AirdropEligibility;
       const existed = await AirdropEligibility.findByPk(item.id);
       if (existed) {
@@ -81,10 +83,12 @@ export class AirdropService {
   // Lists all active airdrop campaigns
   async listAirdropCampaign() {
     const results = await this.sequelizeService.sequelize.query(
-      `SELECT airdrop_campaigns.id     AS campaign_id,
+      `SELECT airdrop_campaigns.id      AS campaign_id,
               airdrop_campaigns.*,
-              airdrop_eligibility.name AS eligibility_name,
-              airdrop_eligibility.type AS eligibility_type
+              airdrop_eligibility.name  AS eligibility_name,
+              airdrop_eligibility.type  AS eligibility_type,
+              airdrop_eligibility.start AS eligibility_start,
+              airdrop_eligibility.end   AS eligibility_end
        FROM airdrop_campaigns
                 LEFT JOIN airdrop_eligibility ON airdrop_campaigns.id = airdrop_eligibility.campaign_id
        WHERE airdrop_campaigns.status = 'ACTIVE';`,
@@ -121,6 +125,8 @@ export class AirdropService {
         campaigns[item.campaign_id].eligibilityList.push({
           name: item.eligibility_name,
           type: item.eligibility_type,
+          start: item.eligibility_start,
+          end: item.eligibility_end,
         });
       }
     });
@@ -291,6 +297,7 @@ export class AirdropService {
         address: account.address,
         campaign_method: campaign.method,
         type: type,
+        point: airdropRecord.point,
         account_id: account_id,
         network: campaign.network,
         campaign_id: campaign_id,
@@ -344,7 +351,7 @@ export class AirdropService {
               account_id,
               blockNumber,
               amount: airdropRecordLog.amount,
-              point: 0,
+              point: airdropRecordLog.point,
               status: 'SUCCESS',
             },
             { transaction },
@@ -358,7 +365,7 @@ export class AirdropService {
               account_id,
               blockNumber: 0,
               amount: airdropRecordLog.amount,
-              point: 0,
+              point: airdropRecordLog.point,
               status: 'FAILED',
             },
             { transaction },
@@ -366,7 +373,7 @@ export class AirdropService {
         }
       } else {
         // send NPS
-        await accountService.addAccountPoint(account_id, airdropRecordLog.amount);
+        await accountService.addAccountPoint(account_id, airdropRecordLog.point);
       }
       await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.RECEIVED }, { transaction });
       await transaction.commit();

@@ -23,6 +23,7 @@ export class AirdropRecordLog extends Model<
   declare campaign_id: CreationOptional<number>;
   declare campaign_method: string;
   declare amount: number;
+  declare point: number;
   declare decimal: number;
   declare account_id: number;
   declare address: string;
@@ -57,7 +58,11 @@ AirdropRecordLog.init(
     },
     amount: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
+    },
+    point: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
     decimal: {
       type: DataTypes.INTEGER,

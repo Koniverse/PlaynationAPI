@@ -12,6 +12,8 @@ export interface AirdropEligibilityInterface {
   userList: JSON;
   boxCount: number;
   type: string;
+  start: Date;
+  end: Date;
 }
 
 enum EligibilityType {
@@ -30,6 +32,8 @@ export class AirdropEligibility extends Model<
   declare userList: JSON;
   declare boxCount: number;
   declare type: Enum;
+  declare start: Date;
+  declare end: Date;
   declare created_at: CreationOptional<Date>;
 }
 
@@ -60,6 +64,14 @@ AirdropEligibility.init(
       type: DataTypes.ENUM(EligibilityType.NPS, EligibilityType.SOCIAL, EligibilityType.INVITE),
       defaultValue: EligibilityType.NPS,
       allowNull: false,
+    },
+    start: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    end: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     created_at: {
       type: DataTypes.DATE,
