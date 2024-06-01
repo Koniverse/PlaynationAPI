@@ -254,6 +254,10 @@ export class LeaderBoardService {
   }
 
   async getTotalLeaderboard(accountId: number, gameId: number, startDate: string, endDate: string, limit=100, typeQuery = 'all') {
+    if (!limit || limit > 100) {
+      limit = 100;
+    }
+
     let sql = this.getAllDataQuery(gameId);
     if (typeQuery === 'game') {
       sql = this.getGameQuery(gameId);
