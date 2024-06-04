@@ -3,6 +3,8 @@ import {keyring} from '@polkadot/ui-keyring';
 import {ChainInfoMap} from '@subwallet/chain-list';
 import EnvVars from '@src/constants/EnvVars';
 import {BN} from '@polkadot/util';
+import {isAddress} from '@polkadot/util-crypto';
+import * as console from 'node:console';
 
 export interface CreateTransactionParams {
     address: string;
@@ -42,9 +44,14 @@ export class ChainListService {
     if (!chainService) {
       return;
     }
+    const checkAddress = isAddress(address);
+    if (!checkAddress) {
+      throw new Error('Invalid address');
+    }
+    console.log('checkAddress', checkAddress);
     const api = await chainService.getApi();
     const airdropAccount = amount * 10 ** decimal;
-    
+
     const AIRDROP_AMOUNT = new BN(airdropAccount);
     const isCanSend = await chainService.checkBalancesSend(AIRDROP_AMOUNT);
     if (!isCanSend) {
