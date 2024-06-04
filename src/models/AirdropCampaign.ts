@@ -50,6 +50,7 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare tokenDistributions: JSON;
   declare npsDistributions: JSON;
   declare description: Text;
+  declare shortDescription: string;
   declare start: Date;
   declare end: Date;
   declare status: string;
@@ -146,6 +147,10 @@ AirdropCampaign.init(
     },
     description: {
       type: DataTypes.TEXT,
+    },
+    shortDescription: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     createdAt: {
       type: DataTypes.DATE,
