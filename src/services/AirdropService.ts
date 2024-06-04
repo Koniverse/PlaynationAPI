@@ -14,7 +14,7 @@ import {
 } from '@src/models';
 import { AirdropCampaignInterface, AirdropCampaignStatus } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
-import { QueryTypes } from 'sequelize';
+import { QueryTypes, Transaction } from 'sequelize';
 import { CommonService } from '@src/services/CommonService';
 import { AccountService } from '@src/services/AccountService';
 
@@ -34,6 +34,7 @@ interface TransactionInterface {
   blockNumber: number;
   amount: number;
   point: number;
+  error?: string;
 }
 
 const commonService = CommonService.instance;
@@ -333,7 +334,13 @@ export class AirdropService {
   }
 
   async handleClaim(account_id: number, airdrop_log_id: number) {
-    const airdropRecordLog = await AirdropRecordLog.findByPk(airdrop_log_id);
+    const airdropRecordLog = await AirdropRecordLog.findOne({
+      where: {
+        id: airdrop_log_id,
+        account_id: account_id,
+        status: AIRDROP_LOG_STATUS.PENDING,
+      },
+    });
     if (!airdropRecordLog) {
       throw new Error('Record not found');
     }
@@ -342,46 +349,7 @@ export class AirdropService {
       // send token to user if type is token, otherwise send NPS
       if (airdropRecordLog.type === AIRDROP_LOG_TYPE.TOKEN) {
         // send token
-        const data = {
-          address: airdropRecordLog.address,
-          network: airdropRecordLog.network,
-          decimal: airdropRecordLog.decimal,
-          amount: airdropRecordLog.amount,
-        };
-        const transactionLog: TransactionInterface[] = await commonService.callActionChainService(
-          'chain/create-transfer',
-          data,
-        );
-        if (transactionLog && transactionLog.length > 0) {
-          const { extrinsicHash, blockHash, blockNumber } = transactionLog[0];
-          await AirdropTransactionLog.create(
-            {
-              name: airdropRecordLog.name,
-              extrinsicHash,
-              blockHash,
-              account_id,
-              blockNumber,
-              amount: airdropRecordLog.amount,
-              point: airdropRecordLog.point,
-              status: AirdropTransactionLogStatus.SUCCESS,
-            },
-            { transaction },
-          );
-        } else {
-          await AirdropTransactionLog.create(
-            {
-              name: airdropRecordLog.name,
-              extrinsicHash: '',
-              blockHash: '',
-              account_id,
-              blockNumber: 0,
-              amount: airdropRecordLog.amount,
-              point: airdropRecordLog.point,
-              status: AirdropTransactionLogStatus.FAILED,
-            },
-            { transaction },
-          );
-        }
+        await this.sendAirdrop(airdropRecordLog, account_id, transaction);
       } else {
         // send NPS
         await accountService.addAccountPoint(account_id, airdropRecordLog.point);
@@ -401,6 +369,50 @@ export class AirdropService {
     return await AirdropRecordLog.findAll({
       where: { account_id },
     });
+  }
+
+  async sendAirdrop(
+    airdropRecordLog: AirdropRecordLog,
+    account_id: number,
+    transaction: Transaction,
+  ): Promise<TransactionInterface[]> {
+    const data = {
+      address: 'kjfa',
+      network: airdropRecordLog.network,
+      decimal: airdropRecordLog.decimal,
+      amount: 1,
+    };
+    const transactionResult: TransactionInterface[] = await commonService.callActionChainService(
+      'chain/create-transfer',
+      data,
+    );
+    const transactionResponse = JSON.parse(JSON.stringify(transactionResult));
+
+    const logData = {
+      name: airdropRecordLog.name,
+      account_id,
+      amount: airdropRecordLog.amount,
+      point: airdropRecordLog.point,
+      status: AirdropTransactionLogStatus.SUCCESS,
+      extrinsicHash: '',
+      blockHash: '',
+      blockNumber: 0,
+      note: '',
+    };
+    const { extrinsicHash, blockHash, blockNumber } = transactionResponse;
+    logData.extrinsicHash = extrinsicHash;
+    logData.blockHash = blockHash;
+    logData.blockNumber = blockNumber;
+    if (transactionResponse.error) {
+      const { error } = transactionResponse;
+      logData.extrinsicHash = '';
+      logData.blockHash = '';
+      logData.blockNumber = 0;
+      logData.status = AirdropTransactionLogStatus.FAILED;
+      logData.note = error;
+    }
+    await AirdropTransactionLog.create(logData, { transaction });
+    return transactionResponse;
   }
 
   // Singleton instance
