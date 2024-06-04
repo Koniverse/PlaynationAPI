@@ -17,6 +17,7 @@ export class AirdropRecord extends Model<InferAttributes<AirdropRecord>, InferCr
   declare status: string;
   declare snapshot_data: JSON;
   declare point: number;
+  declare eligibilityId: number;
   declare created_at: CreationOptional<Date>;
 }
 
@@ -63,6 +64,10 @@ AirdropRecord.init(
     decimal: {
       type: DataTypes.INTEGER,
       allowNull: false,
+    },
+    eligibilityId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
     created_at: {
       type: DataTypes.DATE,

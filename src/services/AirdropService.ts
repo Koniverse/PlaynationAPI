@@ -16,7 +16,6 @@ import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
 import { QueryTypes } from 'sequelize';
 import { CommonService } from '@src/services/CommonService';
 import { AccountService } from '@src/services/AccountService';
-import * as console from 'node:console';
 
 // Interfaces
 interface BoxInterface {
@@ -198,7 +197,7 @@ export class AirdropService {
             accountId: item.accountInfo.id,
             token: 0,
             nps: 0,
-            eligibilityId: eligibility.userId,
+            eligibilityId: eligibility.id,
             airdrop_campaign: eligibility.campaign_id,
           });
         }
@@ -262,6 +261,7 @@ export class AirdropService {
               decimal: campaign.decimal,
               network: campaign.network,
               snapshot_data: snapshotData,
+              eligibilityId: item.eligibilityId,
               point: item.nps,
             },
             { transaction },
@@ -277,7 +277,6 @@ export class AirdropService {
   }
 
   async handleRaffle(account_id: number, campaign_id: number) {
-    console.log(account_id);
     const campaign = await AirdropCampaign.findByPk(campaign_id);
     const account = await Account.findByPk(account_id);
     const airdropRecord = await AirdropRecord.findOne({
@@ -289,6 +288,10 @@ export class AirdropService {
     });
     if (!airdropRecord || !campaign || !account) {
       throw new Error('Record not found');
+    }
+    const eligibility = await AirdropEligibility.findByPk(airdropRecord.eligibilityId);
+    if (!eligibility) {
+      throw new Error('Eligibility not found');
     }
     const type = airdropRecord.token > 0 ? AIRDROP_LOG_TYPE.TOKEN : AIRDROP_LOG_TYPE.NPS;
     const amount: number = airdropRecord.token > 0 ? airdropRecord.token : airdropRecord.point;
@@ -308,6 +311,8 @@ export class AirdropService {
         amount: amount,
         airdrop_record_id: airdropRecord.id,
         status: AIRDROP_LOG_STATUS.PENDING,
+        eligibilityId: eligibility.id,
+        eligibilityName: eligibility.name,
       });
       // update airdrop record status
       await airdropRecord.update({ status: AirdropRecordsStatus.OPEN }, { transaction });

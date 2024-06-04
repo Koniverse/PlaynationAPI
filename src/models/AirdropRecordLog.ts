@@ -31,6 +31,8 @@ export class AirdropRecordLog extends Model<
   declare network: string;
   declare type: string;
   declare airdrop_record_id: CreationOptional<number>;
+  declare eligibilityId: number;
+  declare eligibilityName: string;
 }
 
 AirdropRecordLog.init(
@@ -95,6 +97,14 @@ AirdropRecordLog.init(
     },
     type: {
       type: DataTypes.ENUM(AIRDROP_LOG_TYPE.NPS, AIRDROP_LOG_TYPE.TOKEN),
+      allowNull: false,
+    },
+    eligibilityId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    eligibilityName: {
+      type: DataTypes.STRING,
       allowNull: false,
     },
   },
