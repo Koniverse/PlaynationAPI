@@ -289,14 +289,9 @@ export class AirdropService {
       },
     });
     if (!airdropRecord || !campaign || !account) {
-      throw new Error('Record not found');
-    }
-    const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord));
-    const totalBox = airdropRecordData.length;
-    const totalBoxOpen = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.OPEN).length;
-    if (totalBoxOpen === totalBox) {
       throw new Error('You have already opened all boxes');
     }
+
     const type = airdropRecord.token > 0 ? AIRDROP_LOG_TYPE.TOKEN : AIRDROP_LOG_TYPE.NPS;
     const amount: number = airdropRecord.token > 0 ? airdropRecord.token : airdropRecord.point;
     const transaction = await this.sequelizeService.startTransaction();
