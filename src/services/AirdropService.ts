@@ -10,8 +10,9 @@ import {
   AirdropRecordLog,
   AirdropRecordsStatus,
   AirdropTransactionLog,
+  AirdropTransactionLogStatus,
 } from '@src/models';
-import { AirdropCampaignInterface } from '@src/models/AirdropCampaign';
+import { AirdropCampaignInterface, AirdropCampaignStatus } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
 import { QueryTypes } from 'sequelize';
 import { CommonService } from '@src/services/CommonService';
@@ -81,6 +82,7 @@ export class AirdropService {
 
   // Lists all active airdrop campaigns
   async listAirdropCampaign() {
+    const status = AirdropCampaignStatus.ACTIVE;
     const results = await this.sequelizeService.sequelize.query(
       `SELECT airdrop_campaigns.id          AS campaign_id,
               airdrop_campaigns.*,
@@ -91,7 +93,7 @@ export class AirdropService {
               airdrop_eligibility.box_count AS eligibility_box
        FROM airdrop_campaigns
                 LEFT JOIN airdrop_eligibility ON airdrop_campaigns.id = airdrop_eligibility.campaign_id
-       WHERE airdrop_campaigns.status = 'ACTIVE';`,
+       WHERE airdrop_campaigns.status = '${status}';`,
       { type: QueryTypes.SELECT },
     );
 
@@ -116,7 +118,8 @@ export class AirdropService {
           start: item.start,
           end: item.end,
           description: item.description,
-          token_slug: 'karura_evm-NATIVE-KAR',
+          shortDescription: item.shortDescription,
+          token_slug: item.token_slug,
           eligibilityList: [],
         };
       }
@@ -128,7 +131,7 @@ export class AirdropService {
           boxCount: item.eligibility_box,
           start: item.eligibility_start,
           end: item.eligibility_end,
-          note: '',
+          note: item.note,
         });
       }
     });
@@ -360,7 +363,7 @@ export class AirdropService {
               blockNumber,
               amount: airdropRecordLog.amount,
               point: airdropRecordLog.point,
-              status: 'SUCCESS',
+              status: AirdropTransactionLogStatus.SUCCESS,
             },
             { transaction },
           );
@@ -374,7 +377,7 @@ export class AirdropService {
               blockNumber: 0,
               amount: airdropRecordLog.amount,
               point: airdropRecordLog.point,
-              status: 'FAILED',
+              status: AirdropTransactionLogStatus.FAILED,
             },
             { transaction },
           );
@@ -392,6 +395,12 @@ export class AirdropService {
       await transaction.rollback();
       throw e;
     }
+  }
+
+  async historyList(account_id: number) {
+    return await AirdropRecordLog.findAll({
+      where: { account_id },
+    });
   }
 
   // Singleton instance

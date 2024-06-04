@@ -14,6 +14,7 @@ export interface AirdropEligibilityInterface {
   type: string;
   start: Date;
   end: Date;
+  note: string;
 }
 
 enum EligibilityType {
@@ -34,7 +35,7 @@ export class AirdropEligibility extends Model<
   declare type: Enum;
   declare start: Date;
   declare end: Date;
-  declare created_at: CreationOptional<Date>;
+  declare note: string;
 }
 
 AirdropEligibility.init(
@@ -73,8 +74,8 @@ AirdropEligibility.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
-    created_at: {
-      type: DataTypes.DATE,
+    note: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
   },
