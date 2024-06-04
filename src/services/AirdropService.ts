@@ -37,6 +37,13 @@ interface TransactionInterface {
   error?: string;
 }
 
+const enum AirdropCampaignProcess {
+  START_SNAPSHOT = 'START_SNAPSHOT',
+  END_SNAPSHOT = 'END_SNAPSHOT',
+  START_CLAIM = 'START_CLAIM',
+  END_CLAIM = 'END_CLAIM',
+}
+
 const commonService = CommonService.instance;
 const accountService = AccountService.instance;
 
@@ -141,16 +148,17 @@ export class AirdropService {
   }
 
   async checkEligibility(account_id: number, campaign_id: number) {
-    const campaign = await AirdropCampaign.findByPk(campaign_id);
     const airdropRecord = await AirdropRecord.findAll({
       where: {
         campaign_id,
         accountId: account_id,
       },
     });
-    if (!campaign || !airdropRecord || airdropRecord.length === 0) {
+    if (!airdropRecord || airdropRecord.length === 0) {
       throw new Error('You are not eligible for this campaign');
     }
+    const currentProcess: string = await this.currentProcess(campaign_id);
+
     const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord));
     const totalBox = airdropRecordData.length;
     const totalBoxOpen = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.OPEN).length;
@@ -160,6 +168,7 @@ export class AirdropService {
       totalBoxOpen: totalBoxOpen,
       totalBoxClose: totalBoxClose,
       totalBox: totalBox,
+      currentProcess: currentProcess,
     };
   }
 
@@ -416,6 +425,29 @@ export class AirdropService {
     }
     await AirdropTransactionLog.create(logData, { transaction });
     return transactionResponse;
+  }
+
+  async currentProcess(campaign_id: number) {
+    const campaign: AirdropCampaign | null = await AirdropCampaign.findByPk(campaign_id);
+    if (!campaign) {
+      throw new Error('Campaign not found');
+    }
+    let currentProcess = '';
+    const currentDate = new Date();
+    // start snapshot, end snapshot, start claim, end claim
+    if (campaign.start_snapshot && campaign.start_snapshot <= currentDate) {
+      currentProcess = AirdropCampaignProcess.START_SNAPSHOT;
+    }
+    if (campaign.end_snapshot && campaign.end_snapshot <= currentDate) {
+      currentProcess = AirdropCampaignProcess.END_SNAPSHOT;
+    }
+    if (campaign.start_claim && campaign.start_claim <= currentDate) {
+      currentProcess = AirdropCampaignProcess.START_CLAIM;
+    }
+    if (campaign.end_claim && campaign.end_claim <= currentDate) {
+      currentProcess = AirdropCampaignProcess.END_CLAIM;
+    }
+    return currentProcess;
   }
 
   // Singleton instance
