@@ -141,27 +141,25 @@ export class AirdropService {
   }
 
   async checkEligibility(account_id: number, campaign_id: number) {
-    const results = await AirdropEligibility.findAll({
-      where: { campaign_id },
+    const campaign = await AirdropCampaign.findByPk(campaign_id);
+    const airdropRecord = await AirdropRecord.findAll({
+      where: {
+        campaign_id,
+        accountId: account_id,
+      },
     });
-
-    if (!results || results.length === 0) {
-      throw new Error('Campaign not found');
+    if (!campaign || !airdropRecord || airdropRecord.length === 0) {
+      throw new Error('You are not eligible for this campaign');
     }
-    let eligibility = false;
-    let raffleTotal = 0;
-    results.forEach((item: any) => {
-      const userList = JSON.parse(item.userList);
-      userList.forEach((user: any) => {
-        if (user.accountInfo.id === account_id) {
-          eligibility = true;
-          raffleTotal++;
-        }
-      });
-    });
+    const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord));
+    const totalBox = airdropRecordData.length;
+    const totalBoxOpen = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.OPEN).length;
+    const totalBoxClose = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.CLOSED).length;
     return {
-      eligibility: eligibility,
-      raffleTotal: raffleTotal,
+      eligibility: true,
+      totalBoxOpen: totalBoxOpen,
+      totalBoxClose: totalBoxClose,
+      totalBox: totalBox,
     };
   }
 
@@ -293,13 +291,18 @@ export class AirdropService {
     if (!airdropRecord || !campaign || !account) {
       throw new Error('Record not found');
     }
-    const eligibility = await AirdropEligibility.findByPk(airdropRecord.eligibilityId);
-    if (!eligibility) {
-      throw new Error('Eligibility not found');
+    const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord));
+    const totalBox = airdropRecordData.length;
+    const totalBoxOpen = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.OPEN).length;
+    if (totalBoxOpen === totalBox) {
+      throw new Error('You have already opened all boxes');
     }
     const type = airdropRecord.token > 0 ? AIRDROP_LOG_TYPE.TOKEN : AIRDROP_LOG_TYPE.NPS;
     const amount: number = airdropRecord.token > 0 ? airdropRecord.token : airdropRecord.point;
     const transaction = await this.sequelizeService.startTransaction();
+    // expiry date = current date + 30 day
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 30);
 
     try {
       const airdropRecordLogResult = await AirdropRecordLog.create({
@@ -315,8 +318,8 @@ export class AirdropService {
         amount: amount,
         airdrop_record_id: airdropRecord.id,
         status: AIRDROP_LOG_STATUS.PENDING,
-        eligibilityId: eligibility.id,
-        eligibilityName: eligibility.name,
+        eligibilityId: airdropRecord.id,
+        expiryDate: expiryDate,
       });
       // update airdrop record status
       await airdropRecord.update({ status: AirdropRecordsStatus.OPEN }, { transaction });
@@ -344,6 +347,11 @@ export class AirdropService {
     if (!airdropRecordLog) {
       throw new Error('Record not found');
     }
+
+    if (airdropRecordLog.expiryDate < new Date()) {
+      throw new Error('You cannot claim this reward, it has expired');
+    }
+
     const transaction = await this.sequelizeService.startTransaction();
     try {
       // send token to user if type is token, otherwise send NPS
@@ -377,7 +385,7 @@ export class AirdropService {
     transaction: Transaction,
   ): Promise<TransactionInterface[]> {
     const data = {
-      address: 'kjfa',
+      address: airdropRecordLog.address,
       network: airdropRecordLog.network,
       decimal: airdropRecordLog.decimal,
       amount: 1,
