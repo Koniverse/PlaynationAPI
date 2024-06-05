@@ -5,7 +5,7 @@ import AirdropCampaign from '@src/models/AirdropCampaign';
 
 export enum AIRDROP_LOG_STATUS {
   PENDING = 'PENDING',
-  MISSED = 'MISSED',
+  EXPIRED = 'EXPIRED',
   RECEIVED = 'RECEIVED',
 }
 
@@ -32,7 +32,7 @@ export class AirdropRecordLog extends Model<
   declare type: string;
   declare airdrop_record_id: CreationOptional<number>;
   declare eligibilityId: number;
-  declare eligibilityName: string;
+  declare expiryDate: Date;
 }
 
 AirdropRecordLog.init(
@@ -91,7 +91,7 @@ AirdropRecordLog.init(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM(AIRDROP_LOG_STATUS.PENDING, AIRDROP_LOG_STATUS.MISSED, AIRDROP_LOG_STATUS.RECEIVED),
+      type: DataTypes.ENUM(AIRDROP_LOG_STATUS.PENDING, AIRDROP_LOG_STATUS.EXPIRED, AIRDROP_LOG_STATUS.RECEIVED),
       defaultValue: AIRDROP_LOG_STATUS.PENDING,
       allowNull: false,
     },
@@ -103,8 +103,8 @@ AirdropRecordLog.init(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    eligibilityName: {
-      type: DataTypes.STRING,
+    expiryDate: {
+      type: DataTypes.DATE,
       allowNull: false,
     },
   },

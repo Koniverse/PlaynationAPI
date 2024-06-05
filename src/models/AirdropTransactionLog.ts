@@ -19,6 +19,7 @@ export class AirdropTransactionLog extends Model<
   declare amount: number;
   declare point: number;
   declare status: string;
+  declare note: string;
 }
 
 AirdropTransactionLog.init(
@@ -58,6 +59,10 @@ AirdropTransactionLog.init(
     },
     status: {
       type: DataTypes.ENUM(AirdropTransactionLogStatus.FAILED, AirdropTransactionLogStatus.SUCCESS),
+      allowNull: true,
+    },
+    note: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
   },

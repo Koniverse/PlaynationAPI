@@ -14,7 +14,7 @@ import {
 } from '@src/models';
 import { AirdropCampaignInterface, AirdropCampaignStatus } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
-import { QueryTypes } from 'sequelize';
+import { QueryTypes, Transaction } from 'sequelize';
 import { CommonService } from '@src/services/CommonService';
 import { AccountService } from '@src/services/AccountService';
 
@@ -34,6 +34,14 @@ interface TransactionInterface {
   blockNumber: number;
   amount: number;
   point: number;
+  error?: string;
+}
+
+const enum AirdropCampaignProcess {
+  START_SNAPSHOT = 'START_SNAPSHOT',
+  END_SNAPSHOT = 'END_SNAPSHOT',
+  START_CLAIM = 'START_CLAIM',
+  END_CLAIM = 'END_CLAIM',
 }
 
 const commonService = CommonService.instance;
@@ -140,27 +148,27 @@ export class AirdropService {
   }
 
   async checkEligibility(account_id: number, campaign_id: number) {
-    const results = await AirdropEligibility.findAll({
-      where: { campaign_id },
+    const airdropRecord = await AirdropRecord.findAll({
+      where: {
+        campaign_id,
+        accountId: account_id,
+      },
     });
-
-    if (!results || results.length === 0) {
-      throw new Error('Campaign not found');
+    if (!airdropRecord || airdropRecord.length === 0) {
+      throw new Error('You are not eligible for this campaign');
     }
-    let eligibility = false;
-    let raffleTotal = 0;
-    results.forEach((item: any) => {
-      const userList = JSON.parse(item.userList);
-      userList.forEach((user: any) => {
-        if (user.accountInfo.id === account_id) {
-          eligibility = true;
-          raffleTotal++;
-        }
-      });
-    });
+    const currentProcess: string = await this.currentProcess(campaign_id);
+
+    const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord));
+    const totalBox = airdropRecordData.length;
+    const totalBoxOpen = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.OPEN).length;
+    const totalBoxClose = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.CLOSED).length;
     return {
-      eligibility: eligibility,
-      raffleTotal: raffleTotal,
+      eligibility: true,
+      totalBoxOpen: totalBoxOpen,
+      totalBoxClose: totalBoxClose,
+      totalBox: totalBox,
+      currentProcess: currentProcess,
     };
   }
 
@@ -290,15 +298,15 @@ export class AirdropService {
       },
     });
     if (!airdropRecord || !campaign || !account) {
-      throw new Error('Record not found');
+      throw new Error('You have already opened all boxes');
     }
-    const eligibility = await AirdropEligibility.findByPk(airdropRecord.eligibilityId);
-    if (!eligibility) {
-      throw new Error('Eligibility not found');
-    }
+
     const type = airdropRecord.token > 0 ? AIRDROP_LOG_TYPE.TOKEN : AIRDROP_LOG_TYPE.NPS;
     const amount: number = airdropRecord.token > 0 ? airdropRecord.token : airdropRecord.point;
     const transaction = await this.sequelizeService.startTransaction();
+    // expiry date = current date + 30 day
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 30);
 
     try {
       const airdropRecordLogResult = await AirdropRecordLog.create({
@@ -314,8 +322,8 @@ export class AirdropService {
         amount: amount,
         airdrop_record_id: airdropRecord.id,
         status: AIRDROP_LOG_STATUS.PENDING,
-        eligibilityId: eligibility.id,
-        eligibilityName: eligibility.name,
+        eligibilityId: airdropRecord.id,
+        expiryDate: expiryDate,
       });
       // update airdrop record status
       await airdropRecord.update({ status: AirdropRecordsStatus.OPEN }, { transaction });
@@ -333,55 +341,27 @@ export class AirdropService {
   }
 
   async handleClaim(account_id: number, airdrop_log_id: number) {
-    const airdropRecordLog = await AirdropRecordLog.findByPk(airdrop_log_id);
+    const airdropRecordLog = await AirdropRecordLog.findOne({
+      where: {
+        id: airdrop_log_id,
+        account_id: account_id,
+        status: AIRDROP_LOG_STATUS.PENDING,
+      },
+    });
     if (!airdropRecordLog) {
       throw new Error('Record not found');
     }
+
+    if (airdropRecordLog.expiryDate < new Date()) {
+      throw new Error('You cannot claim this reward, it has expired');
+    }
+
     const transaction = await this.sequelizeService.startTransaction();
     try {
       // send token to user if type is token, otherwise send NPS
       if (airdropRecordLog.type === AIRDROP_LOG_TYPE.TOKEN) {
         // send token
-        const data = {
-          address: airdropRecordLog.address,
-          network: airdropRecordLog.network,
-          decimal: airdropRecordLog.decimal,
-          amount: airdropRecordLog.amount,
-        };
-        const transactionLog: TransactionInterface[] = await commonService.callActionChainService(
-          'chain/create-transfer',
-          data,
-        );
-        if (transactionLog && transactionLog.length > 0) {
-          const { extrinsicHash, blockHash, blockNumber } = transactionLog[0];
-          await AirdropTransactionLog.create(
-            {
-              name: airdropRecordLog.name,
-              extrinsicHash,
-              blockHash,
-              account_id,
-              blockNumber,
-              amount: airdropRecordLog.amount,
-              point: airdropRecordLog.point,
-              status: AirdropTransactionLogStatus.SUCCESS,
-            },
-            { transaction },
-          );
-        } else {
-          await AirdropTransactionLog.create(
-            {
-              name: airdropRecordLog.name,
-              extrinsicHash: '',
-              blockHash: '',
-              account_id,
-              blockNumber: 0,
-              amount: airdropRecordLog.amount,
-              point: airdropRecordLog.point,
-              status: AirdropTransactionLogStatus.FAILED,
-            },
-            { transaction },
-          );
-        }
+        await this.sendAirdrop(airdropRecordLog, account_id, transaction);
       } else {
         // send NPS
         await accountService.addAccountPoint(account_id, airdropRecordLog.point);
@@ -401,6 +381,73 @@ export class AirdropService {
     return await AirdropRecordLog.findAll({
       where: { account_id },
     });
+  }
+
+  async sendAirdrop(
+    airdropRecordLog: AirdropRecordLog,
+    account_id: number,
+    transaction: Transaction,
+  ): Promise<TransactionInterface[]> {
+    const data = {
+      address: airdropRecordLog.address,
+      network: airdropRecordLog.network,
+      decimal: airdropRecordLog.decimal,
+      amount: 1,
+    };
+    const transactionResult: TransactionInterface[] = await commonService.callActionChainService(
+      'chain/create-transfer',
+      data,
+    );
+    const transactionResponse = JSON.parse(JSON.stringify(transactionResult));
+
+    const logData = {
+      name: airdropRecordLog.name,
+      account_id,
+      amount: airdropRecordLog.amount,
+      point: airdropRecordLog.point,
+      status: AirdropTransactionLogStatus.SUCCESS,
+      extrinsicHash: '',
+      blockHash: '',
+      blockNumber: 0,
+      note: '',
+    };
+    const { extrinsicHash, blockHash, blockNumber } = transactionResponse;
+    logData.extrinsicHash = extrinsicHash;
+    logData.blockHash = blockHash;
+    logData.blockNumber = blockNumber;
+    if (transactionResponse.error) {
+      const { error } = transactionResponse;
+      logData.extrinsicHash = '';
+      logData.blockHash = '';
+      logData.blockNumber = 0;
+      logData.status = AirdropTransactionLogStatus.FAILED;
+      logData.note = error;
+    }
+    await AirdropTransactionLog.create(logData, { transaction });
+    return transactionResponse;
+  }
+
+  async currentProcess(campaign_id: number) {
+    const campaign: AirdropCampaign | null = await AirdropCampaign.findByPk(campaign_id);
+    if (!campaign) {
+      throw new Error('Campaign not found');
+    }
+    let currentProcess = '';
+    const currentDate = new Date();
+    // start snapshot, end snapshot, start claim, end claim
+    if (campaign.start_snapshot && campaign.start_snapshot <= currentDate) {
+      currentProcess = AirdropCampaignProcess.START_SNAPSHOT;
+    }
+    if (campaign.end_snapshot && campaign.end_snapshot <= currentDate) {
+      currentProcess = AirdropCampaignProcess.END_SNAPSHOT;
+    }
+    if (campaign.start_claim && campaign.start_claim <= currentDate) {
+      currentProcess = AirdropCampaignProcess.START_CLAIM;
+    }
+    if (campaign.end_claim && campaign.end_claim <= currentDate) {
+      currentProcess = AirdropCampaignProcess.END_CLAIM;
+    }
+    return currentProcess;
   }
 
   // Singleton instance
