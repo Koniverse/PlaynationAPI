@@ -38,10 +38,11 @@ interface TransactionInterface {
 }
 
 const enum AirdropCampaignProcess {
-  START_SNAPSHOT = 'START_SNAPSHOT',
-  END_SNAPSHOT = 'END_SNAPSHOT',
-  START_CLAIM = 'START_CLAIM',
-  END_CLAIM = 'END_CLAIM',
+  COMING_SOON = 'COMING_SOON',
+  SNAPSHOT = 'SNAPSHOT',
+  ELIGIBILITY = 'ELIGIBILITY',
+  RAFFLE = 'RAFFLE',
+  END_CAMPAIGN = 'END_CAMPAIGN',
 }
 
 const commonService = CommonService.instance;
@@ -427,29 +428,26 @@ export class AirdropService {
     return transactionResponse;
   }
 
-  async currentProcess(campaign_id: number) {
-    const campaign: AirdropCampaign | null = await AirdropCampaign.findByPk(campaign_id);
+  async currentProcess(campaignId: number) {
+    const campaign = await AirdropCampaign.findByPk(campaignId);
     if (!campaign) {
       throw new Error('Campaign not found');
     }
-
     const currentDate = new Date();
 
-    // Check in reverse order of process to ensure the correct current process is identified
-    if (campaign.end_claim && campaign.end_claim <= currentDate) {
-      return AirdropCampaignProcess.END_CLAIM;
+    if (campaign.end < currentDate) {
+      return AirdropCampaignProcess.END_CAMPAIGN;
     }
-    if (campaign.start_claim && campaign.start_claim <= currentDate) {
-      return AirdropCampaignProcess.START_CLAIM;
+    if (campaign.start_snapshot <= currentDate && currentDate <= campaign.end_snapshot) {
+      return AirdropCampaignProcess.SNAPSHOT;
     }
-    if (campaign.end_snapshot && campaign.end_snapshot <= currentDate) {
-      return AirdropCampaignProcess.END_SNAPSHOT;
+    if (campaign.start_claim <= currentDate && currentDate <= campaign.end_claim) {
+      return AirdropCampaignProcess.RAFFLE;
     }
-    if (campaign.start_snapshot && campaign.start_snapshot <= currentDate) {
-      return AirdropCampaignProcess.START_SNAPSHOT;
+    if (campaign.start <= currentDate && currentDate < campaign.start_snapshot) {
+      return AirdropCampaignProcess.COMING_SOON;
     }
-
-    return ''; // Default empty string if no conditions are met
+    return AirdropCampaignProcess.ELIGIBILITY;
   }
 
   // Singleton instance
