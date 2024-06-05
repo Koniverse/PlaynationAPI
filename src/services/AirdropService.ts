@@ -39,8 +39,7 @@ interface TransactionInterface {
 
 const enum AirdropCampaignProcess {
   COMING_SOON = 'COMING_SOON',
-  SNAPSHOT = 'SNAPSHOT',
-  ELIGIBILITY = 'ELIGIBILITY',
+  INEGIBLE = 'INEGIBLE',
   RAFFLE = 'RAFFLE',
   END_CAMPAIGN = 'END_CAMPAIGN',
 }
@@ -428,26 +427,36 @@ export class AirdropService {
     return transactionResponse;
   }
 
-  async currentProcess(campaignId: number) {
+  async currentProcess(campaignId: number): Promise<AirdropCampaignProcess> {
     const campaign = await AirdropCampaign.findByPk(campaignId);
     if (!campaign) {
       throw new Error('Campaign not found');
     }
-    const currentDate = new Date();
+    const { start, end, start_snapshot, end_snapshot, end_claim, start_claim } = campaign;
+    const currentDate = Date.now();
+    const startMs = new Date(start).getTime();
+    const endMs = new Date(end).getTime();
+    const startSnapshotMs = new Date(start_snapshot).getTime();
+    const endSnapshotMs = new Date(end_snapshot).getTime();
+    const endClaimMs = new Date(end_claim).getTime();
+    const startClaim = new Date(start_claim).getTime();
 
-    if (campaign.end < currentDate) {
-      return AirdropCampaignProcess.END_CAMPAIGN;
-    }
-    if (campaign.start_snapshot <= currentDate && currentDate <= campaign.end_snapshot) {
-      return AirdropCampaignProcess.SNAPSHOT;
-    }
-    if (campaign.start_claim <= currentDate && currentDate <= campaign.end_claim) {
-      return AirdropCampaignProcess.RAFFLE;
-    }
-    if (campaign.start <= currentDate && currentDate < campaign.start_snapshot) {
+    if (currentDate < startMs) {
       return AirdropCampaignProcess.COMING_SOON;
     }
-    return AirdropCampaignProcess.ELIGIBILITY;
+    if (currentDate > endMs) {
+      return AirdropCampaignProcess.END_CAMPAIGN;
+    }
+    if (currentDate >= startSnapshotMs && currentDate <= endSnapshotMs) {
+      return AirdropCampaignProcess.INEGIBLE;
+    }
+    if (currentDate >= startClaim && currentDate <= endClaimMs) {
+      return AirdropCampaignProcess.RAFFLE;
+    }
+    if (currentDate > endClaimMs) {
+      return AirdropCampaignProcess.END_CAMPAIGN;
+    }
+    return AirdropCampaignProcess.COMING_SOON;
   }
 
   // Singleton instance
