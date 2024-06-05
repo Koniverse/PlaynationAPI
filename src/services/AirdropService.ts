@@ -432,22 +432,24 @@ export class AirdropService {
     if (!campaign) {
       throw new Error('Campaign not found');
     }
-    let currentProcess = '';
+
     const currentDate = new Date();
-    // start snapshot, end snapshot, start claim, end claim
-    if (campaign.start_snapshot && campaign.start_snapshot <= currentDate) {
-      currentProcess = AirdropCampaignProcess.START_SNAPSHOT;
-    }
-    if (campaign.end_snapshot && campaign.end_snapshot <= currentDate) {
-      currentProcess = AirdropCampaignProcess.END_SNAPSHOT;
+
+    // Check in reverse order of process to ensure the correct current process is identified
+    if (campaign.end_claim && campaign.end_claim <= currentDate) {
+      return AirdropCampaignProcess.END_CLAIM;
     }
     if (campaign.start_claim && campaign.start_claim <= currentDate) {
-      currentProcess = AirdropCampaignProcess.START_CLAIM;
+      return AirdropCampaignProcess.START_CLAIM;
     }
-    if (campaign.end_claim && campaign.end_claim <= currentDate) {
-      currentProcess = AirdropCampaignProcess.END_CLAIM;
+    if (campaign.end_snapshot && campaign.end_snapshot <= currentDate) {
+      return AirdropCampaignProcess.END_SNAPSHOT;
     }
-    return currentProcess;
+    if (campaign.start_snapshot && campaign.start_snapshot <= currentDate) {
+      return AirdropCampaignProcess.START_SNAPSHOT;
+    }
+
+    return ''; // Default empty string if no conditions are met
   }
 
   // Singleton instance
