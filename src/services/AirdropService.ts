@@ -93,7 +93,8 @@ export class AirdropService {
   async listAirdropCampaign() {
     const status = AirdropCampaignStatus.ACTIVE;
     const results = await this.sequelizeService.sequelize.query(
-      `SELECT airdrop_campaigns.*,
+      `SELECT airdrop_campaigns.id          AS airdrop_campaign_id,
+              airdrop_campaigns.*,
               airdrop_eligibility.name      AS eligibility_name,
               airdrop_eligibility.id        AS eligibility_id,
               airdrop_eligibility.type      AS eligibility_type,
@@ -114,7 +115,7 @@ export class AirdropService {
     results.forEach((item: any) => {
       if (!campaigns[item.campaign_id]) {
         campaigns[item.campaign_id] = {
-          campaign_id: item.campaign_id,
+          airdrop_campaign_id: item.airdrop_campaign_id,
           name: item.name,
           icon: item.icon,
           banner: item.banner,
