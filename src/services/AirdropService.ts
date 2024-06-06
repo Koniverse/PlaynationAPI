@@ -93,15 +93,18 @@ export class AirdropService {
   async listAirdropCampaign() {
     const status = AirdropCampaignStatus.ACTIVE;
     const results = await this.sequelizeService.sequelize.query(
-      `SELECT airdrop_campaigns.id          AS campaign_id,
-              airdrop_campaigns.*,
+      `SELECT airdrop_campaigns.*,
               airdrop_eligibility.name      AS eligibility_name,
+              airdrop_eligibility.id        AS eligibility_id,
               airdrop_eligibility.type      AS eligibility_type,
               airdrop_eligibility.start     AS eligibility_start,
               airdrop_eligibility.end       AS eligibility_end,
               airdrop_eligibility.box_count AS eligibility_box
        FROM airdrop_campaigns
-                LEFT JOIN airdrop_eligibility ON airdrop_campaigns.id = airdrop_eligibility.campaign_id
+                LEFT JOIN
+            airdrop_eligibility
+            ON
+                airdrop_campaigns.id = airdrop_eligibility.campaign_id
        WHERE airdrop_campaigns.status = '${status}';`,
       { type: QueryTypes.SELECT },
     );
@@ -135,6 +138,7 @@ export class AirdropService {
 
       if (item.eligibility_name && item.eligibility_type) {
         campaigns[item.campaign_id].eligibilityList.push({
+          id: item.eligibility_id,
           name: item.eligibility_name,
           type: item.eligibility_type,
           boxCount: item.eligibility_box,
@@ -169,12 +173,20 @@ export class AirdropService {
     const totalBox = airdropRecordData.length;
     const totalBoxOpen = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.OPEN).length;
     const totalBoxClose = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.CLOSED).length;
+    const eligibilityIds = new Set<number>();
+    airdropRecordData.forEach((item: any) => {
+      if (item.accountId === account_id) {
+        eligibilityIds.add(item.eligibilityId);
+      }
+    });
+    const uniqueEligibilityIds = Array.from(eligibilityIds);
     return {
       eligibility: true,
       totalBoxOpen: totalBoxOpen,
       totalBoxClose: totalBoxClose,
       totalBox: totalBox,
       currentProcess: currentProcess,
+      eligibilityIds: uniqueEligibilityIds,
     };
   }
 
