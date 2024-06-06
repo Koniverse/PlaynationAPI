@@ -346,6 +346,12 @@ export class AirdropService {
     }
   }
 
+  async historyList(account_id: number) {
+    return await AirdropRecordLog.findAll({
+      where: { account_id },
+    });
+  }
+
   async handleClaim(account_id: number, airdrop_log_id: number) {
     const airdropRecordLog = await AirdropRecordLog.findOne({
       where: {
@@ -354,83 +360,83 @@ export class AirdropService {
         status: AIRDROP_LOG_STATUS.PENDING,
       },
     });
+
     if (!airdropRecordLog) {
-      throw new Error('Record not found');
+      throw new Error('Airdrop record not found or already claimed.');
     }
 
     if (airdropRecordLog.expiryDate < new Date()) {
-      throw new Error('You cannot claim this reward, it has expired');
+      throw new Error('This reward has expired and cannot be claimed.');
     }
 
     const transaction = await this.sequelizeService.startTransaction();
     try {
-      // send token to user if type is token, otherwise send NPS
       if (airdropRecordLog.type === AIRDROP_LOG_TYPE.TOKEN) {
-        // send token
-        await this.sendAirdrop(airdropRecordLog, account_id, transaction);
+        const resultSendAirdrop = await this.sendAirdrop(airdropRecordLog, account_id, transaction);
+        if (resultSendAirdrop === AIRDROP_LOG_STATUS.PENDING) {
+          throw new Error('Please check your wallet address.');
+        }
       } else {
-        // send NPS
         await accountService.addAccountPoint(account_id, airdropRecordLog.point);
       }
       await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.RECEIVED }, { transaction });
       await transaction.commit();
-      return {
-        success: true,
-      };
-    } catch (e) {
+
+      return { success: true };
+    } catch (error) {
       await transaction.rollback();
-      throw e;
+      throw new Error(`Claim failed: ${error.message}`);
     }
   }
 
-  async historyList(account_id: number) {
-    return await AirdropRecordLog.findAll({
-      where: { account_id },
-    });
-  }
-
-  async sendAirdrop(
-    airdropRecordLog: AirdropRecordLog,
-    account_id: number,
-    transaction: Transaction,
-  ): Promise<TransactionInterface[]> {
+  async sendAirdrop(airdropRecordLog: AirdropRecordLog, account_id: number, transaction: Transaction): Promise<string> {
     const data = {
       address: airdropRecordLog.address,
       network: airdropRecordLog.network,
       decimal: airdropRecordLog.decimal,
       amount: airdropRecordLog.amount,
     };
-    const transactionResult: TransactionInterface[] = await commonService.callActionChainService(
-      'chain/create-transfer',
-      data,
-    );
-    const transactionResponse = JSON.parse(JSON.stringify(transactionResult));
 
-    const logData = {
-      name: airdropRecordLog.name,
-      account_id,
-      amount: airdropRecordLog.amount,
-      point: airdropRecordLog.point,
-      status: AirdropTransactionLogStatus.SUCCESS,
-      extrinsicHash: '',
-      blockHash: '',
-      blockNumber: 0,
-      note: '',
-    };
-    const { extrinsicHash, blockHash, blockNumber } = transactionResponse;
-    logData.extrinsicHash = extrinsicHash;
-    logData.blockHash = blockHash;
-    logData.blockNumber = blockNumber;
-    if (transactionResponse.error) {
-      const { error } = transactionResponse;
-      logData.extrinsicHash = '';
-      logData.blockHash = '';
-      logData.blockNumber = 0;
-      logData.status = AirdropTransactionLogStatus.FAILED;
-      logData.note = error;
+    try {
+      const transactionResult = await commonService.callActionChainService('chain/create-transfer', data);
+      const transactionResponse = JSON.parse(JSON.stringify(transactionResult));
+      const logData = {
+        name: airdropRecordLog.name,
+        account_id,
+        amount: airdropRecordLog.amount,
+        point: airdropRecordLog.point,
+        status: AirdropTransactionLogStatus.SUCCESS,
+        extrinsicHash: transactionResponse.extrinsicHash || '',
+        blockHash: transactionResponse.blockHash || '',
+        blockNumber: transactionResponse.blockNumber || 0,
+        note: transactionResponse.error || '',
+      };
+
+      if (transactionResponse.error) {
+        logData.status = AirdropTransactionLogStatus.FAILED;
+      }
+
+      await AirdropTransactionLog.create(logData, { transaction });
+
+      return transactionResponse.error ? AIRDROP_LOG_STATUS.PENDING : AIRDROP_LOG_STATUS.RECEIVED;
+    } catch (error) {
+      await AirdropTransactionLog.create(
+        {
+          name: airdropRecordLog.name,
+          account_id,
+          amount: airdropRecordLog.amount,
+          point: airdropRecordLog.point,
+          status: AirdropTransactionLogStatus.FAILED,
+          extrinsicHash: '',
+          blockHash: '',
+          blockNumber: 0,
+          note: error.message,
+        },
+        { transaction },
+      );
+
+      return AIRDROP_LOG_STATUS.PENDING;
     }
-    await AirdropTransactionLog.create(logData, { transaction });
-    return transactionResponse;
   }
 
   async currentProcess(campaignId: number): Promise<AirdropCampaignProcess> {
