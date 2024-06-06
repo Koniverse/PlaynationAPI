@@ -39,7 +39,8 @@ interface TransactionInterface {
 
 const enum AirdropCampaignProcess {
   COMING_SOON = 'COMING_SOON',
-  INEGIBLE = 'INEGIBLE',
+  ELIGIBLE = 'ELIGIBLE',
+  INELIGIBLE = 'INELIGIBLE',
   RAFFLE = 'RAFFLE',
   END_CAMPAIGN = 'END_CAMPAIGN',
 }
@@ -155,10 +156,15 @@ export class AirdropService {
       },
     });
     if (!airdropRecord || airdropRecord.length === 0) {
-      throw new Error('You are not eligible for this campaign');
+      return {
+        eligibility: false,
+        currentProcess: AirdropCampaignProcess.INELIGIBLE,
+        totalBoxOpen: 0,
+        totalBoxClose: 0,
+        totalBox: 0,
+      };
     }
     const currentProcess: string = await this.currentProcess(campaign_id);
-
     const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord));
     const totalBox = airdropRecordData.length;
     const totalBoxOpen = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.OPEN).length;
@@ -448,7 +454,7 @@ export class AirdropService {
       return AirdropCampaignProcess.END_CAMPAIGN;
     }
     if (currentDate >= startSnapshotMs && currentDate <= endSnapshotMs) {
-      return AirdropCampaignProcess.INEGIBLE;
+      return AirdropCampaignProcess.ELIGIBLE;
     }
     if (currentDate >= startClaim && currentDate <= endClaimMs) {
       return AirdropCampaignProcess.RAFFLE;
@@ -456,7 +462,7 @@ export class AirdropService {
     if (currentDate > endClaimMs) {
       return AirdropCampaignProcess.END_CAMPAIGN;
     }
-    return AirdropCampaignProcess.COMING_SOON;
+    return AirdropCampaignProcess.ELIGIBLE;
   }
 
   // Singleton instance
