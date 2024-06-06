@@ -106,7 +106,8 @@ export class AirdropService {
             airdrop_eligibility
             ON
                 airdrop_campaigns.id = airdrop_eligibility.campaign_id
-       WHERE airdrop_campaigns.status = '${status}';`,
+       WHERE airdrop_campaigns.status = '${status}'
+       order by airdrop_eligibility.id ASC;`,
       { type: QueryTypes.SELECT },
     );
 
