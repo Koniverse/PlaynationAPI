@@ -488,10 +488,6 @@ export class AirdropService {
   }
 
   async historyList(account_id: number, campaign_id: number) {
-    const campaign = await AirdropCampaign.findByPk(campaign_id);
-    if (!campaign) {
-      throw new Error('Campaign not found');
-    }
     const sql = `select arl.id      as airdrop_log_id,
                         arl.type,
                         arl."expiryDate",
@@ -516,12 +512,13 @@ export class AirdropService {
                           left join airdrop_campaigns ac on ar.campaign_id = ac.id
                           left join airdrop_eligibility ae on arl.eligibility_id = ae.id
                  where arl.account_id = ${account_id}
-                   and arl.campaign_id = ${campaign.id}`;
+                   and arl.campaign_id = ${campaign_id}
+                 order by arl.id desc`;
 
     const airdropRecordLogData = (await this.sequelizeService.sequelize.query(sql, {
       type: QueryTypes.SELECT,
     })) as AirdropRecordLogAttributes[];
-    if (!airdropRecordLogData[0]) {
+    if (!campaign_id || !airdropRecordLogData[0]) {
       throw new Error('No history found');
     }
     const data: any[] = [];
