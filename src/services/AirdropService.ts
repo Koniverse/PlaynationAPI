@@ -341,6 +341,12 @@ export class AirdropService {
       });
       // update airdrop record status
       await airdropRecord.update({ status: AirdropRecordsStatus.OPEN }, { transaction });
+
+      // airdrop record nps
+      if (type === AIRDROP_LOG_TYPE.NPS) {
+        await accountService.addAccountPoint(account_id, amount);
+        await airdropRecordLogResult.update({ status: AIRDROP_LOG_STATUS.RECEIVED }, { transaction });
+      }
       await transaction.commit();
       return {
         success: true,
