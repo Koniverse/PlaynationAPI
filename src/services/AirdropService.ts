@@ -519,15 +519,19 @@ export class AirdropService {
     if (!airdropRecordLogData[0]) {
       throw new Error('No history found');
     }
-    const endDate: any = airdropRecordLogData[0].eligibility_end;
-    return {
-      status: airdropRecordLogData[0].status,
-      type: airdropRecordLogData[0].type,
-      rewardValue: airdropRecordLogData[0].token ? airdropRecordLogData[0].token : airdropRecordLogData[0].point,
-      endTime: new Date(endDate).toString() || '',
-      name: airdropRecordLogData[0].eligibility_name,
-      id: airdropRecordLogData[0].airdrop_log_id,
-    };
+    const data: any[] = [];
+    airdropRecordLogData.forEach((item: any) => {
+      const endDate: any = item.eligibility_end;
+      data.push({
+        status: item.status,
+        type: item.type,
+        rewardValue: item.token ? item.token : item.point,
+        endTime: new Date(endDate).toString() || '',
+        name: item.eligibility_name,
+        id: item.airdrop_log_id,
+      });
+    });
+    return data;
   }
 
   // Singleton instance
