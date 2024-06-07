@@ -487,7 +487,11 @@ export class AirdropService {
     return AirdropCampaignProcess.ELIGIBLE;
   }
 
-  async historyList(account_id: number) {
+  async historyList(account_id: number, campaign_id: number) {
+    const campaign = await AirdropCampaign.findByPk(campaign_id);
+    if (!campaign) {
+      throw new Error('Campaign not found');
+    }
     const sql = `select arl.id      as airdrop_log_id,
                         arl.type,
                         arl."expiryDate",
@@ -511,7 +515,8 @@ export class AirdropService {
                           left join airdrop_records ar on arl.airdrop_record_id = ar.id
                           left join airdrop_campaigns ac on ar.campaign_id = ac.id
                           left join airdrop_eligibility ae on arl.eligibility_id = ae.id
-                 where arl.account_id = ${account_id}`;
+                 where arl.account_id = ${account_id}
+                   and arl.campaign_id = ${campaign.id}`;
 
     const airdropRecordLogData = (await this.sequelizeService.sequelize.query(sql, {
       type: QueryTypes.SELECT,

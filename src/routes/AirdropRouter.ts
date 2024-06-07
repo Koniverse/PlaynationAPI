@@ -60,9 +60,10 @@ const routerMap = {
     const response = await airdropService.handleClaim(account_id, airdrop_log_id);
     return res.status(200).json(response);
   },
-  historyList: async (req: IReq<Query>, res: IRes) => {
+  historyList: async (req: IReq<AirdropRecordAndDistribute>, res: IRes) => {
     const account_id = req.user?.id || 0;
-    const response = await airdropService.historyList(account_id);
+    const campaign_id = req.body.campaign_id;
+    const response = await airdropService.historyList(account_id, campaign_id);
     return res.status(200).json(response);
   },
 };
@@ -73,5 +74,5 @@ AirdropRouter.get('/list-airdrop-campaign', requireLogin, routerMap.listAirdropC
 AirdropRouter.post('/check-eligibility', requireLogin, routerMap.checkEligibility);
 AirdropRouter.post('/raffle', requireLogin, routerMap.handleRaffle);
 AirdropRouter.post('/claim', requireLogin, routerMap.handleClaim);
-AirdropRouter.get('/history', requireLogin, routerMap.historyList);
+AirdropRouter.post('/history', requireLogin, routerMap.historyList);
 export default AirdropRouter;
