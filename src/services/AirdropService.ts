@@ -179,7 +179,7 @@ export class AirdropService {
     const eligibilityIds = new Set<number>();
     airdropRecordData.forEach((item: any) => {
       if (item.accountId === account_id) {
-        eligibilityIds.add(item.eligibilityId);
+        eligibilityIds.add(item.eligibility_id);
       }
     });
     const uniqueEligibilityIds = Array.from(eligibilityIds);
@@ -280,7 +280,7 @@ export class AirdropService {
         if (!existingRecord) {
           const snapshotData: any = {
             accountId: item.accountId,
-            eligibilityId: item.eligibility_id,
+            eligibility_id: item.eligibility_id,
             campaign: item.campaign_id,
           };
           await AirdropRecord.create(
