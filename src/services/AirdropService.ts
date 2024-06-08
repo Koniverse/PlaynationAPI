@@ -12,12 +12,14 @@ import {
   AirdropRecordsStatus,
   AirdropTransactionLog,
   AirdropTransactionLogStatus,
+  LeaderboardPerson,
 } from '@src/models';
 import { AirdropCampaignInterface, AirdropCampaignStatus } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
 import { QueryTypes, Transaction } from 'sequelize';
 import { CommonService } from '@src/services/CommonService';
 import { AccountService } from '@src/services/AccountService';
+import { LeaderboardRecord } from './LeaderBoardService';
 
 // Interfaces
 interface BoxInterface {
@@ -361,7 +363,7 @@ export class AirdropService {
   }
 
   async handleClaim(account_id: number, airdrop_log_id: number) {
-    const sql = `select arl.id      as airdrop_log_id,
+    const sql = `select arl.id    as airdrop_log_id,
                         arl.type,
                         arl."expiryDate",
                         arl.status,
@@ -372,11 +374,11 @@ export class AirdropService {
                         a.address,
                         ar.point,
                         ar.token,
-                        ac."network",
-                        ac."method" as campaign_method,
-                        ac."name"   as campaign_name,
-                        ac."decimal",
-                        ar."status" as airdrop_record_status
+                        ac.network,
+                        ac.method as campaign_method,
+                        ac.name   as campaign_name,
+                        ac.decimal,
+                        ar.status as airdrop_record_status
                  from airdrop_record_log arl
                           left join account a on arl.account_id = a.id
                           left join airdrop_records ar on arl.airdrop_record_id = ar.id
@@ -494,7 +496,7 @@ export class AirdropService {
   }
 
   async historyList(account_id: number, campaign_id: number) {
-    const sql = `select arl.id      as airdrop_log_id,
+    const sql = `select arl.id    as airdrop_log_id,
                         arl.type,
                         arl."expiryDate",
                         arl.status,
@@ -505,13 +507,13 @@ export class AirdropService {
                         a.address,
                         ar.point,
                         ar.token,
-                        ac."network",
-                        ac."method" as campaign_method,
-                        ac."name"   as campaign_name,
-                        ac."decimal",
-                        ar."status" as airdrop_record_status,
-                        ae."name"   as eligibility_name,
-                        ae."end"    as eligibility_end
+                        ac.network,
+                        ac.method as campaign_method,
+                        ac.name   as campaign_name,
+                        ac.decimal,
+                        ar.status as airdrop_record_status,
+                        ae.name   as eligibility_name,
+                        ae.end    as eligibility_end
                  from airdrop_record_log arl
                           left join account a on arl.account_id = a.id
                           left join airdrop_records ar on arl.airdrop_record_id = ar.id
@@ -540,6 +542,37 @@ export class AirdropService {
       });
     });
     return data;
+  }
+
+  // fake data user airdrop
+
+  async fakeDataUserAirdrop(accountRecord: number[]) {
+    let sql = `SELECT ac.*,
+                      aab.*
+               FROM account as ac
+                        LEFT JOIN account_attribute as aab
+                                  ON ac.id = aab.id
+               WHERE ac.id IN (${accountRecord.join(',')})`;
+    const data = await this.sequelizeService.sequelize.query<LeaderboardRecord>(sql, {
+      type: QueryTypes.SELECT,
+    });
+
+    return data.map(
+      (item) =>
+        ({
+          rank: item.accountId,
+          point: parseInt(item.point),
+          mine: 0,
+          accountInfo: {
+            telegramUsername: item.telegramUsername,
+            lastName: item.lastName,
+            firstName: item.firstName,
+            avatar: item.avatar,
+            id: item.accountId,
+            address: item.address,
+          },
+        } as LeaderboardPerson),
+    );
   }
 
   // Singleton instance

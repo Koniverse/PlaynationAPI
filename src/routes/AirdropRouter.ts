@@ -66,6 +66,12 @@ const routerMap = {
     const response = await airdropService.historyList(account_id, campaign_id);
     return res.status(200).json(response);
   },
+
+  fakeDataUserAirdrop: async (req: IReq<Query>, res: IRes) => {
+    const accountRecord: any = req.body.accountRecord;
+    const response = await airdropService.fakeDataUserAirdrop(accountRecord);
+    return res.status(200).json(response);
+  },
 };
 AirdropRouter.post('/sync-airdrop-campaign', routerMap.syncAirdropCampaign);
 AirdropRouter.post('/sync-airdrop-eligibility', routerMap.syncDataEligibility);
@@ -75,4 +81,5 @@ AirdropRouter.post('/check-eligibility', requireLogin, routerMap.checkEligibilit
 AirdropRouter.post('/raffle', requireLogin, routerMap.handleRaffle);
 AirdropRouter.post('/claim', requireLogin, routerMap.handleClaim);
 AirdropRouter.post('/history', requireLogin, routerMap.historyList);
+AirdropRouter.post('/fake-data-user-airdrop', requireLogin, routerMap.fakeDataUserAirdrop);
 export default AirdropRouter;
