@@ -525,7 +525,7 @@ export class AirdropService {
       type: QueryTypes.SELECT,
     })) as AirdropRecordLogAttributes[];
     if (!campaign_id || !airdropRecordLogData[0]) {
-      throw new Error('No history found');
+      return [];
     }
     const data: any[] = [];
     airdropRecordLogData.forEach((item: any) => {
