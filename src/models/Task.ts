@@ -20,6 +20,7 @@ export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<T
   declare interval: CreationOptional<number>;
   declare startTime: CreationOptional<Date>;
   declare endTime: CreationOptional<Date>;
+  declare share_leaderboard: CreationOptional<JSON>;
   declare active: boolean;
 }
 
@@ -85,6 +86,10 @@ Task.init({
   },
   network: {
     type: DataTypes.STRING,
+    allowNull: true,
+  },
+  share_leaderboard: {
+    type: DataTypes.JSON,
     allowNull: true,
   },
   active: {

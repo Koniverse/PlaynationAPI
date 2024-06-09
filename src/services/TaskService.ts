@@ -22,6 +22,7 @@ export interface TaskContentCms {
     interval: number,
     startTime: Date,
     endTime: Date,
+    share_leaderboard: JSON,
 }
 
 export interface TaskSubmitParams{
@@ -57,6 +58,10 @@ export class TaskService {
       console.log(item);
       const itemData = {...item} as unknown as Task;
       const existed = await Task.findOne({where: {contentId: item.id}});
+      if (item.share_leaderboard) {
+        // @ts-ignore
+        itemData.share_leaderboard = JSON.stringify(item.share_leaderboard);
+      }
 
       // Check if game exists
       if (item.gameId) {
