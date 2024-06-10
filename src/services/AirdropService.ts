@@ -489,9 +489,6 @@ export class AirdropService {
     if (currentDate >= startClaim && currentDate <= endClaimMs) {
       return AirdropCampaignProcess.RAFFLE;
     }
-    if (currentDate > endMs) {
-      return AirdropCampaignProcess.END_CAMPAIGN;
-    }
     return AirdropCampaignProcess.ELIGIBLE;
   }
 
