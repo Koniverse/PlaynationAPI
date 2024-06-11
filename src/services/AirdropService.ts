@@ -225,17 +225,19 @@ export class AirdropService {
     const boxList: BoxInterface[] = [];
     data.forEach((eligibility: any) => {
       const dataUserList = JSON.parse(eligibility.userList);
-      dataUserList.forEach((item: any) => {
-        for (let i = 0; i < eligibility.boxCount; i++) {
-          boxList.push({
-            accountId: item.accountInfo.id,
-            token: 0,
-            nps: 0,
-            eligibility_id: eligibility.id,
-            airdrop_campaign: eligibility.campaign_id,
-          });
-        }
-      });
+      if (dataUserList && dataUserList.length > 0) {
+        dataUserList.forEach((item: any) => {
+          for (let i = 0; i < eligibility.boxCount; i++) {
+            boxList.push({
+              accountId: item.accountInfo.id,
+              token: 0,
+              nps: 0,
+              eligibility_id: eligibility.id,
+              airdrop_campaign: eligibility.campaign_id,
+            });
+          }
+        });
+      }
     });
     return boxList;
   }
