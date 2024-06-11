@@ -22,6 +22,7 @@ export interface TaskContentCms {
     interval: number,
     startTime: Date,
     endTime: Date,
+    share_leaderboard: JSON,
 }
 
 export interface TaskSubmitParams{
@@ -57,6 +58,12 @@ export class TaskService {
       console.log(item);
       const itemData = {...item} as unknown as Task;
       const existed = await Task.findOne({where: {contentId: item.id}});
+      // @ts-ignore
+      itemData.share_leaderboard = null;
+      if (item.share_leaderboard) {
+        // @ts-ignore
+        itemData.share_leaderboard = JSON.stringify(item.share_leaderboard);
+      }
 
       // Check if game exists
       if (item.gameId) {
@@ -118,7 +125,7 @@ export class TaskService {
                th.id                                          as "taskHistoryId",
                th.status,
                case
-                   when t."onChainType" is null or th."completedAt" is null then th."createdAt"
+                   when t."onChainType" is null and th."completedAt" is null then th."createdAt"
                    else th."completedAt" end                  as "completedAt"
         FROM task AS t
                  LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
