@@ -6,9 +6,11 @@ import { checkWalletType } from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
-import {GameData, GiveAwayPoint} from '@src/models';
-import {TelegramService} from '@src/services/TelegramService';
+import { GameData, GiveAwayPoint } from '@src/models';
+import { TelegramService } from '@src/services/TelegramService';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
+import { Op } from 'sequelize';
+import * as console from 'node:console';
 
 // CMS input
 export interface GiveawayPointParams {
@@ -16,6 +18,10 @@ export interface GiveawayPointParams {
   inviteCode: string;
   point: number;
   note?: string;
+}
+
+export interface AccountBanedParams {
+  accountId: number[];
 }
 
 export class AccountService {
@@ -39,7 +45,8 @@ export class AccountService {
     const gameData = await GameData.findAll({
       where: {
         accountId: account?.id || 0,
-      }});
+      },
+    });
 
     return {
       info: account,
@@ -64,7 +71,7 @@ export class AccountService {
     let inviteCode = generateRandomString();
 
     // eslint-disable-next-line no-constant-condition
-    while(true) {
+    while (true) {
       const existed = await Account.findOne({
         where: {
           inviteCode,
@@ -122,7 +129,9 @@ export class AccountService {
         await TelegramService.instance.saveTelegramAccountAvatar(telegramId);
       }
     }
-
+    if (account && !account.isEnabled) {
+      throw new Error('ACCOUNT_BANNED');
+    }
     // Update account info if changed
     if (
       account.firstName !== info.firstName ||
@@ -288,7 +297,7 @@ export class AccountService {
     if (!account) {
       return;
     }
-    const rankData = rankJson.find((item) => item.rank === rank );
+    const rankData = rankJson.find((item) => item.rank === rank);
     if (rankData) {
       const invitePoint = Number(account.isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
       const indirectPoint = invitePoint * EnvVars.INDIRECT_POINT_RATE;
@@ -410,22 +419,22 @@ export class AccountService {
 
   async getReferralLog(accountId: number) {
     const sql = `
-    SELECT
-  (SELECT COUNT(*) FROM referral_log rl
-   JOIN public.account a on a.id = rl."invitedAccountId"
-   WHERE rl."sourceAccountId" = ${accountId}) AS total_count,
-  a.id,
-  a."telegramUsername",
-  a."firstName",
-  a."address",
-  a."lastName",
-  a."photoUrl",
-  rl.point,
-  EXTRACT(EPOCH FROM  CAST(rl."createdAt" AS timestamp)) AS referralSuccessTime
-FROM referral_log rl
-JOIN public.account a on a.id = rl."invitedAccountId"
-WHERE rl."sourceAccountId" = ${accountId}
-LIMIT 100;
+        SELECT (SELECT COUNT(*)
+                FROM referral_log rl
+                         JOIN public.account a on a.id = rl."invitedAccountId"
+                WHERE rl."sourceAccountId" = ${accountId})           AS total_count,
+               a.id,
+               a."telegramUsername",
+               a."firstName",
+               a."address",
+               a."lastName",
+               a."photoUrl",
+               rl.point,
+               EXTRACT(EPOCH FROM CAST(rl."createdAt" AS timestamp)) AS referralSuccessTime
+        FROM referral_log rl
+                 JOIN public.account a on a.id = rl."invitedAccountId"
+        WHERE rl."sourceAccountId" = ${accountId}
+        LIMIT 100;
     `;
     const data = await this.sequelizeService.sequelize.query(sql);
     if (data.length > 0) {
@@ -460,6 +469,46 @@ LIMIT 100;
       });
     }
     return [];
+  }
+
+  // handle baned user
+  async handleBanedAccount(data: any[]) {
+    const transaction = await this.sequelizeService.sequelize.transaction();
+    try {
+      for (const item of data) {
+        const accountIds = item.accountIds;
+        const isEnabled = item.isEnabled;
+        if (accountIds.length > 0) {
+          const accounts = await Account.findAll({
+            where: {
+              id: {
+                [Op.in]: accountIds,
+              },
+            },
+          });
+          if (accounts.length > 0) {
+            await Account.update(
+              {
+                isEnabled,
+              },
+              {
+                where: {
+                  id: {
+                    [Op.in]: accountIds,
+                  },
+                },
+                transaction,
+              },
+            );
+          }
+        }
+      }
+      await transaction.commit();
+      return { success: true };
+    } catch (e) {
+      await transaction.rollback();
+      console.log('Error in handle baned account', e);
+    }
   }
 
   // update energy

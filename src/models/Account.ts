@@ -30,7 +30,6 @@ export enum WalletTypeEnum {
   SUBSTRATE = 'SUBSTRATE',
 }
 
-
 export interface WalletParams {
   address: string;
   signature: string;
@@ -45,7 +44,6 @@ export interface AccountPublicInfo {
   address: string;
   avatar?: string;
   mine?: boolean;
-
 }
 
 export interface LeaderboardPerson {
@@ -63,7 +61,10 @@ export interface ReferralRecord {
 
 export type AccountParams = ReferralParams & ITelegramParams & WalletParams;
 
-export class Account extends Model<InferAttributes<Account>, InferCreationAttributes<Account>> implements ITelegramParams, WalletParams {
+export class Account
+  extends Model<InferAttributes<Account>, InferCreationAttributes<Account>>
+  implements ITelegramParams, WalletParams
+{
   declare id: CreationOptional<number>; // id on db
 
   // Login information
@@ -92,79 +93,90 @@ export class Account extends Model<InferAttributes<Account>, InferCreationAttrib
   // updatedAt can be undefined during creation
   declare updatedAt: CreationOptional<Date>;
   declare cronAvatar: CreationOptional<boolean>;
+  declare isEnabled: CreationOptional<boolean>;
 }
 
-Account.init({
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
+Account.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    address: {
+      type: DataTypes.STRING,
+    },
+    type: {
+      type: DataTypes.ENUM,
+      values: [WalletTypeEnum.EVM, WalletTypeEnum.SUBSTRATE],
+    },
+    signature: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    inviteCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    sessionTime: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    telegramId: {
+      type: DataTypes.BIGINT,
+    },
+    telegramUsername: {
+      type: DataTypes.STRING,
+    },
+    isBot: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
+    isPremium: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
+    addedToAttachMenu: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
+    firstName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    lastName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    photoUrl: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    languageCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    cronAvatar: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
+    isEnabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
+    createdAt: DataTypes.DATE,
+    updatedAt: DataTypes.DATE,
   },
-  address: {
-    type: DataTypes.STRING,
+  {
+    indexes: [
+      { unique: true, fields: ['address'] },
+      { unique: true, fields: ['inviteCode'] },
+    ],
+    tableName: 'account',
+    sequelize: SequelizeServiceImpl.sequelize,
+    createdAt: true,
+    updatedAt: true,
   },
-  type: {
-    type: DataTypes.ENUM,
-    values: [WalletTypeEnum.EVM, WalletTypeEnum.SUBSTRATE],
-  },
-  signature: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  inviteCode: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  sessionTime: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-  telegramId: {
-    type: DataTypes.BIGINT,
-  },
-  telegramUsername: {
-    type: DataTypes.STRING,
-  },
-  isBot: {
-    type: DataTypes.BOOLEAN,
-    allowNull: true,
-  },
-  isPremium: {
-    type: DataTypes.BOOLEAN,
-    allowNull: true,
-  },
-  addedToAttachMenu: {
-    type: DataTypes.BOOLEAN,
-    allowNull: true,
-  },
-  firstName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  lastName: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  photoUrl: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  languageCode: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  cronAvatar: {
-    type: DataTypes.BOOLEAN,
-    allowNull: true,
-  },
-  createdAt: DataTypes.DATE,
-  updatedAt: DataTypes.DATE,
-}, {
-  indexes: [{unique: true, fields: ['address']}, {unique: true, fields: ['inviteCode']}],
-  tableName: 'account',
-  sequelize: SequelizeServiceImpl.sequelize,
-  createdAt: true,
-  updatedAt: true,
-});
+);
 
 export default Account;

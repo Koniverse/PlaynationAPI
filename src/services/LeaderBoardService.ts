@@ -215,6 +215,7 @@ export class LeaderBoardService {
                  JOIN account a ON r.accountId = a.id
         where rank <= :limit
            or accountId = :accountId
+            and a."isEnabled" = true
         order by rank asc;
 
     `;
