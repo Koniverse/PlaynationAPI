@@ -1,6 +1,11 @@
 import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 
+export enum AirdropTransactionLogStatus {
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED',
+}
+
 export class AirdropTransactionLog extends Model<
   InferAttributes<AirdropTransactionLog>,
   InferCreationAttributes<AirdropTransactionLog>
@@ -14,6 +19,7 @@ export class AirdropTransactionLog extends Model<
   declare amount: number;
   declare point: number;
   declare status: string;
+  declare note: string;
 }
 
 AirdropTransactionLog.init(
@@ -52,7 +58,11 @@ AirdropTransactionLog.init(
       allowNull: true,
     },
     status: {
-      type: DataTypes.ENUM('SUCCESS', 'FAILED'),
+      type: DataTypes.ENUM(AirdropTransactionLogStatus.FAILED, AirdropTransactionLogStatus.SUCCESS),
+      allowNull: true,
+    },
+    note: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
   },

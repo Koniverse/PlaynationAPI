@@ -1,4 +1,4 @@
-import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
+import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
 import {
   Account,
   Game,
@@ -8,9 +8,9 @@ import {
   GamePlay,
   LeaderboardPerson,
 } from '@src/models';
-import {v4} from 'uuid';
-import {AccountService} from '@src/services/AccountService';
-import {QueryTypes} from 'sequelize';
+import { v4 } from 'uuid';
+import { AccountService } from '@src/services/AccountService';
+import { QueryTypes } from 'sequelize';
 
 export interface newGamePlayParams {
   gameId: number;
@@ -37,34 +37,31 @@ interface LeaderboardRecord {
 const accountService = AccountService.instance;
 
 export interface GameContentCms {
-  id: number,
-  name: string,
-  description: string,
-  url: string,
-  maxEnergy: number,
-  slug: string,
-  active: boolean,
-  maxPoint: number,
-  energyPerGame: number,
-  maxPointPerGame: number,
-  icon: string,
-  rank_definition: string,
-  banner: string,
-  startTime: Date,
-  endTime: Date,
+  id: number;
+  name: string;
+  description: string;
+  url: string;
+  maxEnergy: number;
+  slug: string;
+  active: boolean;
+  maxPoint: number;
+  energyPerGame: number;
+  maxPointPerGame: number;
+  icon: string;
+  rank_definition: string;
+  banner: string;
+  startTime: Date;
+  endTime: Date;
 }
 
-
 export interface GameInventoryItemParams {
-  gameInventoryItemId: number,
+  gameInventoryItemId: number;
 }
 
 export class GameService {
   private gameMap: Record<string, Game> | undefined;
 
-  constructor(private sequelizeService: SequelizeService) {
-    
-  }
+  constructor(private sequelizeService: SequelizeService) {}
 
   async generateDefaultData() {
     const existed = await Game.findOne({ where: { slug: 'booka' } });
@@ -94,8 +91,8 @@ export class GameService {
     };
 
     for (const item of data) {
-      const itemData = {...item} as unknown as Game;
-      const existed = await Game.findOne({where: {contentId: item.id}});
+      const itemData = { ...item } as unknown as Game;
+      const existed = await Game.findOne({ where: { contentId: item.id } });
       itemData.rankDefinition = JSON.stringify(item.rank_definition);
       if (existed) {
         await existed.update(itemData);
@@ -138,7 +135,7 @@ export class GameService {
       },
     });
   }
-  
+
   async getGameData(accountId: number, gameId: number) {
     const account = await Account.findByPk(accountId);
     if (!account) {
@@ -174,18 +171,21 @@ export class GameService {
 
   checkGameActive(game: Game) {
     const now = new Date();
-    const checkActive = game.active &&  (!game.endTime || now <= game.endTime);
+    const checkActive = game.active && (!game.endTime || now <= game.endTime);
     if (!checkActive) {
       throw new Error('Game is not active');
     }
   }
 
   async newGamePlay(accountId: number, gameId: number) {
+    const account = await accountService.findById(accountId);
+    if (!account || account.isEnabled === false) {
+      throw new Error('Your account is suspended');
+    }
     const gameData = await this.getGameData(accountId, gameId);
     const game = await this.findGame(gameId);
     this.checkGameActive(game);
     const usedEnergy = game?.energyPerGame || 0;
-
     await accountService.useAccountEnergy(accountId, usedEnergy);
 
     return GamePlay.create({
@@ -199,6 +199,10 @@ export class GameService {
   }
 
   async addGameDataPoint(accountId: number, gameId: number, point: number) {
+    const account = await accountService.findById(accountId);
+    if (!account || account.isEnabled === false) {
+      throw new Error('Your account is suspended');
+    }
     const gameData = await this.getGameData(accountId, gameId);
     await gameData.update({
       point: gameData.point + point,
@@ -212,7 +216,6 @@ export class GameService {
     if (!gamePlay) {
       throw new Error('Game play not found');
     }
-
 
     const game = await this.findGame(gamePlay?.gameId || 0);
     if (!game) {
@@ -275,98 +278,99 @@ export class GameService {
 
   async getTotalLeaderboard(accountId: number) {
     const sql = `
-    WITH RankedUsers AS (
-      SELECT 
-        a.id,
-        a."address",
-        a."firstName",
-        a."lastName",
-        a."telegramUsername",
-        a."photoUrl" as avatar,
-        aa."accumulatePoint" as point,
-        RANK() OVER (ORDER BY aa."accumulatePoint" DESC) as rank,
-        (a.id = :accountId) as mine
-      FROM account_attribute aa
-      JOIN public.account a ON a.id = aa."accountId"
-    )
-    SELECT
-      rank,
-      id as accountId,
-      "address",
-      "firstName",
-      "lastName",
-      point,
-      "telegramUsername",
-      avatar,
-      mine
-    FROM RankedUsers
-    WHERE rank <= 100 OR mine = true
-    ORDER BY rank;
-  `;
-
-    try {
-      const data = await this.sequelizeService.sequelize.query<LeaderboardRecord>(sql, {
-        replacements: { accountId },  // Use replacements for parameterized queries
-        type: QueryTypes.SELECT,
-      });
-
-      return data.map(item => ({
-        rank: parseInt(item.rank),
-        point: parseInt(item.point),
-        mine: item.mine,
-        accountInfo: {
-          telegramUsername: item.telegramUsername,
-          lastName: item.lastName,
-          firstName: item.firstName,
-          avatar: item.avatar,
-          id: item.accountId,
-          address: item.address,
-        },
-      }) as LeaderboardPerson);
-    } catch (error) {
-      console.error('Error fetching leaderboard:', error);
-      return [] as LeaderboardPerson[];  // Return an empty array in case of an error
-    }
-  }
-  async getLeaderBoard(accountId: number, gameId?: number) {
-    const queryGameId = gameId ? ` and aa."gameId" = ${gameId}`  : '';
-    const sql = `
-    with leader as (SELECT a.id,
-                           a."address",
-                       a."firstName",
-                       a."lastName",
-                       a."telegramUsername",
-                       a."photoUrl",
-                       aa.point
-                from game_data aa
-                         JOIN public.account a on a.id = aa."accountId"
-                where 1=1 ${queryGameId}
-                order by aa.point desc
-                limit 100),
-     mine as (SELECT a.id,
-                  a."address",
-                     a."firstName",
-                        a."lastName",
-                       a."telegramUsername",
-                       a."photoUrl",
-                     aa.point
-              from game_data aa
-                  JOIN public.account a
-              on a.id = aa."accountId"
-              where a.id = ${accountId} ${queryGameId}),
-     data_all as (select *
-                  from leader
-                  union
-                  select *
-                  from mine)
-        select row_number() over (order by point desc) as rank,
+        WITH RankedUsers AS (SELECT a.id,
+                                    a."address",
+                                    a."firstName",
+                                    a."lastName",
+                                    a."telegramUsername",
+                                    a."photoUrl"                                     as avatar,
+                                    aa."accumulatePoint"                             as point,
+                                    RANK() OVER (ORDER BY aa."accumulatePoint" DESC) as rank,
+                                    (a.id = :accountId)                              as mine
+                             FROM account_attribute aa
+                                      JOIN public.account a ON a.id = aa."accountId")
+        SELECT rank,
                id as accountId,
-            "address",
+               "address",
                "firstName",
                "lastName",
                point,
-                "telegramUsername",
-                "photoUrl" as avatar,
+               "telegramUsername",
+               avatar,
+               mine
+        FROM RankedUsers
+        WHERE rank <= 100
+           OR mine = true
+        ORDER BY rank;
+    `;
+
+    try {
+      const data = await this.sequelizeService.sequelize.query<LeaderboardRecord>(sql, {
+        replacements: { accountId }, // Use replacements for parameterized queries
+        type: QueryTypes.SELECT,
+      });
+
+      return data.map(
+        (item) =>
+          ({
+            rank: parseInt(item.rank),
+            point: parseInt(item.point),
+            mine: item.mine,
+            accountInfo: {
+              telegramUsername: item.telegramUsername,
+              lastName: item.lastName,
+              firstName: item.firstName,
+              avatar: item.avatar,
+              id: item.accountId,
+              address: item.address,
+            },
+          } as LeaderboardPerson),
+      );
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+      return [] as LeaderboardPerson[]; // Return an empty array in case of an error
+    }
+  }
+
+  async getLeaderBoard(accountId: number, gameId?: number) {
+    const queryGameId = gameId ? ` and aa."gameId" = ${gameId}` : '';
+    const sql = `
+        with leader as (SELECT a.id,
+                               a."address",
+                               a."firstName",
+                               a."lastName",
+                               a."telegramUsername",
+                               a."photoUrl",
+                               aa.point
+                        from game_data aa
+                                 JOIN public.account a on a.id = aa."accountId"
+                        where 1 = 1 ${queryGameId}
+                        order by aa.point desc
+                        limit 100),
+             mine as (SELECT a.id,
+                             a."address",
+                             a."firstName",
+                             a."lastName",
+                             a."telegramUsername",
+                             a."photoUrl",
+                             aa.point
+                      from game_data aa
+                               JOIN public.account a
+                                    on a.id = aa."accountId"
+                      where a.id = ${accountId} ${queryGameId}),
+             data_all as (select *
+                          from leader
+                          union
+                          select *
+                          from mine)
+        select row_number() over (order by point desc) as rank,
+               id                                      as accountId,
+               "address",
+               "firstName",
+               "lastName",
+               point,
+               "telegramUsername",
+               "photoUrl"                              as avatar,
                case
                    when id = ${accountId} then true
                    else false
@@ -378,7 +382,7 @@ export class GameService {
     if (data.length > 0) {
       return data[0].map((item) => {
         // @ts-ignore
-        const {rank, point, telegramUsername, lastName, firstName, avatar, mine, accountId, address} = item;
+        const { rank, point, telegramUsername, lastName, firstName, avatar, mine, accountId, address } = item;
         return {
           rank: parseInt(rank as string),
           point: parseInt(point as string),
@@ -394,10 +398,10 @@ export class GameService {
         } as LeaderboardPerson;
       });
     }
-    return[];
+    return [];
   }
 
-  async useGameInventoryItem(accountId: number, gameInventoryItemId: number){
+  async useGameInventoryItem(accountId: number, gameInventoryItemId: number) {
     const account = await accountService.findById(accountId);
     if (!account) {
       throw new Error('Account not found');
@@ -416,10 +420,9 @@ export class GameService {
       status: GameInventoryItemStatus.USED,
       usedTime: new Date(),
     });
-    return  {
+    return {
       success: true,
     };
-
   }
 
   // Singleton
