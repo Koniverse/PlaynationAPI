@@ -57,39 +57,37 @@ export class AirdropService {
 
   // Synchronizes data for airdrop campaigns with the database
   async syncDataCampaign(data: AirdropCampaignInterface[]) {
-    const response = { success: true };
-    for (const item of data) {
-      const itemData = { ...item } as unknown as AirdropCampaign;
-      const existed = await AirdropCampaign.findByPk(item.id);
-      if (existed) {
-        await existed.update(itemData);
-      } else {
+    try {
+      for (const item of data) {
+        const itemData = { ...item } as unknown as AirdropCampaign;
+        await AirdropCampaign.truncate({ cascade: true });
         await AirdropCampaign.create(itemData);
       }
+      return { success: true };
+    } catch (error) {
+      return { success: false };
     }
-    return response;
   }
 
   async syncDataEligibility(data: AirdropEligibilityInterface[]) {
-    const response = { success: true };
-    for (const item of data) {
-      const itemData = {
-        name: item.name,
-        boxCount: item.boxCount,
-        userList: JSON.stringify(item.userList),
-        campaign_id: item.campaign_id.id,
-        type: item.type,
-        start: item.start,
-        end: item.end,
-      } as unknown as AirdropEligibility;
-      const existed = await AirdropEligibility.findByPk(item.id);
-      if (existed) {
-        await existed.update(itemData);
-      } else {
+    try {
+      for (const item of data) {
+        const itemData = {
+          name: item.name,
+          boxCount: item.boxCount,
+          userList: JSON.stringify(item.userList),
+          campaign_id: item.campaign_id.id,
+          type: item.type,
+          start: item.start,
+          end: item.end,
+        } as unknown as AirdropEligibility;
+        await AirdropEligibility.truncate({ cascade: true });
         await AirdropEligibility.create(itemData);
       }
+      return { success: true };
+    } catch (error) {
+      return { success: false };
     }
-    return response;
   }
 
   // Lists all active airdrop campaigns
@@ -273,36 +271,28 @@ export class AirdropService {
   async insertAirdropRecord(userList: BoxInterface[], campaign: AirdropCampaign): Promise<void> {
     const transaction = await this.sequelizeService.startTransaction();
     try {
+      await AirdropRecord.truncate({ cascade: true });
       for (const item of userList) {
-        const existingRecord = await AirdropRecord.findOne({
-          where: {
+        const snapshotData: any = {
+          accountId: item.accountId,
+          eligibility_id: item.eligibility_id,
+          campaign: item.campaign_id,
+        };
+        await AirdropRecord.create(
+          {
             campaign_id: campaign.id,
             accountId: item.accountId,
-          },
-        });
-
-        if (!existingRecord) {
-          const snapshotData: any = {
-            accountId: item.accountId,
+            token: item.token,
+            status: AirdropRecordsStatus.CLOSED,
+            symbol: campaign.symbol,
+            decimal: campaign.decimal,
+            network: campaign.network,
+            snapshot_data: snapshotData,
             eligibility_id: item.eligibility_id,
-            campaign: item.campaign_id,
-          };
-          await AirdropRecord.create(
-            {
-              campaign_id: campaign.id,
-              accountId: item.accountId,
-              token: item.token,
-              status: AirdropRecordsStatus.CLOSED,
-              symbol: campaign.symbol,
-              decimal: campaign.decimal,
-              network: campaign.network,
-              snapshot_data: snapshotData,
-              eligibility_id: item.eligibility_id,
-              point: item.nps,
-            },
-            { transaction },
-          );
-        }
+            point: item.nps,
+          },
+          { transaction },
+        );
       }
       // Commit the transaction
       await transaction.commit();
