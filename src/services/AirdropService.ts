@@ -120,12 +120,27 @@ export class AirdropService {
        order by airdrop_eligibility.id ASC;`,
       { type: QueryTypes.SELECT },
     );
-
-    const campaigns: any = {};
+    const campaigns: any = [];
 
     results.forEach((item: any) => {
-      if (!campaigns[item.campaign_id]) {
-        campaigns[item.campaign_id] = {
+      const existingCampaign = campaigns.find(
+        (c: { airdrop_campaign_id: any }) => c.airdrop_campaign_id === item.airdrop_campaign_id,
+      );
+
+      if (existingCampaign) {
+        if (item.eligibility_name && item.eligibility_type) {
+          existingCampaign.eligibilityList.push({
+            id: item.eligibility_id,
+            name: item.eligibility_name,
+            type: item.eligibility_type,
+            boxCount: item.eligibility_box,
+            start: item.eligibility_start,
+            end: item.eligibility_end,
+            note: item.note,
+          });
+        }
+      } else {
+        const newCampaign: any = {
           airdrop_campaign_id: item.airdrop_campaign_id,
           name: item.name,
           icon: item.icon,
@@ -146,22 +161,24 @@ export class AirdropService {
           token_slug: item.token_slug,
           eligibilityList: [],
         };
-      }
 
-      if (item.eligibility_name && item.eligibility_type) {
-        campaigns[item.campaign_id].eligibilityList.push({
-          id: item.eligibility_id,
-          name: item.eligibility_name,
-          type: item.eligibility_type,
-          boxCount: item.eligibility_box,
-          start: item.eligibility_start,
-          end: item.eligibility_end,
-          note: item.note,
-        });
+        if (item.eligibility_name && item.eligibility_type) {
+          newCampaign.eligibilityList.push({
+            id: item.eligibility_id,
+            name: item.eligibility_name,
+            type: item.eligibility_type,
+            boxCount: item.eligibility_box,
+            start: item.eligibility_start,
+            end: item.eligibility_end,
+            note: item.note,
+          });
+        }
+
+        campaigns.push(newCampaign);
       }
     });
 
-    return Object.values(campaigns);
+    return campaigns;
   }
 
   async checkEligibility(account_id: number, campaign_id: number) {
