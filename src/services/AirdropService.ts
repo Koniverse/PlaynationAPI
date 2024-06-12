@@ -60,8 +60,12 @@ export class AirdropService {
     try {
       for (const item of data) {
         const itemData = { ...item } as unknown as AirdropCampaign;
-        await AirdropCampaign.truncate({ cascade: true });
-        await AirdropCampaign.create(itemData);
+        const existed = await AirdropCampaign.findByPk(item.id);
+        if (existed) {
+          await existed.update(itemData);
+        } else {
+          await AirdropCampaign.create(itemData);
+        }
       }
       return { success: true };
     } catch (error) {
@@ -71,6 +75,7 @@ export class AirdropService {
 
   async syncDataEligibility(data: AirdropEligibilityInterface[]) {
     try {
+      await AirdropEligibility.truncate({ cascade: true });
       for (const item of data) {
         const itemData = {
           name: item.name,
@@ -81,8 +86,12 @@ export class AirdropService {
           start: item.start,
           end: item.end,
         } as unknown as AirdropEligibility;
-        await AirdropEligibility.truncate({ cascade: true });
-        await AirdropEligibility.create(itemData);
+        const existed = await AirdropEligibility.findByPk(item.id);
+        if (existed) {
+          await existed.update(itemData);
+        } else {
+          await AirdropEligibility.create(itemData);
+        }
       }
       return { success: true };
     } catch (error) {
