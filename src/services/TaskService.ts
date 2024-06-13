@@ -236,7 +236,6 @@ export class TaskService {
       accountId: userId,
       pointReward: task.pointReward,
     } as TaskHistory;
-    let isOnChain = false;
     if (task.onChainType) {
       if (!extrinsicHash) {
         throw new Error('Extrinsic hash is required');
@@ -245,19 +244,15 @@ export class TaskService {
       dataCreate.network = network;
       dataCreate.status = TaskHistoryStatus.CHECKING;
       dataCreate.retry = 0;
-      isOnChain = true;
-    } else {
-      dataCreate.status = TaskHistoryStatus.COMPLETED;
-      dataCreate.completedAt = now;
     }
+    dataCreate.status = TaskHistoryStatus.COMPLETED;
+    dataCreate.completedAt = now;
 
     // Create task history
     await TaskHistory.create(dataCreate);
 
-    if (!isOnChain) {
-      // Add point to account
-      await AccountService.instance.addAccountPoint(userId, task.pointReward);
-    }
+    // Add point to account
+    await AccountService.instance.addAccountPoint(userId, task.pointReward);
 
     return {
       success: true,

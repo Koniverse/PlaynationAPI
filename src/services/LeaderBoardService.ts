@@ -196,6 +196,7 @@ export class LeaderBoardService {
                              FROM task_history
                              where "createdAt" >= :startDate
                                and "createdAt" <= :endDate
+                               and (("extrinsicHash" is not null and status = 'completed') or "extrinsicHash" is null)
                              GROUP BY 1),
              totalData as (SELECT accountId,
                                   sum(point)                                                   as point,

@@ -6,7 +6,7 @@ import * as console from 'console';
 import {AccountService} from '@src/services/AccountService';
 import {SubscanService} from '@src/services/SubscanService';
 
-const INTERVAL_TIME = EnvVars.TaskOnChain.IntervalTime;
+const INTERVAL_TIME = 0;
 const ACTION_URL = '/api/scan/extrinsic';
 
 export async function checkTaskOnChange() {
@@ -38,6 +38,11 @@ export async function checkTaskOnChange() {
         taskHistory.status = TaskHistoryStatus.COMPLETED;
         taskHistory.completedAt = new Date();
         await taskHistory.save();
+      }else {
+        taskHistory.retry = taskHistory.retry + 1;
+        taskHistory.status = TaskHistoryStatus.FAILED;
+        await taskHistory.save();
+
         if (!taskHistory.accountId) {
           continue;
         }
@@ -45,14 +50,7 @@ export async function checkTaskOnChange() {
         if (!account) {
           continue;
         }
-        await AccountService.instance.addAccountPoint(taskHistory.accountId, task.pointReward);
-      }else {
-        taskHistory.retry = taskHistory.retry + 1;
-        if (taskHistory.retry >= EnvVars.TaskOnChain.RetryMax) {
-          taskHistory.status = TaskHistoryStatus.FAILED;
-        }
-        await taskHistory.save();
-
+        await AccountService.instance.minusAccountPoint(taskHistory.accountId, task.pointReward);
       }
     }
   } catch (error) {
@@ -61,17 +59,21 @@ export async function checkTaskOnChange() {
 }
 
 async function checkExtrinsicHashOnSubscan(extrinsicHash: string, network: string) {
-  const raw = {
-    'hash': extrinsicHash,
-  };
-  const extrinsicSubscanResult = await SubscanService.instance.addAction<ExtrinsicSubscanResult>(network, ACTION_URL, raw);
-  const now = new Date();
-  const extrinsicDate = new Date(extrinsicSubscanResult.data.block_timestamp * 1000);
-  //
-  if (now.getFullYear() !== extrinsicDate.getFullYear() || now.getMonth() !== extrinsicDate.getMonth() || now.getDate() !== extrinsicDate.getDate())  {
+  try {
+    const raw = {
+      'hash': extrinsicHash,
+    };
+    const extrinsicSubscanResult = await SubscanService.instance.addAction<ExtrinsicSubscanResult>(network, ACTION_URL, raw);
+    const now = new Date();
+    const extrinsicDate = new Date(extrinsicSubscanResult.data.block_timestamp * 1000);
+    //
+    if (now.getFullYear() !== extrinsicDate.getFullYear() || now.getMonth() !== extrinsicDate.getMonth() || now.getDate() !== extrinsicDate.getDate())  {
+      return false;
+    }
+    return extrinsicSubscanResult.data.success && extrinsicSubscanResult.data.call_module_function === 'remark_with_event';
+  }catch (e){
     return false;
   }
-  return extrinsicSubscanResult.data.success;
 }
 
 if (INTERVAL_TIME > 0) {
