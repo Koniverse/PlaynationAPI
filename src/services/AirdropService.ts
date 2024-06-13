@@ -449,7 +449,7 @@ export class AirdropService {
           }
         }
       } else {
-        await accountService.addAccountPoint(account_id, 1);
+        await accountService.addAccountPoint(account_id, airdropRecordLogData[0].point);
       }
       const airdropRecordLog = await AirdropRecordLog.findByPk(airdrop_log_id);
       if (airdropRecordLog) {
