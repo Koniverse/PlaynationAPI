@@ -440,18 +440,21 @@ export class AirdropService {
         const sendTokenResponse = JSON.parse(JSON.stringify(sendToken));
         await this.insertTransactionLog(airdropRecordLogData[0], sendTokenResponse, account_id, transaction);
         if (sendTokenResponse.error) {
-          if (
-            sendTokenResponse.error === SendTokenStatus.ERR_MISSING_TOKEN ||
-            sendTokenResponse.error === SendTokenStatus.ERR_INCORRECT_NETWORK
-          ) {
-            throw new Error('The system is currently overloaded, please try again later.');
+          let errorMessage;
+
+          switch (sendTokenResponse.error) {
+            case SendTokenStatus.ERR_MISSING_TOKEN:
+            case SendTokenStatus.ERR_INCORRECT_NETWORK:
+            case SendTokenStatus.ERR_INSUFFICIENT_GAS_FEES:
+              errorMessage = 'The system is currently overloaded, please try again later.';
+              break;
+            case SendTokenStatus.ERR_INVALID_WALLET_ADDRESS:
+              errorMessage = 'Invalid wallet address, please check again.';
+              break;
+            default:
+              errorMessage = 'The system is currently overloaded, please try again later.';
           }
-          if (sendTokenResponse.error === SendTokenStatus.ERR_INVALID_WALLET_ADDRESS) {
-            throw new Error('Invalid wallet address, please check again.');
-          }
-          if (sendTokenResponse.error === SendTokenStatus.ERR_INSUFFICIENT_GAS_FEES) {
-            throw new Error('Insufficient gas fees.');
-          }
+          throw new Error(errorMessage);
         }
       } else {
         await accountService.addAccountPoint(account_id, airdropRecordLogData[0].point);
