@@ -12,6 +12,13 @@ export interface CreateTransactionParams {
     decimal: number;
     amount: number;
 }
+
+enum ErrorTransfer {
+  ERR_INVALID_WALLET_ADDRESS = 'ERR_INVALID_WALLET_ADDRESS',
+  ERR_MISSING_TOKEN = 'ERR_MISSING_TOKEN',
+  ERR_INCORRECT_NETWORK = 'ERR_INCORRECT_NETWORK',
+  ERR_INSUFFICIENT_GAS_FEES = 'ERR_INSUFFICIENT_GAS_FEES',
+}
 interface ChainData {
     address: string;
     seedPhrase: string;
@@ -42,20 +49,21 @@ export class ChainListService {
   public async createTransfer(address: string, network: string, decimal: number, amount: number) {
     const chainService = this.getChainService(network);
     if (!chainService) {
-      return;
+      throw new Error(ErrorTransfer.ERR_INCORRECT_NETWORK);
     }
     const checkAddress = isAddress(address);
     if (!checkAddress) {
-      throw new Error('Invalid address');
+      throw new Error(ErrorTransfer.ERR_INVALID_WALLET_ADDRESS);
     }
     console.log('checkAddress', checkAddress);
     const api = await chainService.getApi();
-    const airdropAccount = amount * 10 ** decimal;
+    const airdropAccount = (amount - EnvVars.ChainService.estimatedFee) * 10 ** decimal;
 
     const AIRDROP_AMOUNT = new BN(airdropAccount);
-    const isCanSend = await chainService.checkBalancesSend(AIRDROP_AMOUNT);
+    const MINIMUM_BALANCE = new BN(EnvVars.ChainService.minimumBalance  * 10 ** decimal);
+    const isCanSend = await chainService.checkBalancesSend(MINIMUM_BALANCE);
     if (!isCanSend) {
-      throw new Error('Not enough balance');
+      throw new Error(ErrorTransfer.ERR_MISSING_TOKEN);
     }
     const extrinsic = api.tx.balances.transferKeepAlive(address, AIRDROP_AMOUNT);
     return await chainService.runExtrinsic(extrinsic);
