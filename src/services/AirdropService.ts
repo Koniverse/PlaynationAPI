@@ -37,7 +37,7 @@ interface TransactionInterface {
   blockNumber: number;
   amount: number;
   point: number;
-  error?: string;
+  error?: any;
 }
 
 const enum AirdropCampaignProcess {
@@ -46,6 +46,13 @@ const enum AirdropCampaignProcess {
   INELIGIBLE = 'INELIGIBLE',
   RAFFLE = 'RAFFLE',
   END_CAMPAIGN = 'END_CAMPAIGN',
+}
+
+const enum SendTokenStatus {
+  ERR_MISSING_TOKEN = 'ERR_MISSING_TOKEN',
+  ERR_INVALID_WALLET_ADDRESS = 'ERR_INVALID_WALLET_ADDRESS',
+  ERR_INCORRECT_NETWORK = 'ERR_INCORRECT_NETWORK',
+  ERR_INSUFFICIENT_GAS_FEES = 'ERR_INSUFFICIENT_GAS_FEES',
 }
 
 const commonService = CommonService.instance;
@@ -420,12 +427,34 @@ export class AirdropService {
     const transaction = await this.sequelizeService.startTransaction();
     try {
       if (airdropRecordLogData[0].type === AIRDROP_LOG_TYPE.TOKEN) {
-        const resultSendAirdrop = await this.sendAirdrop(airdropRecordLogData[0], account_id, transaction);
-        if (resultSendAirdrop === AIRDROP_LOG_STATUS.PENDING) {
-          throw new Error('Please check your wallet address.');
+        const data = {
+          address: airdropRecordLogData[0].address,
+          network: airdropRecordLogData[0].network,
+          decimal: airdropRecordLogData[0].decimal,
+          amount: 0.1,
+        };
+        const sendToken: TransactionInterface = await commonService.callActionChainService(
+          'chain/create-transfer',
+          data,
+        );
+        const sendTokenResponse = JSON.parse(JSON.stringify(sendToken));
+        await this.insertTransactionLog(airdropRecordLogData[0], sendTokenResponse, account_id, transaction);
+        if (sendTokenResponse.error) {
+          if (
+            sendTokenResponse.error === SendTokenStatus.ERR_MISSING_TOKEN ||
+            sendTokenResponse.error === SendTokenStatus.ERR_INCORRECT_NETWORK
+          ) {
+            throw new Error('The system is currently overloaded, please try again later.');
+          }
+          if (sendTokenResponse.error === SendTokenStatus.ERR_INVALID_WALLET_ADDRESS) {
+            throw new Error('Invalid wallet address, please check again.');
+          }
+          if (sendTokenResponse.error === SendTokenStatus.ERR_INSUFFICIENT_GAS_FEES) {
+            throw new Error('Insufficient gas fees.');
+          }
         }
       } else {
-        await accountService.addAccountPoint(account_id, 1);
+        await accountService.addAccountPoint(account_id, airdropRecordLogData[0].point);
       }
       const airdropRecordLog = await AirdropRecordLog.findByPk(airdrop_log_id);
       if (airdropRecordLog) {
@@ -440,45 +469,26 @@ export class AirdropService {
     }
   }
 
-  async sendAirdrop(
+  async insertTransactionLog(
     airdropRecordLog: AirdropRecordLogAttributes,
+    sendTokenResponse: TransactionInterface,
     account_id: number,
     transaction: Transaction,
   ): Promise<string> {
-    const data = {
-      address: airdropRecordLog.address,
-      network: airdropRecordLog.network,
-      decimal: airdropRecordLog.decimal,
-      amount: airdropRecordLog.token,
-    };
+    const { error, extrinsicHash, blockHash, blockNumber }: TransactionInterface = sendTokenResponse;
     const logData = {
       name: airdropRecordLog.campaign_name,
       account_id,
       amount: airdropRecordLog.token,
       point: airdropRecordLog.point,
-      status: AirdropTransactionLogStatus.SUCCESS,
-      extrinsicHash: '',
-      blockHash: '',
-      blockNumber: 0,
-      note: '',
+      status: error ? AirdropTransactionLogStatus.FAILED : AirdropTransactionLogStatus.SUCCESS,
+      extrinsicHash: error ? '' : extrinsicHash,
+      blockHash: error ? '' : blockHash,
+      blockNumber: error ? 0 : blockNumber,
+      note: error ? error : '',
     };
-    try {
-      const transactionResult = await commonService.callActionChainService('chain/create-transfer', data);
-      const transactionResponse = JSON.parse(JSON.stringify(transactionResult));
-      logData.extrinsicHash = transactionResponse.extrinsicHash;
-      logData.blockHash = transactionResponse.blockHash;
-      logData.blockNumber = transactionResponse.blockNumber;
-      await AirdropTransactionLog.create(logData, { transaction });
-      return transactionResponse.error ? AIRDROP_LOG_STATUS.PENDING : AIRDROP_LOG_STATUS.RECEIVED;
-    } catch (error) {
-      logData.status = AirdropTransactionLogStatus.FAILED;
-      logData.extrinsicHash = '';
-      logData.blockHash = '';
-      logData.blockNumber = 0;
-      logData.note = error.message;
-      await AirdropTransactionLog.create(logData, { transaction });
-      return AIRDROP_LOG_STATUS.PENDING;
-    }
+    await AirdropTransactionLog.create(logData, { transaction });
+    return error ? AIRDROP_LOG_STATUS.PENDING : AIRDROP_LOG_STATUS.RECEIVED;
   }
 
   async currentProcess(campaignId: number): Promise<AirdropCampaignProcess> {
@@ -560,7 +570,6 @@ export class AirdropService {
   }
 
   // fake data user airdrop
-
   async fakeDataUserAirdrop(accountRecord: number[]) {
     let sql = `SELECT ac.*,
                       aab.*

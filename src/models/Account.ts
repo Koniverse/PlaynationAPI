@@ -162,6 +162,7 @@ Account.init(
     },
     isEnabled: {
       type: DataTypes.BOOLEAN,
+      defaultValue: true,
       allowNull: true,
     },
     createdAt: DataTypes.DATE,

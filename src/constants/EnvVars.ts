@@ -103,10 +103,8 @@ const Environments = {
     Endpoint: process.env.CHAIN_SERVICE_ENDPOINT ?? '',
     Token: process.env.CHAIN_SERVICE_TOKEN ?? '',
     networkConfig: chainConfig,
-    EnergyPrice: parseInt(process.env.ENERGY_PRICE || '1'),
-    EnergyBuyLimit: parseInt(process.env.ENERGY_BUY_LIMIT || '5'),
-    EnergyOneBuy: parseInt(process.env.ENERGY_ONE_BUY || '1'),
-    MaxBuyEnergy: parseInt(process.env.MAX_BUY_ENERGY || '1'),
+    minimumBalance: parseInt(process.env.MINIMUM_BALANCE || '30'),
+    estimatedFee: parseFloat(process.env.ESTIMATED_FEE || '0.002410001367'),
   },
   TaskOnChain: {
     IntervalTime: parseInt(process.env.INTERVAL_TASK_ON_CHAIN_TIME || '6000'),
