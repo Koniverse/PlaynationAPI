@@ -337,6 +337,17 @@ export class AccountService {
     });
   }
 
+  async minusAccountPoint(accountId: number, point: number) {
+    const accountAttribute = await this.getAccountAttribute(accountId, false);
+    const newPoint = (accountAttribute.point -= point);
+    const newAccumulatePoint = (accountAttribute.accumulatePoint -= point);
+
+    await accountAttribute.update({
+      point: newPoint,
+      accumulatePoint: newAccumulatePoint,
+    });
+  }
+
   async useAccountPoint(accountId: number, point: number) {
     const accountAttribute = await this.getAccountAttribute(accountId, false);
     const newPoint = (accountAttribute.point -= point);
