@@ -253,8 +253,10 @@ export class TaskService {
       dataCreate.network = network;
       dataCreate.status = TaskHistoryStatus.CHECKING;
       dataCreate.retry = 0;
+    } else {
+      dataCreate.status = TaskHistoryStatus.COMPLETED;
     }
-    dataCreate.status = TaskHistoryStatus.COMPLETED;
+
     dataCreate.completedAt = now;
 
     // Create task history
