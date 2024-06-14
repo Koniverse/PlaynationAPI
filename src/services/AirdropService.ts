@@ -431,7 +431,7 @@ export class AirdropService {
           address: airdropRecordLogData[0].address,
           network: airdropRecordLogData[0].network,
           decimal: airdropRecordLogData[0].decimal,
-          amount: 0.1,
+          amount: 0.2,
         };
         const sendToken: TransactionInterface = await commonService.callActionChainService(
           'chain/create-transfer',
