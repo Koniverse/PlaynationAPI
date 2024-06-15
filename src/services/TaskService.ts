@@ -42,6 +42,7 @@ interface TaskHistoryLog  {
 }
 
 type TaskHistoryRecord = Task & TaskHistoryLog;
+const accountService = AccountService.instance;
 
 export class TaskService {
   private taskMap: Record<string, Task> | undefined;
@@ -192,6 +193,10 @@ export class TaskService {
     }
     if (!userId || userId === 0) {
       throw new Error('User not found');
+    }
+    const account = await accountService.findById(userId);
+    if (!account || !account.isEnabled) {
+      throw new Error('Your account is suspended');
     }
 
     // Check if task already submitted
