@@ -223,9 +223,7 @@ export class LeaderBoardService {
                rank
         FROM totalData r
                  JOIN account a ON r.accountId = a.id
-        where rank <= :limit
-           or accountId = :accountId
-            and a."isEnabled" = true
+        where a."isEnabled" = true and (rank <= :limit or accountId = :accountId)
         order by rank asc;
 
     `;

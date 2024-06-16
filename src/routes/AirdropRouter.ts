@@ -73,8 +73,8 @@ const routerMap = {
     return res.status(200).json(response);
   },
 };
-AirdropRouter.post('/sync-airdrop-campaign', routerMap.syncAirdropCampaign);
-AirdropRouter.post('/sync-airdrop-eligibility', routerMap.syncDataEligibility);
+AirdropRouter.post('/sync-airdrop-campaign', requireSecret, routerMap.syncAirdropCampaign);
+AirdropRouter.post('/sync-airdrop-eligibility', requireSecret, routerMap.syncDataEligibility);
 AirdropRouter.post('/generate-airdrop-record', requireSecret, routerMap.generateAirdropRecordAndDistribute);
 AirdropRouter.get('/list-airdrop-campaign', requireLogin, routerMap.listAirdropCampaign);
 AirdropRouter.post('/check-eligibility', requireLogin, routerMap.checkEligibility);

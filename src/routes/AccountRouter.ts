@@ -105,6 +105,6 @@ AccountRouter.get('/get-attribute', requireLogin, routerMap.getAttribute);
 AccountRouter.get('/get-rerferal-logs', requireLogin, routerMap.getReferralLog);
 AccountRouter.get('/giveaway', requireSecret, routerMap.giveAway);
 AccountRouter.post('/sync-giveaway', requireSecret, routerMap.syncGiveAway);
-AccountRouter.post('/sync-banned-account', routerMap.handleBanedAccount);
+AccountRouter.post('/sync-banned-account', requireSecret, routerMap.handleBanedAccount);
 
 export default AccountRouter;
