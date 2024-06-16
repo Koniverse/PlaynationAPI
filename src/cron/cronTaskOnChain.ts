@@ -6,7 +6,7 @@ import * as console from 'console';
 import {AccountService} from '@src/services/AccountService';
 import {SubscanService} from '@src/services/SubscanService';
 
-const INTERVAL_TIME = 0;
+const INTERVAL_TIME = EnvVars.TaskOnChain.IntervalTime;
 const ACTION_URL = '/api/scan/extrinsic';
 
 export async function checkTaskOnChange() {
@@ -38,7 +38,7 @@ export async function checkTaskOnChange() {
         taskHistory.status = TaskHistoryStatus.COMPLETED;
         taskHistory.completedAt = new Date();
         await taskHistory.save();
-      }else {
+      } else {
         taskHistory.retry = taskHistory.retry + 1;
         taskHistory.status = TaskHistoryStatus.FAILED;
         await taskHistory.save();
@@ -63,14 +63,18 @@ async function checkExtrinsicHashOnSubscan(extrinsicHash: string, network: strin
     const raw = {
       'hash': extrinsicHash,
     };
-    const extrinsicSubscanResult = await SubscanService.instance.addAction<ExtrinsicSubscanResult>(network, ACTION_URL, raw);
+    const extrinsicSubscanResult = await SubscanService.instance.addAction<ExtrinsicSubscanResult>(
+      network, ACTION_URL, raw,
+    );
     const now = new Date();
     const extrinsicDate = new Date(extrinsicSubscanResult.data.block_timestamp * 1000);
     //
-    if (now.getFullYear() !== extrinsicDate.getFullYear() || now.getMonth() !== extrinsicDate.getMonth() || now.getDate() !== extrinsicDate.getDate())  {
+    if (now.getFullYear() !== extrinsicDate.getFullYear() || now.getMonth() !== extrinsicDate.getMonth()
+        || now.getDate() !== extrinsicDate.getDate())  {
       return false;
     }
-    return extrinsicSubscanResult.data.success && extrinsicSubscanResult.data.call_module_function === 'remark_with_event';
+    return extrinsicSubscanResult.data.success
+        && extrinsicSubscanResult.data.call_module_function === 'remark_with_event';
   }catch (e){
     return false;
   }

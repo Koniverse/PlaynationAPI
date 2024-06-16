@@ -54,7 +54,8 @@ export class LeaderBoardService {
     return sql;
   }
 
-  getTaskQuery() {
+  getTaskQuery(gameId: number) {
+    const queryTaskGame = gameId > 0 ? 'and ta."gameId" = :gameId' : '';
     const sql = `
         with RankedUsers as (SELECT t."accountId",
                                     a."telegramUsername",
@@ -71,8 +72,12 @@ export class LeaderBoardService {
                                       JOIN
                                   account a
                                   ON t."accountId" = a.id
+                             JOIN task ta on t."taskId" = ta.id
                              where t."createdAt" >= :startDate
                                and t."createdAt" <= :endDate
+                             and ((t."extrinsicHash" is not null and t.status != 'failed') 
+                                        or t."extrinsicHash" is null)
+                             ${queryTaskGame}
                              GROUP BY 1, 2, 3, 4, 5, 6, 7
                              ORDER BY rank asc)
         select *
@@ -138,6 +143,7 @@ export class LeaderBoardService {
 
   getAllDataQuery(gameId: number) {
     const queryGame = gameId > 0 ? 'and "gameId" = :gameId' : '';
+    const queryTaskGame = gameId > 0 ? 'and t."gameId" = :gameId' : '';
     const sql = `
         with RankedUsers as (SELECT "sourceAccountId"       AS accountId,
                                     MIN("createdAt")        as "createdAt",
@@ -190,13 +196,16 @@ export class LeaderBoardService {
                                and "createdAt" <= :endDate
                              GROUP BY 1
                              UNION ALL
-                             SELECT "accountId"                     AS accountId,
-                                    MIN("createdAt")                as "createdAt",
-                                    SUM(coalesce("pointReward", 0)) AS point
-                             FROM task_history
-                             where "createdAt" >= :startDate
-                               and "createdAt" <= :endDate
-                               and (("extrinsicHash" is not null and status = 'completed') or "extrinsicHash" is null)
+                             SELECT th."accountId"                     AS accountId,
+                                    MIN(th."createdAt")                as "createdAt",
+                                    SUM(coalesce(th."pointReward", 0)) AS point
+                             FROM task_history th
+                             JOIN task t on th."taskId" = t.id
+                             where th."createdAt" >= :startDate
+                               and th."createdAt" <= :endDate
+                               and ((th."extrinsicHash" is not null and th.status != 'failed') 
+                                        or th."extrinsicHash" is null)
+                               ${queryTaskGame}
                              GROUP BY 1),
              totalData as (SELECT accountId,
                                   sum(point)                                                   as point,
@@ -268,7 +277,7 @@ export class LeaderBoardService {
     if (typeQuery === 'game') {
       sql = this.getGameQuery(gameId);
     } else if (typeQuery === 'task') {
-      sql = this.getTaskQuery();
+      sql = this.getTaskQuery(gameId);
     } else if (typeQuery === 'accumulatePoint') {
       sql = this.getAccumulatePoint();
     } else if (typeQuery === 'referral') {

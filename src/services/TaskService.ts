@@ -155,11 +155,13 @@ export class TaskService {
         for (const task of items) {
           const {daysDiff, interval} = task;
           const diffInDays = parseInt(String(daysDiff ?? '0'));
-          if (diffInDays < interval) {
+          const isTaskOnChainSuccess = !(task.onChainType && item.status === TaskHistoryStatus.FAILED);
+          if (diffInDays < interval && isTaskOnChainSuccess) {
             check = true;
             break;
           }
         }
+
         //  if daily task is not completed, remove task history
         if (!check) {
           // @ts-ignore
@@ -227,7 +229,8 @@ export class TaskService {
     if (latestLast.length > 0 && interval > 0) {
       const lastSubmit = latestLast[0];
       const diffInDays = dateDiffInDays(lastSubmit.createdAt, now);
-      if (diffInDays < interval) {
+      const isCompleted = !lastSubmit.extrinsicHash || (lastSubmit.extrinsicHash && lastSubmit.status === TaskHistoryStatus.COMPLETED);
+      if (diffInDays < interval && isCompleted) {
         throw new Error('Task is not ready to be submitted yet');
       }
     }
@@ -239,6 +242,12 @@ export class TaskService {
     if (task.onChainType) {
       if (!extrinsicHash) {
         throw new Error('Extrinsic hash is required');
+      }
+      const taskHistory = await TaskHistory.findOne({
+        where: {extrinsicHash},
+      });
+      if (taskHistory) {
+        throw new Error('Extrinsic hash already used');
       }
       dataCreate.extrinsicHash = extrinsicHash;
       dataCreate.network = network;
