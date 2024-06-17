@@ -602,6 +602,36 @@ export class AirdropService {
     );
   }
 
+  async checkBoxs(campaignId: number) {
+    const eligibilityList = await AirdropEligibility.findAll({
+      where: { campaign_id: campaignId },
+    });
+    let totalBox = 0;
+    const eligibilityMap = {} as Record<number, { name: string, boxCount: number }>;
+    eligibilityList.forEach((item) => {
+      if (item.userList) {
+        try {
+          console.log(item.userList);
+          // @ts-ignore
+          const userList = JSON.parse(item.userList) as LeaderboardPerson[];
+          totalBox += userList.length;
+          if (!eligibilityMap[item.id]) {
+            eligibilityMap[item.id] = {
+              name: item.name,
+              boxCount: userList.length,
+            };
+          }
+        }catch (e) {
+          console.error('error', e);
+        }
+      }
+    });
+    return {
+      totalBox,
+      eligibilityMap,
+    };
+  }
+
   // Singleton instance
   private static _instance: AirdropService;
   public static get instance() {

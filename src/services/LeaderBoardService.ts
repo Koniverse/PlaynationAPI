@@ -209,8 +209,10 @@ export class LeaderBoardService {
                              GROUP BY 1),
              totalData as (SELECT accountId,
                                   sum(point)                                                   as point,
-                                  RANK() OVER (ORDER BY sum(point) DESC, MIN("createdAt") asc) AS rank
+                                  RANK() OVER (ORDER BY sum(point) DESC, MIN(RankedUsers."createdAt") asc) AS rank
                            FROM RankedUsers
+                           JOIN account a ON RankedUsers.accountId = a.id
+                                          where a."isEnabled" = true
                            group by 1)
         SELECT accountId                as "accountId",
                a."telegramUsername",
@@ -223,7 +225,7 @@ export class LeaderBoardService {
                rank
         FROM totalData r
                  JOIN account a ON r.accountId = a.id
-        where a."isEnabled" = true and (rank <= :limit or accountId = :accountId)
+        where rank <= :limit or accountId = :accountId
         order by rank asc;
 
     `;
