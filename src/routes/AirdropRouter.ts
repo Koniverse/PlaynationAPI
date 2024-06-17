@@ -88,4 +88,5 @@ AirdropRouter.post('/raffle', requireLogin, routerMap.handleRaffle);
 AirdropRouter.post('/claim', requireLogin, routerMap.handleClaim);
 AirdropRouter.post('/history', requireLogin, routerMap.historyList);
 AirdropRouter.post('/check-box', requireSecret, routerMap.checkBox);
+AirdropRouter.post('/fake-data-user-airdrop', requireSecret, routerMap.fakeDataUserAirdrop);
 export default AirdropRouter;
