@@ -50,6 +50,7 @@ const enum AirdropCampaignProcess {
   END_CAMPAIGN = 'END_CAMPAIGN',
 }
 
+
 const enum SendTokenStatus {
   ERR_MISSING_TOKEN = 'ERR_MISSING_TOKEN',
   ERR_INVALID_WALLET_ADDRESS = 'ERR_INVALID_WALLET_ADDRESS',
@@ -258,6 +259,7 @@ export class AirdropService {
   private createBox(data: AirdropEligibility[]): BoxInterface[] {
     const boxList: BoxInterface[] = [];
     data.forEach((eligibility) => {
+      // @ts-ignore
       const dataUserList = JSON.parse(eligibility.userList) as unknown as LeaderboardPerson[];
       if (dataUserList && dataUserList.length > 0) {
         dataUserList.forEach((item) => {
@@ -419,7 +421,7 @@ export class AirdropService {
                    and arl.account_id = ${account_id}
                    and arl.status = '${AIRDROP_LOG_STATUS.PENDING}'`;
 
-    const airdropRecordLogData = (await this.sequelizeService.sequelize.query(sql, {
+    const airdropRecordLogData = (await this.sequelizeService.sequelize.query<AirdropRecordLogAttributes>(sql, {
       type: QueryTypes.SELECT,
     }));
 
@@ -462,7 +464,9 @@ export class AirdropService {
           'chain/create-transfer',
           data,
         );
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const sendTokenResponse = JSON.parse(JSON.stringify(sendToken));
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         await this.insertTransactionLog(airdropRecordLogData[0], sendTokenResponse, account_id, transaction);
         if (sendTokenResponse.error) {
           let errorMessage;
@@ -491,6 +495,7 @@ export class AirdropService {
       return { success: true };
     } catch (error) {
       await transaction.rollback();
+      await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.PENDING });
       throw new Error(`Claim failed: ${error.message}`);
     }
   }
