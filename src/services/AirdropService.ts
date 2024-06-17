@@ -20,6 +20,8 @@ import { QueryTypes, Transaction } from 'sequelize';
 import { CommonService } from '@src/services/CommonService';
 import { AccountService } from '@src/services/AccountService';
 import { LeaderboardRecord } from './LeaderBoardService';
+import { CacheService } from '@src/services/CacheService';
+import { v4 } from 'uuid';
 
 // Interfaces
 interface BoxInterface {
@@ -27,8 +29,8 @@ interface BoxInterface {
   token: number;
   nps: number;
   eligibility_id: number;
-  airdrop_campaign: AirdropCampaign;
-  campaign_id?: AirdropCampaign;
+  airdrop_campaign: number;
+  campaign_id?: number;
 }
 
 interface TransactionInterface {
@@ -57,6 +59,7 @@ const enum SendTokenStatus {
 
 const commonService = CommonService.instance;
 const accountService = AccountService.instance;
+const cacheService = CacheService.instance;
 
 // AirdropService Class
 export class AirdropService {
@@ -205,12 +208,12 @@ export class AirdropService {
       };
     }
     const currentProcess: string = await this.currentProcess(campaign_id);
-    const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord));
+    const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord)) as AirdropRecord[];
     const totalBox = airdropRecordData.length;
-    const totalBoxOpen = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.OPEN).length;
-    const totalBoxClose = airdropRecordData.filter((item: any) => item.status === AirdropRecordsStatus.CLOSED).length;
+    const totalBoxOpen = airdropRecordData.filter((item) => item.status === AirdropRecordsStatus.OPEN).length;
+    const totalBoxClose = airdropRecordData.filter((item) => item.status === AirdropRecordsStatus.CLOSED).length;
     const eligibilityIds = new Set<number>();
-    airdropRecordData.forEach((item: any) => {
+    airdropRecordData.forEach((item) => {
       if (item.accountId === account_id) {
         eligibilityIds.add(item.eligibility_id);
       }
@@ -231,17 +234,17 @@ export class AirdropService {
     success: boolean;
     data: any[];
   }> {
-    const campaign: any = await AirdropCampaign.findByPk(campaign_id);
+    const campaign = await AirdropCampaign.findByPk(campaign_id);
     const eligibility = await AirdropEligibility.findAll({
       where: { campaign_id },
     });
     if (!eligibility || !campaign) {
-      throw new Error(`Eligibility or Campaign does not exist`);
+      throw new Error('Eligibility or Campaign does not exist');
     }
     const boxList = this.createBox(eligibility);
     const distributions = [
-      ...campaign.tokenDistributions.map((d: any) => ({ type: 'token', value: d.token, count: d.count })),
-      ...campaign.npsDistributions.map((d: any) => ({ type: 'nps', value: d.nps, count: d.count })),
+      ...(campaign.tokenDistributions as unknown as  { count: number, token: number }[]).map((d) => ({ type: 'token', value: d.token, count: d.count })),
+      ...(campaign.npsDistributions as unknown as  { nps: number, count: number }[]).map((d) => ({ type: 'nps', value: d.nps, count: d.count })),
     ];
     await this.distributeRewards(boxList, eligibility, distributions);
     await this.insertAirdropRecord(boxList, campaign);
@@ -254,10 +257,10 @@ export class AirdropService {
   // Creates a list of box eligible for airdrop based on the provided data
   private createBox(data: AirdropEligibility[]): BoxInterface[] {
     const boxList: BoxInterface[] = [];
-    data.forEach((eligibility: any) => {
-      const dataUserList = JSON.parse(eligibility.userList);
+    data.forEach((eligibility) => {
+      const dataUserList = JSON.parse(eligibility.userList) as unknown as LeaderboardPerson[];
       if (dataUserList && dataUserList.length > 0) {
-        dataUserList.forEach((item: any) => {
+        dataUserList.forEach((item) => {
           for (let i = 0; i < eligibility.boxCount; i++) {
             boxList.push({
               accountId: item.accountInfo.id,
@@ -388,6 +391,10 @@ export class AirdropService {
   }
 
   async handleClaim(account_id: number, airdrop_log_id: number) {
+    const claimUniqueKey = `claim_${account_id}_${airdrop_log_id}`;
+    const claimUniqueValue = v4();
+    await cacheService.redisClient.set(claimUniqueKey, claimUniqueValue, { EX: 60 });
+
     const sql = `select arl.id    as airdrop_log_id,
                         arl.type,
                         arl."expiryDate",
@@ -414,7 +421,7 @@ export class AirdropService {
 
     const airdropRecordLogData = (await this.sequelizeService.sequelize.query(sql, {
       type: QueryTypes.SELECT,
-    })) as AirdropRecordLogAttributes[];
+    }));
 
     if (!airdropRecordLogData || !airdropRecordLogData[0]) {
       throw new Error('Airdrop record not found or already claimed.');
@@ -422,6 +429,24 @@ export class AirdropService {
 
     if (airdropRecordLogData[0] && airdropRecordLogData[0].expiryDate < new Date()) {
       throw new Error('This reward has expired and cannot be claimed.');
+    }
+
+    // Check claiming status
+    const airdropRecordLog = await AirdropRecordLog.findByPk(airdrop_log_id);
+
+    if (!airdropRecordLog) {
+      throw new Error('Airdrop record not found or already claimed.');
+    }
+
+    if (airdropRecordLog.status === AIRDROP_LOG_STATUS.CLAIMING) {
+      throw new Error('This reward is being claimed');
+    }
+
+    // Set claiming status
+    await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.CLAIMING });
+
+    if (await cacheService.redisClient.get(claimUniqueKey) !== claimUniqueValue) {
+      throw new Error('Claim failed: Invalid claim request');
     }
 
     const transaction = await this.sequelizeService.startTransaction();
@@ -443,26 +468,24 @@ export class AirdropService {
           let errorMessage;
 
           switch (sendTokenResponse.error) {
-            case SendTokenStatus.ERR_MISSING_TOKEN:
-            case SendTokenStatus.ERR_INCORRECT_NETWORK:
-            case SendTokenStatus.ERR_INSUFFICIENT_GAS_FEES:
-              errorMessage = 'The system is currently overloaded, please try again later.';
-              break;
-            case SendTokenStatus.ERR_INVALID_WALLET_ADDRESS:
-              errorMessage = 'Invalid wallet address, please check again.';
-              break;
-            default:
-              errorMessage = 'The system is currently overloaded, please try again later.';
+          case SendTokenStatus.ERR_MISSING_TOKEN:
+          case SendTokenStatus.ERR_INCORRECT_NETWORK:
+          case SendTokenStatus.ERR_INSUFFICIENT_GAS_FEES:
+            errorMessage = 'The system is currently overloaded, please try again later.';
+            break;
+          case SendTokenStatus.ERR_INVALID_WALLET_ADDRESS:
+            errorMessage = 'Invalid wallet address, please check again.';
+            break;
+          default:
+            errorMessage = 'The system is currently overloaded, please try again later.';
           }
           throw new Error(errorMessage);
         }
       } else {
         await accountService.addAccountPoint(account_id, airdropRecordLogData[0].point);
       }
-      const airdropRecordLog = await AirdropRecordLog.findByPk(airdrop_log_id);
-      if (airdropRecordLog) {
-        await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.RECEIVED }, { transaction });
-      }
+
+      await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.RECEIVED }, { transaction });
       await transaction.commit();
 
       return { success: true };
@@ -553,7 +576,7 @@ export class AirdropService {
 
     const airdropRecordLogData = (await this.sequelizeService.sequelize.query(sql, {
       type: QueryTypes.SELECT,
-    })) as AirdropRecordLogAttributes[];
+    }));
     if (!campaign_id || !airdropRecordLogData[0]) {
       return [];
     }
@@ -574,7 +597,7 @@ export class AirdropService {
 
   // fake data user airdrop
   async fakeDataUserAirdrop(accountRecord: number[]) {
-    let sql = `SELECT ac.*,
+    const sql = `SELECT ac.*,
                       aab.*
                FROM account as ac
                         LEFT JOIN account_attribute as aab

@@ -6,6 +6,7 @@ import AirdropCampaign from '@src/models/AirdropCampaign';
 
 export enum AIRDROP_LOG_STATUS {
   PENDING = 'PENDING',
+  CLAIMING = 'CLAIMING',
   EXPIRED = 'EXPIRED',
   RECEIVED = 'RECEIVED',
 }
