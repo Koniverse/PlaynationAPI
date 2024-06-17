@@ -155,7 +155,7 @@ export class TaskService {
         for (const task of items) {
           const {daysDiff, interval} = task;
           const diffInDays = parseInt(String(daysDiff ?? '0'));
-          const isTaskOnChainSuccess = !(task.onChainType && item.status === TaskHistoryStatus.FAILED);
+          const isTaskOnChainSuccess = !(task.onChainType && task.status === TaskHistoryStatus.FAILED);
           if (diffInDays < interval && isTaskOnChainSuccess) {
             check = true;
             break;
@@ -229,7 +229,7 @@ export class TaskService {
     if (latestLast.length > 0 && interval > 0) {
       const lastSubmit = latestLast[0];
       const diffInDays = dateDiffInDays(lastSubmit.createdAt, now);
-      const isCompleted = !lastSubmit.extrinsicHash || (lastSubmit.extrinsicHash && lastSubmit.status === TaskHistoryStatus.COMPLETED);
+      const isCompleted = !lastSubmit.extrinsicHash || (lastSubmit.extrinsicHash && lastSubmit.status !== TaskHistoryStatus.FAILED);
       if (diffInDays < interval && isCompleted) {
         throw new Error('Task is not ready to be submitted yet');
       }
