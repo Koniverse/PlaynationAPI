@@ -491,6 +491,7 @@ export class AirdropService {
       return { success: true };
     } catch (error) {
       await transaction.rollback();
+      await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.PENDING });
       throw new Error(`Claim failed: ${error.message}`);
     }
   }
