@@ -22,7 +22,6 @@ import { AccountService } from '@src/services/AccountService';
 import { LeaderboardRecord } from './LeaderBoardService';
 import { CacheService } from '@src/services/CacheService';
 import { v4 } from 'uuid';
-import * as console from "node:console";
 
 // Interfaces
 interface BoxInterface {
