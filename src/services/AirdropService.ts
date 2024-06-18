@@ -22,6 +22,7 @@ import { AccountService } from '@src/services/AccountService';
 import { LeaderboardRecord } from './LeaderBoardService';
 import { CacheService } from '@src/services/CacheService';
 import { v4 } from 'uuid';
+import * as console from "node:console";
 
 // Interfaces
 interface BoxInterface {
@@ -61,6 +62,23 @@ const enum SendTokenStatus {
 const commonService = CommonService.instance;
 const accountService = AccountService.instance;
 const cacheService = CacheService.instance;
+
+
+function shuffleArray(array: any[]) {
+  let currentIndex = array.length;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+
+    // Pick a remaining element...
+    const randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+  }
+}
 
 // AirdropService Class
 export class AirdropService {
@@ -247,7 +265,10 @@ export class AirdropService {
       ...(campaign.tokenDistributions as unknown as  { count: number, token: number }[]).map((d) => ({ type: 'token', value: d.token, count: d.count })),
       ...(campaign.npsDistributions as unknown as  { nps: number, count: number }[]).map((d) => ({ type: 'nps', value: d.nps, count: d.count })),
     ];
-    await this.distributeRewards(boxList, eligibility, distributions);
+
+    // Random sort distribution
+
+    this.distributeRewards(boxList, campaign.tokenDistributions as unknown as  { count: number, token: number }[], campaign.npsDistributions as unknown as  { nps: number, count: number }[]);
     await this.insertAirdropRecord(boxList, campaign);
     return {
       success: true,
@@ -279,30 +300,61 @@ export class AirdropService {
   }
 
   // Distributes tokens and NPS points to the users in the userList
-  private async distributeRewards(
+  private distributeRewards(
     boxList: BoxInterface[],
-    eligibility: AirdropEligibility[],
-    distributions: any,
-  ): Promise<void> {
-    let currentIndex = 0;
+    tokenDistribution: { count: number, token: number }[],
+    npsDistribution: { count: number, nps: number }[],
+  ) {
+    const rewardList: { token: number, nps: number }[] = [];
+    const userBoxCount = {} as Record<number, {
+      boxCount: number;
+      token: number;
+      nps: number;
+    }>;
 
-    for (const user of eligibility) {
-      // Combine token and NPS distributions into a single array of tasks
-      for (const distribution of distributions) {
-        for (let i = 0; i < distribution.count; i++) {
-          if (currentIndex < boxList.length) {
-            if (distribution.type === 'token') {
-              boxList[currentIndex].token = distribution.value;
-              boxList[currentIndex].nps = 0;
-            } else {
-              boxList[currentIndex].token = 0;
-              boxList[currentIndex].nps = distribution.value;
-            }
-            currentIndex++;
-          }
-        }
+    // Generate reward from distributions
+    for (const t of tokenDistribution) {
+      for (let i = 0; i < t.count; i++) {
+        rewardList.push({ token: t.token, nps: 0 });
       }
     }
+
+    for (const n of npsDistribution) {
+      for (let i = 0; i < n.count; i++) {
+        rewardList.push({ token: 0, nps: n.nps });
+      }
+    }
+
+    shuffleArray(rewardList);
+
+    // Random pick reward to the box
+    let currentIndex = 0;
+    for (const box of boxList) {
+      if (currentIndex < rewardList.length) {
+        box.token = rewardList[currentIndex].token;
+        box.nps = rewardList[currentIndex].nps;
+        currentIndex++;
+      }
+    }
+
+    // Random pick reward to the box this method is not working randomly
+    // for (const user of eligibility) {
+    //   // Combine token and NPS distributions into a single array of tasks
+    //   for (const distribution of distributions) {
+    //     for (let i = 0; i < distribution.count; i++) {
+    //       if (currentIndex < boxList.length) {
+    //         if (distribution.type === 'token') {
+    //           boxList[currentIndex].token = distribution.value;
+    //           boxList[currentIndex].nps = 0;
+    //         } else {
+    //           boxList[currentIndex].token = 0;
+    //           boxList[currentIndex].nps = distribution.value;
+    //         }
+    //         currentIndex++;
+    //       }
+    //     }
+    //   }
+    // }
   }
 
   // Inserts the airdrop record data into the database
@@ -316,6 +368,7 @@ export class AirdropService {
           eligibility_id: item.eligibility_id,
           campaign: item.campaign_id,
         };
+
         await AirdropRecord.create(
           {
             campaign_id: campaign.id,
