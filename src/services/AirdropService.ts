@@ -548,6 +548,7 @@ export class AirdropService {
     } catch (error) {
       await transaction.rollback();
       await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.PENDING });
+      console.error(error);
       throw new Error(`Claim failed: ${error.message}`);
     }
   }
@@ -655,12 +656,13 @@ export class AirdropService {
   // fake data user airdrop
   async fakeDataUserAirdrop(accountRecord: number[]) {
     const sql = `SELECT ac.*,
-                      aab.*
+                      aab.*,
+                      ac.id as acc_id
                FROM account as ac
                         LEFT JOIN account_attribute as aab
                                   ON ac.id = aab.id
                WHERE ac.id IN (${accountRecord.join(',')})`;
-    const data = await this.sequelizeService.sequelize.query<LeaderboardRecord>(sql, {
+    const data = await this.sequelizeService.sequelize.query<LeaderboardRecord & {acc_id: number}>(sql, {
       type: QueryTypes.SELECT,
     });
 
@@ -675,7 +677,7 @@ export class AirdropService {
             lastName: item.lastName,
             firstName: item.firstName,
             avatar: item.avatar,
-            id: item.accountId,
+            id: item.acc_id,
             address: item.address,
           },
         } as LeaderboardPerson),

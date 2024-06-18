@@ -69,7 +69,7 @@ const routerMap = {
 
   fakeDataUserAirdrop: async (req: IReq<Query>, res: IRes) => {
     const accountRecord: any = req.body.accountRecord;
-    const response = await airdropService.fakeDataUserAirdrop(accountRecord);
+    const response = await airdropService.fakeDataUserAirdrop(accountRecord as number[]);
     return res.status(200).json(response);
   },
 
