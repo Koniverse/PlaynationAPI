@@ -408,7 +408,6 @@ export class AirdropService {
 
     const type = airdropRecord.token > 0 ? AIRDROP_LOG_TYPE.TOKEN : AIRDROP_LOG_TYPE.NPS;
     const amount: number = airdropRecord.token > 0 ? airdropRecord.token : airdropRecord.point;
-    const transaction = await this.sequelizeService.startTransaction();
     // expiry date = current date + 30 day
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
@@ -419,19 +418,19 @@ export class AirdropService {
         account_id: account_id,
         campaign_id: campaign_id,
         airdrop_record_id: airdropRecord.id,
-        status: AIRDROP_LOG_STATUS.PENDING,
+        status: type === AIRDROP_LOG_TYPE.NPS ? AIRDROP_LOG_STATUS.RECEIVED : AIRDROP_LOG_STATUS.PENDING,
         eligibility_id: airdropRecord.eligibility_id,
         expiryDate: expiryDate,
       });
-      // update airdrop record status
-      await airdropRecord.update({ status: AirdropRecordsStatus.OPEN }, { transaction });
 
       // airdrop record nps
       if (type === AIRDROP_LOG_TYPE.NPS) {
         await accountService.addAccountPoint(account_id, amount);
-        await airdropRecordLogResult.update({ status: AIRDROP_LOG_STATUS.RECEIVED }, { transaction });
       }
-      await transaction.commit();
+
+      // update airdrop record status
+      await airdropRecord.update({ status: AirdropRecordsStatus.OPEN });
+
       return {
         success: true,
         airdropRecordLogId: airdropRecordLogResult.id,
@@ -439,7 +438,7 @@ export class AirdropService {
         rewardAmount: amount,
       };
     } catch (e) {
-      await transaction.rollback();
+      await airdropRecord.update({ status: AirdropRecordsStatus.CLOSED });
       throw e;
     }
   }
@@ -511,6 +510,7 @@ export class AirdropService {
           decimal: airdropRecordLogData[0].decimal,
           amount: airdropRecordLogData[0].token,
         };
+        await new Promise((resolve) => setTimeout(resolve, 30000));
         const sendToken: TransactionInterface = await commonService.callActionChainService(
           'chain/create-transfer',
           data,
