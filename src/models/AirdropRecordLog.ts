@@ -105,6 +105,7 @@ AirdropRecordLog.init(
     },
   },
   {
+    indexes: [{unique: true, fields: ['airdrop_record_id']}],
     tableName: 'airdrop_record_log',
     sequelize: SequelizeServiceImpl.sequelize,
   },
