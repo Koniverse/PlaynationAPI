@@ -510,7 +510,7 @@ export class AirdropService {
           decimal: airdropRecordLogData[0].decimal,
           amount: airdropRecordLogData[0].token,
         };
-        await new Promise((resolve) => setTimeout(resolve, 30000));
+
         const sendToken: TransactionInterface = await commonService.callActionChainService(
           'chain/create-transfer',
           data,
