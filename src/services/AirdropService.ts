@@ -503,7 +503,6 @@ export class AirdropService {
       throw new Error('Claim failed: Invalid claim request');
     }
 
-    const transaction = await this.sequelizeService.startTransaction();
     try {
       if (airdropRecordLogData[0].type === AIRDROP_LOG_TYPE.TOKEN) {
         const data = {
@@ -518,8 +517,7 @@ export class AirdropService {
         );
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const sendTokenResponse = JSON.parse(JSON.stringify(sendToken));
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        await this.insertTransactionLog(airdropRecordLogData[0], sendTokenResponse, account_id, transaction);
+
         if (sendTokenResponse.error) {
           let errorMessage;
 
@@ -535,20 +533,20 @@ export class AirdropService {
           default:
             errorMessage = 'The system is currently overloaded, please try again later.';
           }
+
           throw new Error(errorMessage);
         }
+
+        await this.insertTransactionLog(airdropRecordLogData[0], sendTokenResponse, account_id);
+        await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.RECEIVED });
+
+        return { success: true };
       } else {
-        await accountService.addAccountPoint(account_id, airdropRecordLogData[0].point);
+        throw new Error('NPS point is automatically added to your account.');
       }
-
-      await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.RECEIVED }, { transaction });
-      await transaction.commit();
-
-      return { success: true };
     } catch (error) {
-      await transaction.rollback();
-      await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.PENDING });
       console.error(error);
+      await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.PENDING });
       throw new Error(`Claim failed: ${error.message}`);
     }
   }
@@ -557,7 +555,6 @@ export class AirdropService {
     airdropRecordLog: AirdropRecordLogAttributes,
     sendTokenResponse: TransactionInterface,
     account_id: number,
-    transaction: Transaction,
   ): Promise<string> {
     const { error, extrinsicHash, blockHash, blockNumber }: TransactionInterface = sendTokenResponse;
     const logData = {
@@ -571,7 +568,7 @@ export class AirdropService {
       blockNumber: error ? 0 : blockNumber,
       note: error ? error : '',
     };
-    await AirdropTransactionLog.create(logData, { transaction });
+    await AirdropTransactionLog.create(logData);
     return error ? AIRDROP_LOG_STATUS.PENDING : AIRDROP_LOG_STATUS.RECEIVED;
   }
 
