@@ -32,13 +32,26 @@ const routerMap = {
     const {taskId, network, extrinsicHash} = req.body;
     const response = await TaskService.instance.submit(userId, taskId, extrinsicHash, network);
     return res.status(200).json(response);
-  }
+  },
+  handleClaim: async (req: IReq<TaskSubmitParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const {taskId, network, extrinsicHash} = req.body;
+    const response = await TaskService.instance.submit(userId, taskId, extrinsicHash, network);
+    return res.status(200).json(response);
+  },
+  webhookZealy: async (req: IReq<Query>, res: IRes) => {
+    const body = req.body;
+    console.log('webhookZealy', body);
+    return res.status(200).json({});
+  },
 };
 
 TaskRouter.post('/sync', requireSecret, routerMap.sync);
 TaskRouter.get('/history', requireLogin, routerMap.history);
 TaskRouter.get('/fetch', requireLogin, routerMap.fetch);
 TaskRouter.post('/submit', requireLogin, routerMap.submit);
+TaskRouter.get('/claim', routerMap.handleClaim);
 TaskRouter.post('/check-complete-task', requireLogin, routerMap.checkCompleteTask);
+TaskRouter.post('/webhook', routerMap.webhookZealy);
 
 export default TaskRouter;

@@ -185,6 +185,9 @@ export class TaskService {
     return taskMap[taskId.toString()];
   }
 
+  async handleClaim(userId: number, taskId: number, extrinsicHash?: string|undefined, network?: string|undefined) {
+
+  }
   async submit(userId: number, taskId: number, extrinsicHash?: string|undefined, network?: string|undefined) {
     // Get basic data
     const task = await this.findTask(taskId);
