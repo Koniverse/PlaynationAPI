@@ -40,17 +40,21 @@ export async function checkTaskOnChange() {
         await taskHistory.save();
       } else {
         taskHistory.retry = taskHistory.retry + 1;
-        taskHistory.status = TaskHistoryStatus.FAILED;
-        await taskHistory.save();
+        if (taskHistory.retry >= EnvVars.TaskOnChain.RetryMax) {
+          taskHistory.status = TaskHistoryStatus.FAILED;
+          await taskHistory.save();
+          if (!taskHistory.accountId) {
+            continue;
+          }
+          const account = await Account.findByPk(taskHistory.accountId);
+          if (!account) {
+            continue;
+          }
+          await AccountService.instance.minusAccountPoint(taskHistory.accountId, task.pointReward);
+        }else {
+          await taskHistory.save();
+        }
 
-        if (!taskHistory.accountId) {
-          continue;
-        }
-        const account = await Account.findByPk(taskHistory.accountId);
-        if (!account) {
-          continue;
-        }
-        await AccountService.instance.minusAccountPoint(taskHistory.accountId, task.pointReward);
       }
     }
   } catch (error) {
