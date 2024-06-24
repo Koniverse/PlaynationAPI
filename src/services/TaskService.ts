@@ -1,9 +1,12 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
+import {Task, TaskCategory, TaskHistory, TaskHistoryStatus, ZealyEvent} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
-import { dateDiffInDays } from '@src/utils/date';
+import {dateDiffInDays} from '@src/utils/date';
 import {QueryTypes} from 'sequelize';
+import {ZealyService} from '@src/services/ZealyService';
+import zealyEvent from '@src/models/ZealyEvent';
+import * as console from 'node:console';
 
 
 export interface TaskContentCms {
@@ -23,29 +26,34 @@ export interface TaskContentCms {
     startTime: Date,
     endTime: Date,
     share_leaderboard: JSON,
+    zealyId: string,
+    zealyType: string,
 }
 
-export interface TaskSubmitParams{
-  taskId: number,
-  extrinsicHash?: string,
-  network?: string,
+export interface TaskSubmitParams {
+    taskId: number,
+    extrinsicHash?: string,
+    network?: string,
 }
 
-export interface TaskHistoryParams{
-  taskHistoryId: number
+export interface TaskHistoryParams {
+    taskHistoryId: number
 }
-interface TaskHistoryLog  {
-  taskHistoryId: number,
-  status: TaskHistoryStatus,
-  daysDiff: number,
-  completedAt: Date,
+
+interface TaskHistoryLog {
+    taskHistoryId: number,
+    status: TaskHistoryStatus,
+    daysDiff: number,
+    completedAt: Date,
 }
 
 type TaskHistoryRecord = Task & TaskHistoryLog;
 const accountService = AccountService.instance;
+const zealyService = ZealyService.instance;
 
 export class TaskService {
   private taskMap: Record<string, Task> | undefined;
+
   constructor(private sequelizeService: SequelizeService) {
 
   }
@@ -119,23 +127,24 @@ export class TaskService {
     return {completed};
 
   }
+
   async listTaskHistory(userId: number) {
     const sql = `
-        SELECT t.*,
-               extract(day from now() - th."createdAt"::date) as "daysDiff",
-               th.id                                          as "taskHistoryId",
-               th.status,
-               case
-                   when t."onChainType" is null and th."completedAt" is null then th."createdAt"
-                   else th."completedAt" end                  as "completedAt"
-        FROM task AS t
-                 LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
-        order by th."createdAt" desc;
-    `;
+            SELECT t.*,
+                   extract(day from now() - th."createdAt"::date) as "daysDiff",
+                   th.id                                          as "taskHistoryId",
+                   th.status,
+                   case
+                       when t."onChainType" is null and th."completedAt" is null then th."createdAt"
+                       else th."completedAt" end                  as "completedAt"
+            FROM task AS t
+                     LEFT JOIN task_history th ON t.id = th."taskId" AND th."accountId" = ${userId}
+            order by th."createdAt" desc;
+        `;
     const data = await this.sequelizeService.sequelize.query<TaskHistoryRecord>(sql, {
       type: QueryTypes.SELECT,
     });
-    if  (!data) {
+    if (!data) {
       return [];
     }
     const mapTask = data.reduce((acc: Record<string, TaskHistoryRecord[]>, item: TaskHistoryRecord) => {
@@ -173,7 +182,7 @@ export class TaskService {
           item.completedAt = null;
         }
         result.push(item);
-      }else {
+      } else {
         result.push(item);
       }
     }
@@ -185,10 +194,7 @@ export class TaskService {
     return taskMap[taskId.toString()];
   }
 
-  async handleClaim(userId: number, taskId: number, extrinsicHash?: string|undefined, network?: string|undefined) {
-
-  }
-  async submit(userId: number, taskId: number, extrinsicHash?: string|undefined, network?: string|undefined) {
+  async submit(userId: number, taskId: number, extrinsicHash?: string | undefined, network?: string | undefined) {
     // Get basic data
     const task = await this.findTask(taskId);
     if (!task) {
@@ -242,6 +248,36 @@ export class TaskService {
         throw new Error('Task is not ready to be submitted yet');
       }
     }
+    // Zealy action
+    if (task.zealyId && task.zealyType) {
+
+      if (task.zealyType === 'sync') {
+        if (account.zealyId) {
+          throw new Error('Your account is already synced with Zealy');
+        }
+        return {
+          success: false,
+          message: 'Please sync your account with Zealy first',
+        };
+      } else {
+        console.log('account', account.zealyId, account.id);
+        if (!account.zealyId) {
+          return {
+            success: false,
+            message: 'Please sync your account with Zealy first',
+          };
+        }
+        const checkSuccess = await this.checkTaskZealy(userId, taskId);
+        if (!checkSuccess) {
+          return {
+            success: false,
+            message: 'Please sync your account with Zealy first',
+          };
+        }
+      }
+
+
+    }
     const dataCreate = {
       taskId: task.id,
       accountId: userId,
@@ -273,6 +309,62 @@ export class TaskService {
     // Add point to account
     await AccountService.instance.addAccountPoint(userId, task.pointReward);
 
+    return {
+      success: true,
+    };
+  }
+
+  async checkTaskZealy(userId: number, taskId: number) {
+    const task = await Task.findByPk(taskId);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+    if (!task.zealyId) {
+      throw new Error('Task not support Zealy');
+    }
+    const account = await accountService.findById(userId);
+    if (!account || !account.isEnabled) {
+      throw new Error('Your account is suspended');
+    }
+    if (!account.zealyId) {
+      throw new Error('Please sync your account with Zealy first');
+    }
+    
+    const eventZealy = await ZealyEvent.findOne(
+      {where: {zealyUserId: account.zealyId, questId: task.zealyId}},
+    );
+    if  (eventZealy && eventZealy.status === 'completed'){
+      return true;
+    }
+    const data = await zealyService.checkQuestZealy(task.zealyId, account.zealyId) as {status: boolean,
+      message: string};
+    console.log('data', data);
+    return data.status;
+
+  }
+
+  async createTaskHistory(taskId: number, accountId: number) {
+    const task = await Task.findByPk(taskId);
+    if (!task) {
+      throw new Error('Task not found');
+    }
+    const existed = await TaskHistory.findOne({
+      where: {taskId, accountId},
+    });
+    if (existed) {
+      throw new Error('Task history already exists');
+    }
+    
+    const data = {
+      taskId,
+      accountId,
+      status: TaskHistoryStatus.COMPLETED,
+      completedAt: new Date(),
+      pointReward: task.pointReward,
+    } as TaskHistory;
+    await TaskHistory.create(data);
+    // Add point to account
+    await AccountService.instance.addAccountPoint(accountId, task.pointReward);
     return {
       success: true,
     };

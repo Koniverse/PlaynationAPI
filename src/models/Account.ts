@@ -94,6 +94,13 @@ export class Account
   declare updatedAt: CreationOptional<Date>;
   declare cronAvatar: CreationOptional<boolean>;
   declare isEnabled: CreationOptional<boolean>;
+
+  // Zealy information
+  declare zealyId: CreationOptional<string>;
+  declare twitterId: CreationOptional<string>;
+  declare discordId: CreationOptional<string>;
+  declare zealyEvmAccount: CreationOptional<string>;
+  declare evmAccount: CreationOptional<string>;
 }
 
 Account.init(
@@ -163,6 +170,27 @@ Account.init(
     isEnabled: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+      allowNull: true,
+    },
+
+    zealyId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    discordId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    twitterId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    zealyEvmAccount: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    evmAccount: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
     createdAt: DataTypes.DATE,
