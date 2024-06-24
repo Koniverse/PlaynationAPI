@@ -92,6 +92,7 @@ export class AirdropService {
         if (existed) {
           await existed.update(itemData);
         } else {
+          itemData.contentId = item.id;
           await AirdropCampaign.create(itemData);
         }
       }
@@ -120,11 +121,13 @@ export class AirdropService {
         if (existed) {
           await existed.update(itemData);
         } else {
+          itemData.contentId = item.id;
           await AirdropEligibility.create(itemData);
         }
       }
       return { success: true };
     } catch (error) {
+      console.error(error);
       return { success: false };
     }
   }
