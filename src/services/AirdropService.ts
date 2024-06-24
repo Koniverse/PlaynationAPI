@@ -16,7 +16,7 @@ import {
 } from '@src/models';
 import { AirdropCampaignInterface, AirdropCampaignStatus } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
-import { QueryTypes, Transaction } from 'sequelize';
+import { QueryTypes } from 'sequelize';
 import { CommonService } from '@src/services/CommonService';
 import { AccountService } from '@src/services/AccountService';
 import { LeaderboardRecord } from './LeaderBoardService';
@@ -88,7 +88,7 @@ export class AirdropService {
     try {
       for (const item of data) {
         const itemData = { ...item } as unknown as AirdropCampaign;
-        const existed = await AirdropCampaign.findByPk(item.id);
+        const existed = await AirdropCampaign.findOne({ where: { contentId: item.id } });
         if (existed) {
           await existed.update(itemData);
         } else {
@@ -103,7 +103,6 @@ export class AirdropService {
 
   async syncDataEligibility(data: AirdropEligibilityInterface[]) {
     try {
-      await AirdropEligibility.truncate({ cascade: true });
       for (const item of data) {
         const itemData = {
           name: item.name,
@@ -114,7 +113,10 @@ export class AirdropService {
           start: item.start,
           end: item.end,
         } as unknown as AirdropEligibility;
-        const existed = await AirdropEligibility.findByPk(item.id);
+
+        const existed = await AirdropEligibility.findOne({
+          where: { contentId: item.id },
+        });
         if (existed) {
           await existed.update(itemData);
         } else {
