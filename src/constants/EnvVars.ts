@@ -115,6 +115,8 @@ const Environments = {
     CommunityName: process.env.ZEALY_COMMUNITY_NAME ?? 'zealy',
     RateLimit: Number(process.env.ZEALY_RATE_LIMIT || '20'),
     IntervalTime: Number(process.env.INTERVAL_ZEALY_TIME || '1000'),
+    IntervalCronTime: Number(process.env.INTERVAL_ZEALY_CRON_TIME || '86400000'),
+    TaskZealySync: process.env.TASK_ZEALY_SYNC ?? 'zealy_sync',
     Token: process.env.ZEALY_TOKEN ?? '',
   },
 };

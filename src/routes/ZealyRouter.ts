@@ -17,14 +17,7 @@ const routerMap = {
   },
 
   test: async (req: IReq<Query>, res: IRes) => {
-
-    // const dataReview = {
-    //   status: 'fail',
-    //   claimedQuestIds: ['b8849ed5-ed86-4020-85e5-fb03630b6260'],
-    //   comment: 'Auto validate',
-    // };
-    // console.log('dataReview', dataReview);
-    // await zealyService.addAction(ZealyActionRoutes.ClaimedQuestsReview, 'v1', 'POST', dataReview);
+    // const data = await checkQuest();
     return res.status(200).json({});
   },
 };
