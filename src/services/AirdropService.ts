@@ -224,7 +224,7 @@ export class AirdropService {
     const currentProcess: string = await this.currentProcess(campaign_id);
     if (!airdropRecord || airdropRecord.length === 0) {
       return {
-        eligibility: false,
+        eligibility: true,
         currentProcess: currentProcess,
         totalBoxOpen: 0,
         totalBoxClose: 0,
