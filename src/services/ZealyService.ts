@@ -4,10 +4,8 @@ import fetch from 'node-fetch';
 import {createPromise, PromiseObject} from '@src/utils';
 import {v4} from 'uuid';
 import {ResponseZealy, WebhookZealy} from '@src/types';
-import {AccountService} from '@src/services/AccountService';
 import {ZealyEvent, Task, Account} from '@src/models';
 import {TaskService} from '@src/services/TaskService';
-import * as console from 'node:console';
 
 type ZealyRequestParams = unknown;
 
@@ -112,16 +110,15 @@ export class ZealyService {
 
     // @ts-ignore
     const response = await fetch(url, options);
-    console.log('response', response);
 
     return (await response.json()) as T;
   }
 
   // check user success in Zealy
-  async checkQuestZealy(zealyTaskId: string, accountTaskId: string) {
+  async checkQuestZealy(zealyTaskId: string, accountZealyId: string) {
     const questList = await this.addAction<ResponseZealy>(ZealyActionRoutes.ReviewQuest, 'v2', 'GET', {
       'questId': zealyTaskId,
-      'userId': accountTaskId,
+      'userId': accountZealyId,
       'status': 'success',
     });
     if (questList) {

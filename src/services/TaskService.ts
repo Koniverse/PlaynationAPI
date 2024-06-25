@@ -248,6 +248,7 @@ export class TaskService {
         throw new Error('Task is not ready to be submitted yet');
       }
     }
+    let openUrl = true;
     // Zealy action
     if (task.zealyId && task.zealyType) {
 
@@ -257,13 +258,13 @@ export class TaskService {
         }
         return {
           success: false,
-          message: 'Please sync your account with Zealy first',
+          openUrl,
         };
       } else {
-        console.log('account', account.zealyId, account.id);
         if (!account.zealyId) {
           return {
             success: false,
+            openUrl,
             message: 'Please sync your account with Zealy first',
           };
         }
@@ -271,8 +272,11 @@ export class TaskService {
         if (!checkSuccess) {
           return {
             success: false,
+            openUrl,
             message: 'Please sync your account with Zealy first',
           };
+        }else {
+          openUrl = false;
         }
       }
 
@@ -311,6 +315,7 @@ export class TaskService {
 
     return {
       success: true,
+      openUrl,
     };
   }
 
@@ -333,12 +338,11 @@ export class TaskService {
     const eventZealy = await ZealyEvent.findOne(
       {where: {zealyUserId: account.zealyId, questId: task.zealyId}},
     );
-    if  (eventZealy && eventZealy.status === 'completed'){
+    if  (eventZealy && eventZealy.status === 'success'){
       return true;
     }
     const data = await zealyService.checkQuestZealy(task.zealyId, account.zealyId) as {status: boolean,
       message: string};
-    console.log('data', data);
     return data.status;
 
   }

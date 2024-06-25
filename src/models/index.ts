@@ -41,7 +41,7 @@ Task.belongsTo(Game, { foreignKey: 'gameId' });
 AirdropEligibility.belongsTo(AirdropCampaign, { foreignKey: 'campaign_id' });
 
 // Sync all models
-SequelizeServiceImpl.addSync(Account.sync.bind(Account, { alter: true }));
+SequelizeServiceImpl.addSync(Account.sync.bind(Account));
 SequelizeServiceImpl.addSync(AccountAttribute.sync.bind(AccountAttribute));
 SequelizeServiceImpl.addSync(Game.sync.bind(Game));
 SequelizeServiceImpl.addSync(GameData.sync.bind(GameData));
