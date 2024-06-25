@@ -221,16 +221,16 @@ export class AirdropService {
         accountId: account_id,
       },
     });
+    const currentProcess: string = await this.currentProcess(campaign_id);
     if (!airdropRecord || airdropRecord.length === 0) {
       return {
         eligibility: false,
-        currentProcess: AirdropCampaignProcess.INELIGIBLE,
+        currentProcess: currentProcess,
         totalBoxOpen: 0,
         totalBoxClose: 0,
         totalBox: 0,
       };
     }
-    const currentProcess: string = await this.currentProcess(campaign_id);
     const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord)) as AirdropRecord[];
     const totalBox = airdropRecordData.length;
     const totalBoxOpen = airdropRecordData.filter((item) => item.status === AirdropRecordsStatus.OPEN).length;
