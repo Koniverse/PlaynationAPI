@@ -16,7 +16,7 @@ import {
 } from '@src/models';
 import { AirdropCampaignInterface, AirdropCampaignStatus } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
-import { QueryTypes, Transaction } from 'sequelize';
+import { QueryTypes } from 'sequelize';
 import { CommonService } from '@src/services/CommonService';
 import { AccountService } from '@src/services/AccountService';
 import { LeaderboardRecord } from './LeaderBoardService';
@@ -88,10 +88,11 @@ export class AirdropService {
     try {
       for (const item of data) {
         const itemData = { ...item } as unknown as AirdropCampaign;
-        const existed = await AirdropCampaign.findByPk(item.id);
+        const existed = await AirdropCampaign.findOne({ where: { content_id: item.id } });
         if (existed) {
           await existed.update(itemData);
         } else {
+          itemData.content_id = item.id;
           await AirdropCampaign.create(itemData);
         }
       }
@@ -103,7 +104,6 @@ export class AirdropService {
 
   async syncDataEligibility(data: AirdropEligibilityInterface[]) {
     try {
-      await AirdropEligibility.truncate({ cascade: true });
       for (const item of data) {
         const itemData = {
           name: item.name,
@@ -114,15 +114,20 @@ export class AirdropService {
           start: item.start,
           end: item.end,
         } as unknown as AirdropEligibility;
-        const existed = await AirdropEligibility.findByPk(item.id);
+
+        const existed = await AirdropEligibility.findOne({
+          where: { content_id: item.id },
+        });
         if (existed) {
           await existed.update(itemData);
         } else {
+          itemData.content_id = item.id;
           await AirdropEligibility.create(itemData);
         }
       }
       return { success: true };
     } catch (error) {
+      console.error(error);
       return { success: false };
     }
   }
@@ -216,16 +221,16 @@ export class AirdropService {
         accountId: account_id,
       },
     });
+    const currentProcess: string = await this.currentProcess(campaign_id);
     if (!airdropRecord || airdropRecord.length === 0) {
       return {
-        eligibility: false,
-        currentProcess: AirdropCampaignProcess.INELIGIBLE,
+        eligibility: true,
+        currentProcess: currentProcess,
         totalBoxOpen: 0,
         totalBoxClose: 0,
         totalBox: 0,
       };
     }
-    const currentProcess: string = await this.currentProcess(campaign_id);
     const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord)) as AirdropRecord[];
     const totalBox = airdropRecordData.length;
     const totalBoxOpen = airdropRecordData.filter((item) => item.status === AirdropRecordsStatus.OPEN).length;
