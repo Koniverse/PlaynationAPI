@@ -34,7 +34,7 @@ export interface AirdropCampaignInterface {
 
 export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, InferCreationAttributes<AirdropCampaign>> {
   declare id: CreationOptional<number>;
-  declare contentId: CreationOptional<number>;
+  declare content_id: CreationOptional<number>;
   declare name: string;
   declare icon: string;
   declare banner: string;
@@ -66,7 +66,7 @@ AirdropCampaign.init(
       primaryKey: true,
       autoIncrement: true,
     },
-    contentId: {
+    content_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },

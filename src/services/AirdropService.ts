@@ -88,11 +88,11 @@ export class AirdropService {
     try {
       for (const item of data) {
         const itemData = { ...item } as unknown as AirdropCampaign;
-        const existed = await AirdropCampaign.findOne({ where: { contentId: item.id } });
+        const existed = await AirdropCampaign.findOne({ where: { content_id: item.id } });
         if (existed) {
           await existed.update(itemData);
         } else {
-          itemData.contentId = item.id;
+          itemData.content_id = item.id;
           await AirdropCampaign.create(itemData);
         }
       }
@@ -116,12 +116,12 @@ export class AirdropService {
         } as unknown as AirdropEligibility;
 
         const existed = await AirdropEligibility.findOne({
-          where: { contentId: item.id },
+          where: { content_id: item.id },
         });
         if (existed) {
           await existed.update(itemData);
         } else {
-          itemData.contentId = item.id;
+          itemData.content_id = item.id;
           await AirdropEligibility.create(itemData);
         }
       }
