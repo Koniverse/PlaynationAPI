@@ -5,8 +5,6 @@ import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
 import {QueryTypes} from 'sequelize';
 import {ZealyService} from '@src/services/ZealyService';
-import zealyEvent from '@src/models/ZealyEvent';
-import * as console from 'node:console';
 
 
 export interface TaskContentCms {

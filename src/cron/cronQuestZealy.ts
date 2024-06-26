@@ -1,5 +1,4 @@
 import EnvVars from '@src/constants/EnvVars';
-import * as console from 'console';
 import {ZealyActionRoutes, ZealyService} from '@src/services/ZealyService';
 import {ResponseZealy} from '@src/types';
 import {Account, Task, ZealyEvent} from '@src/models';

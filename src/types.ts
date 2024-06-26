@@ -153,13 +153,13 @@ export interface InlineKeyboardButton {
   };
 }
 
-interface UserZealy {
+interface ZealyUser {
     id: string;
     name: string;
     avatar: string | null;
 }
 
-interface TaskZealy {
+interface ZealyTask {
     value: string;
     id: string;
     createdAt: string;
@@ -173,7 +173,7 @@ interface TaskZealy {
 
 interface ItemQuest {
     id: string;
-    user: UserZealy;
+    user: ZealyUser;
     quest: Quest;
     status: 'pending' | 'success' | 'fail' | 'in-review';
     mark: string | null;
@@ -181,7 +181,7 @@ interface ItemQuest {
     updatedAt: string;
     lastReviewerId: string | null;
     autoValidated: boolean;
-    tasks: TaskZealy[];
+    tasks: ZealyTask[];
 }
 
 export interface ResponseZealy {
@@ -254,15 +254,11 @@ export interface Input {
 export interface User {
     id:        string;
     name:      string;
-    addresses: Addresses;
+    addresses: any;
     twitter:   Twitter;
     discord:   Discord;
     email:     string;
 }
-
-export interface Addresses {
-}
-
 export interface Discord {
     id:     string;
     handle: string;
