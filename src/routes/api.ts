@@ -6,6 +6,7 @@ import TaskRouter from '@src/routes/TaskRouter';
 import TelegramRouter from '@src/routes/TelegramRouter';
 import TaskCategoryRouter from '@src/routes/TaskCategoryRouter';
 import AirdropRouter from '@src/routes/AirdropRouter';
+import ZealyRouter from '@src/routes/ZealyRouter';
 
 const apiRouter = Router();
 
@@ -16,5 +17,6 @@ apiRouter.use('/task', TaskRouter);
 apiRouter.use('/task-category', TaskCategoryRouter);
 apiRouter.use('/telegram', TelegramRouter);
 apiRouter.use('/airdrop', AirdropRouter);
+apiRouter.use('/zealy', ZealyRouter);
 
 export default apiRouter;

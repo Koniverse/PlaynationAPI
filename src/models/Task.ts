@@ -22,6 +22,8 @@ export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<T
   declare endTime: CreationOptional<Date>;
   declare share_leaderboard: CreationOptional<JSON>;
   declare active: boolean;
+  declare zealyType: CreationOptional<string>;
+  declare zealyId: CreationOptional<string>;
 }
 
 Task.init({
@@ -95,6 +97,14 @@ Task.init({
   active: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+  },
+  zealyId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  zealyType: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
 }, {
   indexes: [{unique: true, fields: ['slug']}],
