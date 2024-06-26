@@ -1,6 +1,6 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {Task, TaskCategory, TaskHistory, TaskHistoryStatus, ZealyEvent} from '@src/models';
+import {Account, Task, TaskCategory, TaskHistory, TaskHistoryStatus, ZealyEvent} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
 import {QueryTypes} from 'sequelize';
@@ -266,7 +266,7 @@ export class TaskService {
             message: 'Please sync your account with Zealy first',
           };
         }
-        const checkSuccess = await this.checkTaskZealy(userId, taskId);
+        const checkSuccess = await this.checkTaskZealy(account, task);
         if (!checkSuccess) {
           return {
             success: false,
@@ -317,22 +317,7 @@ export class TaskService {
     };
   }
 
-  async checkTaskZealy(userId: number, taskId: number) {
-    const task = await Task.findByPk(taskId);
-    if (!task) {
-      throw new Error('Task not found');
-    }
-    if (!task.zealyId) {
-      throw new Error('Task not support Zealy');
-    }
-    const account = await accountService.findById(userId);
-    if (!account || !account.isEnabled) {
-      throw new Error('Your account is suspended');
-    }
-    if (!account.zealyId) {
-      throw new Error('Please sync your account with Zealy first');
-    }
-    
+  async checkTaskZealy(account: Account, task: Task) {
     const eventZealy = await ZealyEvent.findOne(
       {where: {zealyUserId: account.zealyId, questId: task.zealyId}},
     );
