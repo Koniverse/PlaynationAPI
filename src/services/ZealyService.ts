@@ -152,6 +152,17 @@ export class ZealyService {
         zealyId: questId,
       },
     });
+    if (task && task.zealyType  !== 'sync' && body.type === 'QUEST_SUCCEEDED'){
+      const account = await Account.findOne({
+        where: {
+          zealyId: user.id,
+        },
+      });
+
+      if (account){
+        await TaskService.instance.createTaskHistory(task.id, account.id);
+      }
+    }
     let claimStatus = 'fail';
     if (task && task.zealyType  === 'sync' && body.type === 'QUEST_CLAIMED'){
       const account = await Account.findOne({

@@ -117,6 +117,7 @@ const Environments = {
     IntervalTime: Number(process.env.INTERVAL_ZEALY_TIME || '1000'),
     IntervalCronTime: Number(process.env.INTERVAL_ZEALY_CRON_TIME || '86400000'),
     TaskZealySync: process.env.TASK_ZEALY_SYNC ?? 'zealy_sync',
+    TaskZealyUrlSync: process.env.TASK_ZEALY_URL_SYNC ?? 'zealy_sync',
     Token: process.env.ZEALY_TOKEN ?? '',
   },
 };

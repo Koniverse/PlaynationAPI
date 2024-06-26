@@ -5,6 +5,7 @@ import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
 import {QueryTypes} from 'sequelize';
 import {ZealyService} from '@src/services/ZealyService';
+import EnvVars from "@src/constants/EnvVars";
 
 
 export interface TaskContentCms {
@@ -216,6 +217,12 @@ export class TaskService {
     // Validate task submission
     const interval = task.interval;
     if (latestLast.length > 0 && (!interval || interval <= 0)) {
+      if (task.zealyType && task.zealyType !== 'sync'){
+        return {
+          success: true,
+          isOpenUrl: false,
+        };
+      }
       throw new Error('Task already submitted');
     }
 
@@ -246,7 +253,7 @@ export class TaskService {
         throw new Error('Task is not ready to be submitted yet');
       }
     }
-    let openUrl = true;
+    let isOpenUrl = true;
     // Zealy action
     if (task.zealyId && task.zealyType) {
 
@@ -256,13 +263,14 @@ export class TaskService {
         }
         return {
           success: false,
-          openUrl,
+          isOpenUrl: isOpenUrl,
         };
       } else {
         if (!account.zealyId) {
           return {
             success: false,
-            openUrl,
+            isOpenUrl: isOpenUrl,
+            openUrl: EnvVars.Zealy.TaskZealyUrlSync,
             message: 'Please sync your account with Zealy first',
           };
         }
@@ -270,11 +278,11 @@ export class TaskService {
         if (!checkSuccess) {
           return {
             success: false,
-            openUrl,
+            isOpenUrl: isOpenUrl,
             message: 'Please sync your account with Zealy first',
           };
         }else {
-          openUrl = false;
+          isOpenUrl = false;
         }
       }
 
@@ -313,7 +321,7 @@ export class TaskService {
 
     return {
       success: true,
-      openUrl,
+      isOpenUrl: isOpenUrl,
     };
   }
 
