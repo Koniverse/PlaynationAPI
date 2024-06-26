@@ -352,6 +352,11 @@ export class TaskService {
     if (!task) {
       throw new Error('Task not found');
     }
+
+    const account = await accountService.findById(accountId);
+    if (!account || !account.isEnabled) {
+      throw new Error('Your account is suspended');
+    }
     const existed = await TaskHistory.findOne({
       where: {taskId, accountId},
     });
