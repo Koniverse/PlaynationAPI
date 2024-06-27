@@ -2,7 +2,7 @@ import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {requireLogin, requireSecret} from '@src/routes/helper';
-import {TaskContentCms, TaskHistoryParams, TaskService, TaskSubmitParams} from '@src/services/TaskService';
+import {TaskContentCms, TaskService, TaskSubmitParams} from '@src/services/TaskService';
 
 const TaskRouter = Router();
 
@@ -21,10 +21,10 @@ const routerMap = {
     const response = await TaskService.instance.listTaskHistory(userId);
     return res.status(200).json(response);
   },
-  checkCompleteTask: async (req: IReq<TaskHistoryParams>, res: IRes) => {
+  checkCompleteTask: async (req: IReq<TaskSubmitParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {taskHistoryId} = req.body
-    const response = await TaskService.instance.checkCompleteTask(userId, taskHistoryId);
+    const {taskId} = req.body
+    const response = await TaskService.instance.checkCompleteTask(userId, taskId);
     return res.status(200).json(response);
   },
   submit: async (req: IReq<TaskSubmitParams>, res: IRes) => {

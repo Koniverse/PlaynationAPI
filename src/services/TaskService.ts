@@ -5,7 +5,7 @@ import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
 import {QueryTypes} from 'sequelize';
 import {ZealyService} from '@src/services/ZealyService';
-import EnvVars from "@src/constants/EnvVars";
+import EnvVars from '@src/constants/EnvVars';
 
 
 export interface TaskContentCms {
@@ -33,10 +33,6 @@ export interface TaskSubmitParams {
     taskId: number,
     extrinsicHash?: string,
     network?: string,
-}
-
-export interface TaskHistoryParams {
-    taskHistoryId: number
 }
 
 interface TaskHistoryLog {
@@ -117,11 +113,13 @@ export class TaskService {
     });
   }
 
-  async checkCompleteTask(userId: number, taskHistoryId: number) {
+  async checkCompleteTask(userId: number, taskId: number) {
     let completed = false;
-    const taskHistory = await TaskHistory.findByPk(taskHistoryId);
-    if (taskHistory && taskHistory.accountId === userId) {
-      completed = taskHistory.status === TaskHistoryStatus.COMPLETED;
+    const taskHistory = await TaskHistory.findOne({
+      where: {taskId, accountId: userId, status: TaskHistoryStatus.COMPLETED},
+    });
+    if (taskHistory) {
+      completed = true;
     }
     return {completed};
 
