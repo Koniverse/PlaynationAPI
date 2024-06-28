@@ -140,12 +140,18 @@ export class ZealyService {
   async webhookZealyAsync(body: WebhookZealy) {
     const {data} = body;
     const {user, quest, taskInputs} = data;
-    const taskValue = taskInputs.find((task) => task.taskType === 'text');
+
     let value = '';
-    if (taskValue) {
-      value = taskValue?.input?.value;
+    if (taskInputs) {
+      const taskValue = taskInputs.find((task) => task.taskType === 'text');
+      if (taskValue) {
+        value = taskValue?.input?.value;
+      }
     }
-    const questId = quest.id;
+    const questId = quest.id || null;
+    if (!questId) {
+      return;
+    }
     const claimId = quest.claimId;
     const task = await Task.findOne({
       where: {
