@@ -215,7 +215,7 @@ export class TaskService {
     // Validate task submission
     const interval = task.interval;
     if (latestLast.length > 0 && (!interval || interval <= 0)) {
-      if (task.zealyType && task.zealyType !== 'sync'){
+      if (task.zealyType){
         return {
           success: true,
           isOpenUrl: false,
