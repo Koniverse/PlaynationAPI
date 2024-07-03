@@ -57,6 +57,8 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare status: string;
   declare createdAt: Date;
   declare updatedAt: Date;
+  declare purchase_nps_amount: CreationOptional<number>;
+  declare max_tokens_per_campaign: CreationOptional<number>;
 }
 
 AirdropCampaign.init(
@@ -166,6 +168,14 @@ AirdropCampaign.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: new Date(),
+    },
+    purchase_nps_amount: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    max_tokens_per_campaign: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
   },
   {
