@@ -57,6 +57,7 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare status: string;
   declare createdAt: Date;
   declare updatedAt: Date;
+  declare share: CreationOptional<JSON>;
 }
 
 AirdropCampaign.init(
@@ -166,6 +167,11 @@ AirdropCampaign.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: new Date(),
+    },
+      
+    share: {
+      type: DataTypes.JSON,
+      allowNull: true,
     },
   },
   {
