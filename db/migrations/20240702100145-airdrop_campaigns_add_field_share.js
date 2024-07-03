@@ -7,9 +7,13 @@ module.exports = {
       type: Sequelize.JSON,
       allowNull: true,
     });
+    await queryInterface.addColumn('airdrop_campaigns', 'token_slug', {
+      type: Sequelize.STRING,
+      allowNull: true,
+    });
   },
 
   async down (queryInterface, Sequelize) {
-    await queryInterface.removeColumn('airdrop_campaigns', 'share');
+    await queryInterface.removeColumn('airdrop_campaigns', 'token_slug');
   }
 };

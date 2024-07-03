@@ -203,7 +203,7 @@ export class AirdropService {
           description: item.description,
           shortDescription: item.shortDescription,
           share: item.share,
-          // token_slug: item.token_slug,
+          token_slug: item.token_slug,
           eligibilityList: [],
         } as unknown as AirdropCampaignData;
 

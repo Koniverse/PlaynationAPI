@@ -58,6 +58,7 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare createdAt: Date;
   declare updatedAt: Date;
   declare share: CreationOptional<JSON>;
+  declare token_slug: CreationOptional<string>;
 }
 
 AirdropCampaign.init(
@@ -171,6 +172,10 @@ AirdropCampaign.init(
       
     share: {
       type: DataTypes.JSON,
+      allowNull: true,
+    },
+    token_slug: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
   },
