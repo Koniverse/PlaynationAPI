@@ -1,7 +1,7 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Account from '@src/models/Account';
-import AirdropCampaign from "@src/models/AirdropCampaign";
+import AirdropCampaign from '@src/models/AirdropCampaign';
 
 export class PointAdjustmentHistory extends Model<InferAttributes<PointAdjustmentHistory>, InferCreationAttributes<PointAdjustmentHistory>> {
   declare id: CreationOptional<number>; // id on db
