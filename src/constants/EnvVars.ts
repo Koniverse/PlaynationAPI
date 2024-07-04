@@ -111,7 +111,7 @@ const Environments = {
     RetryMax: parseInt(process.env.TASK_HISTORY_RETRY_MAX || '3'),
     Limit: parseInt(process.env.TASK_HISTORY_LIMIT || '20'),
   },
-  Zealy: {
+  Airlyft: {
     CommunityName: process.env.ZEALY_COMMUNITY_NAME ?? 'zealy',
     RateLimit: Number(process.env.ZEALY_RATE_LIMIT || '20'),
     IntervalTime: Number(process.env.INTERVAL_ZEALY_TIME || '1000'),

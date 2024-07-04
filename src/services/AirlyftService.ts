@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 import {createPromise, PromiseObject} from '@src/utils';
 import {v4} from 'uuid';
 import {ResponseZealy, WebhookZealy} from '@src/types';
-import {ZealyEvent, Task, Account} from '@src/models';
+import {Task, Account} from '@src/models';
 import {TaskService} from '@src/services/TaskService';
 
 type ZealyRequestParams = unknown;
@@ -23,7 +23,7 @@ export enum ZealyActionRoutes {
     ReviewQuest = 'reviews', // lấy danh sách nhiệm vụ
 }
 
-export class ZealyService {
+export class AirlyftService {
   private actionQueue: Record<string, ZealyAction> = {};
   private isRunning = false;
 
@@ -138,79 +138,14 @@ export class ZealyService {
   }
 
   async webhookZealyAsync(body: WebhookZealy) {
-    const {data} = body;
-    const {user, quest, taskInputs} = data;
-
-    let value = '';
-    if (taskInputs) {
-      const taskValue = taskInputs.find((task) => task.taskType === 'text');
-      if (taskValue) {
-        value = taskValue?.input?.value;
-      }
-    }
-    const questId = quest.id || null;
-    if (!questId) {
-      return;
-    }
-    const claimId = quest.claimId;
-    const task = await Task.findOne({
-      where: {
-        zealyId: questId,
-      },
-    });
-    if (task && task.zealyType  !== 'sync' && body.type === 'QUEST_SUCCEEDED'){
-      const account = await Account.findOne({
-        where: {
-          zealyId: user.id,
-        },
-      });
-
-      if (account){
-        await TaskService.instance.createTaskHistory(task.id, account.id);
-      }
-    }
-    let claimStatus = 'fail';
-    if (task && task.zealyType  === 'sync' && body.type === 'QUEST_CLAIMED'){
-      const account = await Account.findOne({
-        where: {
-          address: value,
-        },
-      });
-      if (account){
-        account.zealyId = user.id;
-        account.twitterId = user.twitter?.id || '';
-        account.discordId = user.discord?.id || '';
-        await account.save();
-        await TaskService.instance.createTaskHistory(task.id, account.id);
-        claimStatus = 'success';
-      }
-
-      const dataReview = {
-        status: claimStatus,
-        claimedQuestIds: [claimId],
-        comment: 'Auto validate',
-      };
-      await this.addAction(ZealyActionRoutes.ClaimedQuestsReview, 'v1', 'POST', dataReview);
-    }
-
-    const dataCreate = {
-      zealyUserId: body.data.user.id,
-      claimId: body.data.quest.claimId,
-      questId: questId,
-      webhookType: body.type,
-      status: body.data.status,
-      content: body,
-      value: value,
-    };
-    await ZealyEvent.create(dataCreate as unknown as ZealyEvent);
   }
 
 
   // Singleton this class
-  private static _instance: ZealyService;
+  private static _instance: AirlyftService;
   public static get instance() {
     if (!this._instance) {
-      this._instance = new ZealyService(SequelizeServiceImpl);
+      this._instance = new AirlyftService(SequelizeServiceImpl);
     }
 
     return this._instance;

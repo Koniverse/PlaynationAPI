@@ -18,7 +18,6 @@ import AirdropRecordLog from './AirdropRecordLog';
 import AirdropEligibility from '@src/models/AirdropEligibility';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 import AirdropTransactionLog from '@src/models/AirdropTransactionLog';
-import ZealyEvent from '@src/models/ZealyEvent';
 
 AccountAttribute.belongsTo(Account, { foreignKey: 'accountId' });
 Account.hasOne(AccountAttribute, { foreignKey: 'accountId' });
@@ -60,7 +59,6 @@ SequelizeServiceImpl.addSync(AirdropRecordLog.sync.bind(AirdropRecordLog));
 SequelizeServiceImpl.addSync(AirdropEligibility.sync.bind(AirdropEligibility));
 SequelizeServiceImpl.addSync(ReferralUpgradeLog.sync.bind(ReferralUpgradeLog));
 SequelizeServiceImpl.addSync(AirdropTransactionLog.sync.bind(AirdropTransactionLog));
-SequelizeServiceImpl.addSync(ZealyEvent.sync.bind(ZealyEvent));
 
 export * from '@src/models/AccountAttribute';
 export * from '@src/models/Account';
@@ -81,4 +79,3 @@ export * from '@src/models/AirdropRecordLog';
 export * from '@src/models/AirdropEligibility';
 export * from '@src/models/ReferralUpgradeLog';
 export * from '@src/models/AirdropTransactionLog';
-export * from '@src/models/ZealyEvent';

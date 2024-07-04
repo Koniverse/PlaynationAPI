@@ -1,10 +1,10 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {Account, Task, TaskCategory, TaskHistory, TaskHistoryStatus, ZealyEvent} from '@src/models';
+import {Account, Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
 import {QueryTypes} from 'sequelize';
-import {ZealyService} from '@src/services/ZealyService';
+import {AirlyftService} from '@src/services/AirlyftService';
 import EnvVars from '@src/constants/EnvVars';
 
 
@@ -44,7 +44,7 @@ interface TaskHistoryLog {
 
 type TaskHistoryRecord = Task & TaskHistoryLog;
 const accountService = AccountService.instance;
-const zealyService = ZealyService.instance;
+const zealyService = AirlyftService.instance;
 
 export class TaskService {
   private taskMap: Record<string, Task> | undefined;
@@ -272,7 +272,7 @@ export class TaskService {
             message: 'Please sync your account with Zealy first',
           };
         }
-        const checkSuccess = await this.checkTaskZealy(account, task);
+        const checkSuccess = await this.checkTaskAirlyft(account, task);
         if (!checkSuccess) {
           return {
             success: false,
@@ -323,17 +323,10 @@ export class TaskService {
     };
   }
 
-  async checkTaskZealy(account: Account, task: Task) {
-    const eventZealy = await ZealyEvent.findOne(
-      {where: {zealyUserId: account.zealyId, questId: task.zealyId}},
-    );
-    if  (eventZealy && eventZealy.status === 'success'){
-      return true;
-    }
-    const data = await zealyService.checkQuestZealy(task.zealyId, account.zealyId) as {status: boolean,
-      message: string};
-    return data.status;
+  //
+  async checkTaskAirlyft(account: Account, task: Task) {
 
+    return false;
   }
 
   async createTaskHistory(taskId: number, accountId: number) {
