@@ -28,6 +28,7 @@ interface BoxInterface {
   accountId: number;
   token: number;
   nps: number;
+  use_point: number;
   eligibility_id: number;
   airdrop_campaign: number;
   campaign_id?: number;
@@ -151,6 +152,8 @@ export class AirdropService {
         const itemData = {
           name: item.name,
           boxCount: item.boxCount,
+          boxPrice: item.boxPrice,
+          boxLimit: item.boxLimit,
           userList: JSON.stringify(item.userList),
           campaign_id: item.campaign_id.id,
           type: item.type,
@@ -263,12 +266,16 @@ export class AirdropService {
         campaign_id,
         accountId: account_id,
       },
+      order: [['use_point', 'ASC']],
     });
-    const currentProcess: string = await this.currentProcess(campaign_id);
+    console.log(account_id, campaign_id);
+    const currentProcess = await this.detectCurrentProcess(campaign_id, airdropRecord.length);
+
     if (!airdropRecord || airdropRecord.length === 0) {
       return {
-        eligibility: true,
-        currentProcess: currentProcess,
+        eligibility: false,
+        price: 0,
+        currentProcess,
         totalBoxOpen: 0,
         totalBoxClose: 0,
         totalBox: 0,
@@ -276,8 +283,20 @@ export class AirdropService {
     }
     const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord)) as AirdropRecord[];
     const totalBox = airdropRecordData.length;
-    const totalBoxOpen = airdropRecordData.filter((item) => item.status === AirdropRecordsStatus.OPEN).length;
-    const totalBoxClose = airdropRecordData.filter((item) => item.status === AirdropRecordsStatus.CLOSED).length;
+    let totalBoxOpen = 0;
+    let totalBoxClose = 0;
+    let price: number | null = null;
+    airdropRecordData.forEach((item) => {
+      if (item.status === AirdropRecordsStatus.OPEN) {
+        totalBoxOpen++;
+      } else {
+        totalBoxClose++;
+
+        if (!price && item.use_point) {
+          price = item.use_point;
+        }
+      }
+    });
     const eligibilityIds = new Set<number>();
     airdropRecordData.forEach((item) => {
       if (item.accountId === account_id) {
@@ -290,7 +309,8 @@ export class AirdropService {
       totalBoxOpen: totalBoxOpen,
       totalBoxClose: totalBoxClose,
       totalBox: totalBox,
-      currentProcess: currentProcess,
+      price: price || 0,
+      currentProcess,
       eligibilityIds: uniqueEligibilityIds,
     };
   }
@@ -338,6 +358,7 @@ export class AirdropService {
               nps: 0,
               eligibility_id: eligibility.id,
               airdrop_campaign: eligibility.campaign_id,
+              use_point: eligibility.boxPrice || 0,
             });
           }
         });
@@ -433,6 +454,7 @@ export class AirdropService {
             snapshot_data: snapshotData,
             eligibility_id: item.eligibility_id,
             point: item.nps,
+            use_point: item.use_point,
           },
           { transaction },
         );
@@ -455,13 +477,49 @@ export class AirdropService {
         accountId: account_id,
         status: AirdropRecordsStatus.CLOSED,
       },
+      order: [['use_point', 'ASC']],
     });
+
+    // Validate raffle status
     if (!airdropRecord || !campaign || !account) {
       throw new Error('You have already opened all boxes');
     }
 
     const type = airdropRecord.token > 0 ? AIRDROP_LOG_TYPE.TOKEN : AIRDROP_LOG_TYPE.NPS;
-    const amount: number = airdropRecord.token > 0 ? airdropRecord.token : airdropRecord.point;
+    const amount = airdropRecord.token > 0 ? airdropRecord.token : airdropRecord.point;
+    const price = airdropRecord.use_point || 0;
+
+    // Validate opened boxes
+    const eligible = await AirdropEligibility.findByPk(airdropRecord.eligibility_id);
+    if (!eligible) {
+      throw new Error('Eligibility not found');
+    }
+
+    if (eligible.boxLimit && eligible.boxLimit > 0) {
+      const openedBoxes = await AirdropRecord.count({
+        where: {
+          campaign_id,
+          eligibility_id: airdropRecord.eligibility_id,
+          status: AirdropRecordsStatus.OPEN,
+        },
+      });
+
+      if (openedBoxes >= eligible.boxLimit) {
+        throw new Error('The campaign has run out of gifts, be quicker next time!');
+      }
+    }
+
+    // Validate remaining point
+    if (price > 0) {
+      const accountAtt = await accountService.getAccountAttribute(account_id);
+      if (accountAtt.point < price) {
+        throw new Error(`You need at least ${price} NPS open the box`);
+      }
+
+      await accountService.addAccountPoint(account_id, -price);
+    }
+
+    // Todo: Should update by the campaign
     // expiry date = current date + 30 day
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
@@ -490,9 +548,13 @@ export class AirdropService {
         airdropRecordLogId: airdropRecordLogResult.id,
         rewardType: type,
         rewardAmount: amount,
+        price,
       };
     } catch (e) {
       await airdropRecord.update({ status: AirdropRecordsStatus.CLOSED });
+      if (price > 0) {
+        await accountService.addAccountPoint(account_id, price);
+      }
       throw e;
     }
   }
@@ -627,7 +689,7 @@ export class AirdropService {
     return error ? AIRDROP_LOG_STATUS.PENDING : AIRDROP_LOG_STATUS.RECEIVED;
   }
 
-  async currentProcess(campaignId: number): Promise<AirdropCampaignProcess> {
+  async detectCurrentProcess(campaignId: number, boxNumber: number) {
     const campaign = await AirdropCampaign.findByPk(campaignId);
     if (!campaign) {
       throw new Error('Campaign not found');
@@ -647,13 +709,14 @@ export class AirdropService {
     if (currentDate > endMs) {
       return AirdropCampaignProcess.END_CAMPAIGN;
     }
-    if (currentDate >= startSnapshotMs && currentDate <= endSnapshotMs) {
+    if (currentDate >= startSnapshotMs && currentDate <= endSnapshotMs && boxNumber > 0) {
       return AirdropCampaignProcess.ELIGIBLE;
     }
-    if (currentDate >= startClaim && currentDate <= endClaimMs) {
+    if (currentDate >= startClaim && currentDate <= endClaimMs && boxNumber > 0) {
       return AirdropCampaignProcess.RAFFLE;
     }
-    return AirdropCampaignProcess.ELIGIBLE;
+
+    return AirdropCampaignProcess.INELIGIBLE;
   }
 
   async historyList(account_id: number, campaign_id: number) {
