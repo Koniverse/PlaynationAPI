@@ -16,7 +16,7 @@ import {
 } from '@src/models';
 import { AirdropCampaignInterface, AirdropCampaignStatus } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
-import { QueryTypes } from 'sequelize';
+import {Op, QueryTypes } from 'sequelize';
 import { CommonService } from '@src/services/CommonService';
 import { AccountService } from '@src/services/AccountService';
 import { LeaderboardRecord } from './LeaderBoardService';
@@ -33,13 +33,56 @@ interface BoxInterface {
   campaign_id?: number;
 }
 
+interface AirdropEligibilityData {
+  airdrop_campaign_id: number;
+  eligibility_name: string;
+  eligibility_id: number;
+  eligibility_type: string;
+  eligibility_start: Date;
+  eligibility_end: Date;
+  eligibility_box: number;
+}
+
+type AirdropCampaignList = AirdropCampaign & AirdropEligibilityData;
+type AirdropCampaignData = AirdropCampaign & { eligibilityList: AirdropEligibility[]
+airdrop_campaign_id: number};
 interface TransactionInterface {
   extrinsicHash: string;
   blockHash: string;
   blockNumber: number;
   amount: number;
   point: number;
-  error?: any;
+  error?: string;
+}
+
+interface AirdropQueryHistoryData {
+  airdrop_log_id: number;
+  type: string;
+  expiryDate: string;
+  status: string;
+  account_id: number;
+  campaign_id: number;
+  airdrop_record_id: number;
+  eligibility_id: number;
+  address: string;
+  point: number;
+  token: number;
+  network: string;
+  campaign_method: string;
+  campaign_name: string;
+  decimal: number;
+  airdrop_record_status: string;
+  eligibility_name: string;
+  eligibility_end: string;
+}
+
+interface AirdropHistoryData {
+  status: string;
+  type: string;
+  rewardValue: number;
+  endTime: string;
+  name: string;
+  id: number;
 }
 
 const enum AirdropCampaignProcess {
@@ -135,7 +178,7 @@ export class AirdropService {
   // Lists all active airdrop campaigns
   async listAirdropCampaign() {
     const status = AirdropCampaignStatus.ACTIVE;
-    const results = await this.sequelizeService.sequelize.query(
+    const results = await this.sequelizeService.sequelize.query<AirdropCampaignList>(
       `SELECT airdrop_campaigns.id          AS airdrop_campaign_id,
               airdrop_campaigns.*,
               airdrop_eligibility.name      AS eligibility_name,
@@ -153,9 +196,9 @@ export class AirdropService {
        order by airdrop_eligibility.id ASC;`,
       { type: QueryTypes.SELECT },
     );
-    const campaigns: any = [];
+    const campaigns: AirdropCampaignData[] = [];
 
-    results.forEach((item: any) => {
+    results.forEach((item: AirdropCampaignList) => {
       const existingCampaign = campaigns.find(
         (c: { airdrop_campaign_id: any }) => c.airdrop_campaign_id === item.airdrop_campaign_id,
       );
@@ -169,11 +212,10 @@ export class AirdropService {
             boxCount: item.eligibility_box,
             start: item.eligibility_start,
             end: item.eligibility_end,
-            note: item.note,
-          });
+          } as unknown as AirdropEligibility);
         }
       } else {
-        const newCampaign: any = {
+        const newCampaign: AirdropCampaignData = {
           airdrop_campaign_id: item.airdrop_campaign_id,
           name: item.name,
           icon: item.icon,
@@ -191,9 +233,10 @@ export class AirdropService {
           end: item.end,
           description: item.description,
           shortDescription: item.shortDescription,
+          share: item.share,
           token_slug: item.token_slug,
           eligibilityList: [],
-        };
+        } as unknown as AirdropCampaignData;
 
         if (item.eligibility_name && item.eligibility_type) {
           newCampaign.eligibilityList.push({
@@ -203,8 +246,8 @@ export class AirdropService {
             boxCount: item.eligibility_box,
             start: item.eligibility_start,
             end: item.eligibility_end,
-            note: item.note,
-          });
+            // note: item.note,
+          } as unknown as AirdropEligibility);
         }
 
         campaigns.push(newCampaign);
@@ -340,38 +383,43 @@ export class AirdropService {
         currentIndex++;
       }
     }
+  }
 
-    // Random pick reward to the box this method is not working randomly
-    // for (const user of eligibility) {
-    //   // Combine token and NPS distributions into a single array of tasks
-    //   for (const distribution of distributions) {
-    //     for (let i = 0; i < distribution.count; i++) {
-    //       if (currentIndex < boxList.length) {
-    //         if (distribution.type === 'token') {
-    //           boxList[currentIndex].token = distribution.value;
-    //           boxList[currentIndex].nps = 0;
-    //         } else {
-    //           boxList[currentIndex].token = 0;
-    //           boxList[currentIndex].nps = distribution.value;
-    //         }
-    //         currentIndex++;
-    //       }
-    //     }
-    //   }
-    // }
+  async removeOldAirdropRecords(campaignId: number) {
+    const existed = await AirdropRecord.findAll({
+      where: { campaign_id: campaignId },
+    });
+
+    if (existed) {
+      const existedIds = existed.map((item) => item.id);
+
+      // Remove airdrop record log
+      await AirdropRecordLog.destroy({
+        where: { airdrop_record_id: {[Op.in] : existedIds} },
+      });
+
+      // Remove airdrop record
+      await AirdropRecord.destroy({
+        where: { id: {[Op.in]: existedIds} },
+      });
+    }
   }
 
   // Inserts the airdrop record data into the database
   async insertAirdropRecord(userList: BoxInterface[], campaign: AirdropCampaign): Promise<void> {
     const transaction = await this.sequelizeService.startTransaction();
+
     try {
-      await AirdropRecord.truncate({ cascade: true });
+      // Remove data from old campaign
+      await this.removeOldAirdropRecords(campaign.id);
+
+      // Insert new airdrop record
       for (const item of userList) {
-        const snapshotData: any = {
+        const snapshotData = {
           accountId: item.accountId,
           eligibility_id: item.eligibility_id,
           campaign: item.campaign_id,
-        };
+        } as unknown as JSON;
 
         await AirdropRecord.create(
           {
@@ -389,6 +437,7 @@ export class AirdropService {
           { transaction },
         );
       }
+
       // Commit the transaction
       await transaction.commit();
     } catch (error) {
@@ -520,8 +569,8 @@ export class AirdropService {
           'chain/create-transfer',
           data,
         );
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const sendTokenResponse = JSON.parse(JSON.stringify(sendToken));
+
+        const sendTokenResponse = JSON.parse(JSON.stringify(sendToken)) as TransactionInterface;
 
         if (sendTokenResponse.error) {
           let errorMessage;
@@ -552,6 +601,7 @@ export class AirdropService {
     } catch (error) {
       console.error(error);
       await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.PENDING });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/restrict-template-expressions
       throw new Error(`Claim failed: ${error.message}`);
     }
   }
@@ -634,15 +684,16 @@ export class AirdropService {
                    and arl.campaign_id = ${campaign_id}
                  order by arl.id desc`;
 
-    const airdropRecordLogData = (await this.sequelizeService.sequelize.query(sql, {
+    const airdropRecordLogData = await this.sequelizeService.sequelize.query<AirdropQueryHistoryData>(sql, {
       type: QueryTypes.SELECT,
-    }));
+    });
     if (!campaign_id || !airdropRecordLogData[0]) {
       return [];
     }
-    const data: any[] = [];
-    airdropRecordLogData.forEach((item: any) => {
-      const endDate: any = item.eligibility_end;
+    const data: AirdropHistoryData[] = [];
+    airdropRecordLogData.forEach((item) => {
+      const endDate = item.eligibility_end;
+
       data.push({
         status: item.status,
         type: item.type,
@@ -652,6 +703,7 @@ export class AirdropService {
         id: item.airdrop_log_id,
       });
     });
+
     return data;
   }
 
