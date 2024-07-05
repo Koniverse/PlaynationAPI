@@ -16,7 +16,7 @@ import {
 } from '@src/models';
 import { AirdropCampaignInterface, AirdropCampaignStatus } from '@src/models/AirdropCampaign';
 import { AirdropEligibilityInterface } from '@src/models/AirdropEligibility';
-import { QueryTypes } from 'sequelize';
+import {Op, QueryTypes } from 'sequelize';
 import { CommonService } from '@src/services/CommonService';
 import { AccountService } from '@src/services/AccountService';
 import { LeaderboardRecord } from './LeaderBoardService';
@@ -383,31 +383,37 @@ export class AirdropService {
         currentIndex++;
       }
     }
+  }
 
-    // Random pick reward to the box this method is not working randomly
-    // for (const user of eligibility) {
-    //   // Combine token and NPS distributions into a single array of tasks
-    //   for (const distribution of distributions) {
-    //     for (let i = 0; i < distribution.count; i++) {
-    //       if (currentIndex < boxList.length) {
-    //         if (distribution.type === 'token') {
-    //           boxList[currentIndex].token = distribution.value;
-    //           boxList[currentIndex].nps = 0;
-    //         } else {
-    //           boxList[currentIndex].token = 0;
-    //           boxList[currentIndex].nps = distribution.value;
-    //         }
-    //         currentIndex++;
-    //       }
-    //     }
-    //   }
-    // }
+  async removeOldAirdropRecords(campaignId: number) {
+    const existed = await AirdropRecord.findAll({
+      where: { campaign_id: campaignId },
+    });
+
+    if (existed) {
+      const existedIds = existed.map((item) => item.id);
+
+      // Remove airdrop record log
+      await AirdropRecordLog.destroy({
+        where: { airdrop_record_id: {[Op.in] : existedIds} },
+      });
+
+      // Remove airdrop record
+      await AirdropRecord.destroy({
+        where: { id: {[Op.in]: existedIds} },
+      });
+    }
   }
 
   // Inserts the airdrop record data into the database
   async insertAirdropRecord(userList: BoxInterface[], campaign: AirdropCampaign): Promise<void> {
     const transaction = await this.sequelizeService.startTransaction();
+
     try {
+      // Remove data from old campaign
+      await this.removeOldAirdropRecords(campaign.id);
+
+      // Insert new airdrop record
       for (const item of userList) {
         const snapshotData = {
           accountId: item.accountId,
@@ -431,6 +437,7 @@ export class AirdropService {
           { transaction },
         );
       }
+
       // Commit the transaction
       await transaction.commit();
     } catch (error) {
