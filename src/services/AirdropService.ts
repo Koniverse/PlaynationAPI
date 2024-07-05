@@ -266,12 +266,16 @@ export class AirdropService {
         campaign_id,
         accountId: account_id,
       },
+      order: [['use_point', 'ASC']],
     });
-    const currentProcess: string = await this.currentProcess(campaign_id);
+    console.log(account_id, campaign_id);
+    const currentProcess = await this.detectCurrentProcess(campaign_id, airdropRecord.length);
+
     if (!airdropRecord || airdropRecord.length === 0) {
       return {
-        eligibility: true,
-        currentProcess: currentProcess,
+        eligibility: false,
+        price: 0,
+        currentProcess,
         totalBoxOpen: 0,
         totalBoxClose: 0,
         totalBox: 0,
@@ -279,8 +283,20 @@ export class AirdropService {
     }
     const airdropRecordData = JSON.parse(JSON.stringify(airdropRecord)) as AirdropRecord[];
     const totalBox = airdropRecordData.length;
-    const totalBoxOpen = airdropRecordData.filter((item) => item.status === AirdropRecordsStatus.OPEN).length;
-    const totalBoxClose = airdropRecordData.filter((item) => item.status === AirdropRecordsStatus.CLOSED).length;
+    let totalBoxOpen = 0;
+    let totalBoxClose = 0;
+    let price: number | null = null;
+    airdropRecordData.forEach((item) => {
+      if (item.status === AirdropRecordsStatus.OPEN) {
+        totalBoxOpen++;
+      } else {
+        totalBoxClose++;
+
+        if (!price && item.use_point) {
+          price = item.use_point;
+        }
+      }
+    });
     const eligibilityIds = new Set<number>();
     airdropRecordData.forEach((item) => {
       if (item.accountId === account_id) {
@@ -293,7 +309,8 @@ export class AirdropService {
       totalBoxOpen: totalBoxOpen,
       totalBoxClose: totalBoxClose,
       totalBox: totalBox,
-      currentProcess: currentProcess,
+      price: price || 0,
+      currentProcess,
       eligibilityIds: uniqueEligibilityIds,
     };
   }
@@ -672,7 +689,7 @@ export class AirdropService {
     return error ? AIRDROP_LOG_STATUS.PENDING : AIRDROP_LOG_STATUS.RECEIVED;
   }
 
-  async currentProcess(campaignId: number): Promise<AirdropCampaignProcess> {
+  async detectCurrentProcess(campaignId: number, boxNumber: number) {
     const campaign = await AirdropCampaign.findByPk(campaignId);
     if (!campaign) {
       throw new Error('Campaign not found');
@@ -692,13 +709,14 @@ export class AirdropService {
     if (currentDate > endMs) {
       return AirdropCampaignProcess.END_CAMPAIGN;
     }
-    if (currentDate >= startSnapshotMs && currentDate <= endSnapshotMs) {
+    if (currentDate >= startSnapshotMs && currentDate <= endSnapshotMs && boxNumber > 0) {
       return AirdropCampaignProcess.ELIGIBLE;
     }
-    if (currentDate >= startClaim && currentDate <= endClaimMs) {
+    if (currentDate >= startClaim && currentDate <= endClaimMs && boxNumber > 0) {
       return AirdropCampaignProcess.RAFFLE;
     }
-    return AirdropCampaignProcess.ELIGIBLE;
+
+    return AirdropCampaignProcess.INELIGIBLE;
   }
 
   async historyList(account_id: number, campaign_id: number) {
