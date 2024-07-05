@@ -2,6 +2,7 @@ import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {AirlyftService, AirlyftSyncParams} from '@src/services/AirlyftService';
+import {Task} from '@src/models';
 
 const AirlyftRouter = Router();
 
@@ -9,8 +10,16 @@ const airlyftService = AirlyftService.instance;
 const routerMap = {
 
   test: async (req: IReq<Query>, res: IRes) => {
-    const eventId = '551f5de8-30ce-4bb7-b5aa-dc7d4e42172f';
-    const taskIds = ['bc75a6d3-d68d-407a-b53c-a0d1622ac171'];
+    const taskSync = await Task.findOne({
+      where: {
+        airlyftType: 'telegram-sync',
+      },
+    });
+    if (!taskSync) {
+      return res.status(404).json({error: 'task not found'});
+    }
+    const eventId = taskSync.airlyftEventId;
+    const taskIds = [taskSync.airlyftId];
 
     const data = await airlyftService.eventSubmissions(eventId, taskIds);
     return res.status(200).json(data);
