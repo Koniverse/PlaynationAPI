@@ -22,7 +22,6 @@ import { AccountService } from '@src/services/AccountService';
 import { LeaderboardRecord } from './LeaderBoardService';
 import { CacheService } from '@src/services/CacheService';
 import { v4 } from 'uuid';
-import {Enum} from "@polkadot/types-codec";
 
 // Interfaces
 interface BoxInterface {
@@ -33,6 +32,7 @@ interface BoxInterface {
   airdrop_campaign: number;
   campaign_id?: number;
 }
+
 interface AirdropEligibilityData {
   airdrop_campaign_id: number;
   eligibility_name: string;
@@ -42,6 +42,7 @@ interface AirdropEligibilityData {
   eligibility_end: Date;
   eligibility_box: number;
 }
+
 type AirdropCampaignList = AirdropCampaign & AirdropEligibilityData;
 type AirdropCampaignData = AirdropCampaign & { eligibilityList: AirdropEligibility[]
 airdrop_campaign_id: number};
@@ -51,7 +52,37 @@ interface TransactionInterface {
   blockNumber: number;
   amount: number;
   point: number;
-  error?: any;
+  error?: string;
+}
+
+interface AirdropQueryHistoryData {
+  airdrop_log_id: number;
+  type: string;
+  expiryDate: string;
+  status: string;
+  account_id: number;
+  campaign_id: number;
+  airdrop_record_id: number;
+  eligibility_id: number;
+  address: string;
+  point: number;
+  token: number;
+  network: string;
+  campaign_method: string;
+  campaign_name: string;
+  decimal: number;
+  airdrop_record_status: string;
+  eligibility_name: string;
+  eligibility_end: string;
+}
+
+interface AirdropHistoryData {
+  status: string;
+  type: string;
+  rewardValue: number;
+  endTime: string;
+  name: string;
+  id: number;
 }
 
 const enum AirdropCampaignProcess {
@@ -177,7 +208,7 @@ export class AirdropService {
           existingCampaign.eligibilityList.push({
             id: item.eligibility_id,
             name: item.eligibility_name,
-            type: (item.eligibility_type) as unknown as Enum,
+            type: item.eligibility_type,
             boxCount: item.eligibility_box,
             start: item.eligibility_start,
             end: item.eligibility_end,
@@ -211,7 +242,7 @@ export class AirdropService {
           newCampaign.eligibilityList.push({
             id: item.eligibility_id,
             name: item.eligibility_name,
-            type: (item.eligibility_type) as unknown as Enum,
+            type: item.eligibility_type,
             boxCount: item.eligibility_box,
             start: item.eligibility_start,
             end: item.eligibility_end,
@@ -378,11 +409,11 @@ export class AirdropService {
     const transaction = await this.sequelizeService.startTransaction();
     try {
       for (const item of userList) {
-        const snapshotData: any = {
+        const snapshotData = {
           accountId: item.accountId,
           eligibility_id: item.eligibility_id,
           campaign: item.campaign_id,
-        };
+        } as unknown as JSON;
 
         await AirdropRecord.create(
           {
@@ -531,8 +562,8 @@ export class AirdropService {
           'chain/create-transfer',
           data,
         );
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const sendTokenResponse = JSON.parse(JSON.stringify(sendToken));
+
+        const sendTokenResponse = JSON.parse(JSON.stringify(sendToken)) as TransactionInterface;
 
         if (sendTokenResponse.error) {
           let errorMessage;
@@ -563,6 +594,7 @@ export class AirdropService {
     } catch (error) {
       console.error(error);
       await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.PENDING });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/restrict-template-expressions
       throw new Error(`Claim failed: ${error.message}`);
     }
   }
@@ -645,15 +677,16 @@ export class AirdropService {
                    and arl.campaign_id = ${campaign_id}
                  order by arl.id desc`;
 
-    const airdropRecordLogData = (await this.sequelizeService.sequelize.query(sql, {
+    const airdropRecordLogData = await this.sequelizeService.sequelize.query<AirdropQueryHistoryData>(sql, {
       type: QueryTypes.SELECT,
-    }));
+    });
     if (!campaign_id || !airdropRecordLogData[0]) {
       return [];
     }
-    const data: any[] = [];
-    airdropRecordLogData.forEach((item: any) => {
-      const endDate: any = item.eligibility_end;
+    const data: AirdropHistoryData[] = [];
+    airdropRecordLogData.forEach((item) => {
+      const endDate = item.eligibility_end;
+
       data.push({
         status: item.status,
         type: item.type,
@@ -663,6 +696,7 @@ export class AirdropService {
         id: item.airdrop_log_id,
       });
     });
+
     return data;
   }
 
