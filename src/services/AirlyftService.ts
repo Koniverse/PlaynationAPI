@@ -1,143 +1,139 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import EnvVars from '@src/constants/EnvVars';
 import fetch from 'node-fetch';
-import {createPromise, PromiseObject} from '@src/utils';
-import {v4} from 'uuid';
-import {ResponseZealy, WebhookZealy} from '@src/types';
-import {Task, Account} from '@src/models';
+import {EventSubmissionsResponse} from '@src/types';
+import {Account, Task} from '@src/models';
 import {TaskService} from '@src/services/TaskService';
 
-type ZealyRequestParams = unknown;
-
-interface ZealyAction {
-    id: string,
-    action: ZealyActionRoutes;
-    version: string;
-    method: string;
-    data: ZealyRequestParams;
-    promiseHandler: PromiseObject<any>
-}
-
-export enum ZealyActionRoutes {
-    ClaimedQuestsReview = 'claimed-quests/review', // duyệt nhiệm vụ
-    ReviewQuest = 'reviews', // lấy danh sách nhiệm vụ
+export interface AirlyftSyncParams {
+  userId: string;
 }
 
 export class AirlyftService {
-  private actionQueue: Record<string, ZealyAction> = {};
-  private isRunning = false;
-
   constructor(private sequelizeService: SequelizeService) {
   }
 
-
-  public async addAction<T>(action: ZealyActionRoutes, version: string, method: string, data: unknown) {
-    const promiseHandler = createPromise<T>();
-
-    const actionObj: ZealyAction = {
-      id: v4(),
-      action,
-      version,
-      method,
-      data,
-      promiseHandler,
-    };
-
-    this.actionQueue[actionObj.id] = actionObj;
-    this.process();
-
-    return promiseHandler.promise;
-  }
-
-  private process() {
-    if (this.isRunning) {
-      return;
-    }
-
-    const processInterval = setInterval(() => {
-      if (Object.keys(this.actionQueue).length === 0) {
-        clearInterval(processInterval);
-        this.isRunning = false;
-        return;
+  async eventSubmissions (eventId: string, taskIds: string[], userId:string|null=null) {
+    const query = `
+        query Data($projectId: ID!, $pagination: PaginationInput!, $where: SubmissionWhereInput!) {
+  eventSubmissions(projectId: $projectId, pagination: $pagination, where: $where) {
+    data {
+      id
+      points
+      xp
+      taskId
+      userId
+      auth {
+        provider
+        providerId
+        userId
+        username
       }
-
-      // Get TELEGRAM_RATE_LIMIT messages and send
-      const actions = Object.values(this.actionQueue).slice(0, EnvVars.Zealy.RateLimit);
-      actions.forEach(({id, version, method, action, data, promiseHandler}) => {
-        this.runAction(action, version, method, data)
-          .then(promiseHandler.resolve)
-          .catch(promiseHandler.reject);
-
-        delete this.actionQueue[id];
-      });
-    }, EnvVars.Zealy.IntervalTime);
-
-    this.isRunning = true;
+      provider
+      providerId
+      status
+      primaryAuth {
+        provider
+        providerId
+        userId
+        username
+      }
+      hashedIp
+    },
+    total
   }
-
-  getAction(action: ZealyActionRoutes, version = 'v1') {
-    let textSub = '';
-    if (version === 'v2'){
-      textSub = 'public/';
+}
+    `;
+    const variables = {
+      'projectId': EnvVars.Airlyft.ProjectId,  
+      'pagination': {
+        'take': 10,
+        'skip': 0,
+      },
+      'where': {
+        'eventId': eventId,
+        'taskIds': taskIds,
+        'status': 'VALID',
+      },
+    };
+    if (userId){
+      // @ts-ignore
+      variables.where.userId = userId;
     }
-    return `https://api-${version}.zealy.io/${textSub}communities/${EnvVars.Zealy.CommunityName}/${action}`;
+    return  await this.runAction<EventSubmissionsResponse>(query, variables);
+  }
+  
+  async syncAccount(userId: string) {
+    const taskTelegramSync = await Task.findOne({
+      where: {
+        airlyftType: 'telegram-sync',
+      },
+    });
+    const taskSync = await Task.findOne({
+      where: {
+        airlyftType: 'sync',
+      },
+    });
+    if (!taskTelegramSync || !taskSync) {
+      throw new Error('Task not found');
+    }
+    const eventId = taskTelegramSync.airlyftEventId;
+    const taskIds = [taskTelegramSync.airlyftId];
+    const eventSubmissionsData = await this.eventSubmissions(eventId, taskIds, userId);
+    if (!eventSubmissionsData || (eventSubmissionsData.errors && eventSubmissionsData.errors.length > 0)) {
+      throw new Error('Event submissions not found');
+    }
+    const data = eventSubmissionsData.data;
+    const eventSubmissions = data.eventSubmissions.data.find((item) => item.userId === userId);
+    if (!eventSubmissions) {
+      throw new Error('Event submissions not found');
+    }
+    const {auth} = eventSubmissions;
+    if (!auth || auth.provider !== 'TELEGRAM') {
+      throw new Error('Auth not found');
+    }
+    const {providerId} = auth;
+    if (!providerId) {
+      throw new Error('ProviderId not found');
+    }
+    const accountList = await Account.findAll({
+      where: {
+        telegramId: providerId,
+        isEnabled: true,
+      },
+    });
+    if (!accountList || accountList.length === 0) {
+      throw new Error('Account not found');
+    }
+    for (const account of accountList) {
+      account.airlyftId = userId;
+      await account.save();
+      await TaskService.instance.createTaskHistory(taskTelegramSync.id, account.id);
+      await TaskService.instance.createTaskHistory(taskSync.id, account.id);
+    }
+    return true;
+
   }
 
-  async runAction<T>(action: ZealyActionRoutes, version: string, method: string, data: any) {
+
+  async runAction<T>(query: string, variables: any) {
     // Khởi tạo URL
-    let url = this.getAction(action, version);
-
-    // Nếu method là GET, thêm các tham số từ data vào URL
-    if (method.toUpperCase() === 'GET' && data) {
-      const params = new URLSearchParams(data);
-      url += `?${params.toString()}`;
-    }
-
-    // Chuẩn bị các options cho fetch
+    const url = EnvVars.Airlyft.Url;
     const options: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': EnvVars.Zealy.Token,
+        'Authorization': `Bearer ${EnvVars.Airlyft.Token}`,
       },
-      method: method,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      body: JSON.stringify({query, variables}),
+      method: 'POST',
       redirect: 'follow',
     };
-
-    // Nếu method là POST, PUT hoặc PATCH thì thêm data vào body của request
-    if (['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && data) {
-      options.body = JSON.stringify(data);
-    }
 
     // @ts-ignore
     const response = await fetch(url, options);
 
     return (await response.json()) as T;
-  }
-
-  // check user success in Zealy
-  async checkQuestZealy(zealyTaskId: string, accountZealyId: string) {
-    const questList = await this.addAction<ResponseZealy>(ZealyActionRoutes.ReviewQuest, 'v2', 'GET', {
-      'questId': zealyTaskId,
-      'userId': accountZealyId,
-      'status': 'success',
-    });
-    if (questList) {
-      const {items} = questList;
-
-      if (items.length === 0) {
-        return {
-          'message': 'Task not completed',
-          status: false,
-        };
-      }
-      return {
-        'message': 'Success',
-        status: true,
-      };
-    }
-  }
-
-  async webhookZealyAsync(body: WebhookZealy) {
   }
 
 

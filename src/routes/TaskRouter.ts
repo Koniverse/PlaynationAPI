@@ -23,7 +23,7 @@ const routerMap = {
   },
   checkCompleteTask: async (req: IReq<TaskSubmitParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {taskId} = req.body
+    const {taskId} = req.body;
     const response = await TaskService.instance.checkCompleteTask(userId, taskId);
     return res.status(200).json(response);
   },
@@ -32,20 +32,13 @@ const routerMap = {
     const {taskId, network, extrinsicHash} = req.body;
     const response = await TaskService.instance.submit(userId, taskId, extrinsicHash, network);
     return res.status(200).json(response);
-  },
-  handleClaim: async (req: IReq<TaskSubmitParams>, res: IRes) => {
-    const userId = req.user?.id || 0;
-    const {taskId, network, extrinsicHash} = req.body;
-    const response = await TaskService.instance.submit(userId, taskId, extrinsicHash, network);
-    return res.status(200).json(response);
-  },
+  }
 };
 
 TaskRouter.post('/sync', requireSecret, routerMap.sync);
 TaskRouter.get('/history', requireLogin, routerMap.history);
 TaskRouter.get('/fetch', requireLogin, routerMap.fetch);
 TaskRouter.post('/submit', requireLogin, routerMap.submit);
-TaskRouter.get('/claim', routerMap.handleClaim);
 TaskRouter.post('/check-complete-task', requireLogin, routerMap.checkCompleteTask);
 
 export default TaskRouter;

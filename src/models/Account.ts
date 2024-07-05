@@ -8,6 +8,7 @@ import {
 } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import AccountAttribute from '@src/models/AccountAttribute';
+import {AirlyftService} from "@src/services/AirlyftService";
 
 export interface ReferralParams {
   referralCode?: string;
@@ -95,12 +96,8 @@ export class Account
   declare cronAvatar: CreationOptional<boolean>;
   declare isEnabled: CreationOptional<boolean>;
 
-  // Zealy information
-  declare zealyId: CreationOptional<string>;
-  declare twitterId: CreationOptional<string>;
-  declare discordId: CreationOptional<string>;
-  declare zealyEvmAccount: CreationOptional<string>;
-  declare evmAccount: CreationOptional<string>;
+  // Airlyft information
+  declare airlyftId: CreationOptional<string>;
 }
 
 Account.init(
@@ -173,23 +170,7 @@ Account.init(
       allowNull: true,
     },
 
-    zealyId: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    discordId: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    twitterId: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    zealyEvmAccount: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    evmAccount: {
+    airlyftId: {
       type: DataTypes.STRING,
       allowNull: true,
     },

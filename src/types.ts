@@ -153,118 +153,37 @@ export interface InlineKeyboardButton {
   };
 }
 
-interface ZealyUser {
-    id: string;
-    name: string;
-    avatar: string | null;
+export interface EventSubmissionsResponse {
+    data: EventSubmissionsData;
+    errors: any[];
 }
 
-interface ZealyTask {
-    value: string;
-    id: string;
-    createdAt: string;
-    status: 'pending' | 'success' | 'fail' | 'in-review';
-    type: string;
-    settings: Settings;
-    requestId?: string;
-    statusCode?: number;
-    response?: string;
+export interface EventSubmissionsData {
+    eventSubmissions: EventSubmissions;
 }
 
-interface ItemQuest {
-    id: string;
-    user: ZealyUser;
-    quest: Quest;
-    status: 'pending' | 'success' | 'fail' | 'in-review';
-    mark: string | null;
-    createdAt: string;
-    updatedAt: string;
-    lastReviewerId: string | null;
-    autoValidated: boolean;
-    tasks: ZealyTask[];
+export interface EventSubmissions {
+    data:  EventSubmissionsItem[];
+    total: number;
 }
 
-export interface ResponseZealy {
-    items: ItemQuest[];
+export interface EventSubmissionsItem {
+    id:          string;
+    points:      number;
+    xp:          number;
+    taskId:      string;
+    userId:      string;
+    auth:        Auth;
+    provider:    null;
+    providerId:  null;
+    status:      string;
+    primaryAuth: Auth;
+    hashedIp:    null;
 }
 
-export interface WebhookZealy {
-    id:     string;
-    type:   string;
-    data:   Data;
-    time:   number;
-    secret: string;
-}
-
-export interface Data {
-    community:  Community;
-    user:       User;
-    quest:      Quest;
-    taskInputs: TaskInput[];
-    status:     string;
-}
-
-export interface Community {
-    id:         string;
-    name:       string;
-    subdomain:  string;
-    website:    null;
-    twitter:    string;
-    discord:    null;
-    opensea:    null;
-    blockchain: string;
-}
-
-export interface Quest {
-    id:             string;
-    name:           string;
-    autoValidate:   boolean;
-    published:      boolean;
-    categoryId:     string;
-    tasks:          Task[];
-    xp:             number;
-    lastReviewerId: null;
-    claimId:        string;
-    categoryName:   string;
-}
-
-export interface Task {
-    id:       string;
-    type:     string;
-    input:    Input;
-    settings: Settings;
-}
-
-export interface Settings {
-    title:         string;
-    description:   string;
-    autoValidated: boolean;
-}
-
-export interface TaskInput {
-    taskId:   string;
-    taskType: string;
-    input:    Input;
-}
-
-export interface Input {
-    value: string;
-}
-
-export interface User {
-    id:        string;
-    name:      string;
-    addresses: any;
-    twitter:   Twitter;
-    discord:   Discord;
-    email:     string;
-}
-export interface Discord {
-    id:     string;
-    handle: string;
-}
-
-export interface Twitter {
-    id:       string;
-    username: string;
+export interface Auth {
+    provider:   string;
+    providerId: string;
+    userId:     string;
+    username:   string;
 }

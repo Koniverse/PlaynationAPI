@@ -112,13 +112,15 @@ const Environments = {
     Limit: parseInt(process.env.TASK_HISTORY_LIMIT || '20'),
   },
   Airlyft: {
-    CommunityName: process.env.ZEALY_COMMUNITY_NAME ?? 'zealy',
-    RateLimit: Number(process.env.ZEALY_RATE_LIMIT || '20'),
-    IntervalTime: Number(process.env.INTERVAL_ZEALY_TIME || '1000'),
-    IntervalCronTime: Number(process.env.INTERVAL_ZEALY_CRON_TIME || '86400000'),
-    TaskZealySync: process.env.TASK_ZEALY_SYNC ?? 'zealy_sync',
-    TaskZealyUrlSync: process.env.TASK_ZEALY_URL_SYNC ?? 'zealy_sync',
-    Token: process.env.ZEALY_TOKEN ?? '',
+    Url: process.env.AIRLYFT_URL ?? 'https://fuel.airlyft.one/graphql',
+    CommunityName: process.env.AIRLYFT_COMMUNITY_NAME ?? 'zealy',
+    ProjectId: process.env.AIRLYFT_PROJECT_ID ?? '',
+    RateLimit: Number(process.env.AIRLYFT_RATE_LIMIT || '20'),
+    IntervalTime: Number(process.env.INTERVAL_AIRLYFT_TIME || '1000'),
+    IntervalCronTime: Number(process.env.INTERVAL_AIRLYFT_CRON_TIME || '86400000'),
+    TaskSync: process.env.TASK_AIRLYFT_SYNC ?? 'zealy_sync',
+    TaskUrlSync: process.env.TASK_AIRLYFT_URL_SYNC ?? 'zealy_sync',
+    Token: process.env.AIRLYFT_TOKEN ?? '',
   },
 };
 

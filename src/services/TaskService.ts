@@ -215,7 +215,7 @@ export class TaskService {
     // Validate task submission
     const interval = task.interval;
     if (latestLast.length > 0 && (!interval || interval <= 0)) {
-      if (task.zealyType){
+      if (task.airlyftType){
         return {
           success: true,
           isOpenUrl: false,
@@ -253,23 +253,23 @@ export class TaskService {
     }
     let isOpenUrl = true;
     // Zealy action
-    if (task.zealyId && task.zealyType) {
+    if (task.airlyftId && task.airlyftType) {
 
-      if (task.zealyType === 'sync') {
-        if (account.zealyId) {
-          throw new Error('Your account is already synced with Zealy');
+      if (task.airlyftType === 'sync') {
+        if (account.airlyftId) {
+          throw new Error('Your account is already synced with Airlyft');
         }
         return {
           success: false,
           isOpenUrl: isOpenUrl,
         };
       } else {
-        if (!account.zealyId) {
+        if (!account.airlyftId) {
           return {
             success: false,
             isOpenUrl: isOpenUrl,
-            openUrl: EnvVars.Zealy.TaskZealyUrlSync,
-            message: 'Please sync your account with Zealy first',
+            openUrl: EnvVars.Airlyft.TaskUrlSync,
+            message: 'Please sync your account with Airlyft first',
           };
         }
         const checkSuccess = await this.checkTaskAirlyft(account, task);
@@ -277,7 +277,7 @@ export class TaskService {
           return {
             success: false,
             isOpenUrl: isOpenUrl,
-            message: 'Please sync your account with Zealy first',
+            message: 'Please sync your account with Airlyft first',
           };
         }else {
           isOpenUrl = false;
@@ -325,8 +325,14 @@ export class TaskService {
 
   //
   async checkTaskAirlyft(account: Account, task: Task) {
-
-    return false;
+    const userId = account.airlyftId;
+    const taskIds = [task.airlyftId];
+    const eventId = task.airlyftEventId;
+    const data = await zealyService.eventSubmissions(eventId, taskIds, userId);
+    if (!data || (data.errors && data.errors.length > 0)) {
+      return false;
+    }
+    return true;
   }
 
   async createTaskHistory(taskId: number, accountId: number) {
