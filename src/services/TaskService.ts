@@ -255,7 +255,7 @@ export class TaskService {
     // Zealy action
     if (task.airlyftId && task.airlyftType) {
 
-      if (task.airlyftType === 'sync') {
+      if (task.airlyftType === 'telegram-sync') {
         if (account.airlyftId) {
           throw new Error('Your account is already synced with Airlyft');
         }

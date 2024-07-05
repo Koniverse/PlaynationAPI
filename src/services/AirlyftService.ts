@@ -69,12 +69,7 @@ export class AirlyftService {
         airlyftType: 'telegram-sync',
       },
     });
-    const taskSync = await Task.findOne({
-      where: {
-        airlyftType: 'sync',
-      },
-    });
-    if (!taskTelegramSync || !taskSync) {
+    if (!taskTelegramSync) {
       throw new Error('Task not found');
     }
     const eventId = taskTelegramSync.airlyftEventId;
@@ -109,7 +104,6 @@ export class AirlyftService {
       account.airlyftId = userId;
       await account.save();
       await TaskService.instance.createTaskHistory(taskTelegramSync.id, account.id);
-      await TaskService.instance.createTaskHistory(taskSync.id, account.id);
     }
     return true;
 
