@@ -11,6 +11,8 @@ export interface AirdropEligibilityInterface {
   name: string;
   userList: JSON;
   boxCount: number;
+  boxPrice: number;
+  boxLimit: number;
   type: string;
   start: Date;
   end: Date;
@@ -33,6 +35,8 @@ export class AirdropEligibility extends Model<
   declare campaign_id: CreationOptional<number>;
   declare userList: JSON;
   declare boxCount: number;
+  declare boxPrice: number;
+  declare boxLimit: number;
   declare type: Enum;
   declare start: Date;
   declare end: Date;
@@ -61,6 +65,14 @@ AirdropEligibility.init(
     boxCount: {
       type: DataTypes.INTEGER,
       allowNull: false,
+    },
+    boxPrice: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    boxLimit: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
     userList: {
       type: DataTypes.JSON,

@@ -322,19 +322,28 @@ export class AccountService {
   async addAccountPoint(accountId: number, point: number) {
     const accountAttribute = await this.getAccountAttribute(accountId, false);
     const newPoint = (accountAttribute.point += point);
-    const newAccumulatePoint = (accountAttribute.accumulatePoint += point);
-    const rank = this.checkAccountAttributeRank(newAccumulatePoint);
 
-    // Update indirect account point
-    if (accountAttribute.rank !== rank) {
-      await this.updateIndirectAccountPoint(accountId, rank);
+    // Only add accumulate point if point is positive
+    if (point > 0) {
+      const newAccumulatePoint = (accountAttribute.accumulatePoint += point);
+      const rank = this.checkAccountAttributeRank(newAccumulatePoint);
+
+      // Update indirect account point
+      if (accountAttribute.rank !== rank) {
+        await this.updateIndirectAccountPoint(accountId, rank);
+      }
+
+      await accountAttribute.update({
+        point: newPoint,
+        accumulatePoint: newAccumulatePoint,
+        rank,
+      });
+    } else {
+      // Update point only
+      await accountAttribute.update({
+        point: newPoint,
+      });
     }
-
-    await accountAttribute.update({
-      point: newPoint,
-      accumulatePoint: newAccumulatePoint,
-      rank,
-    });
   }
 
   async minusAccountPoint(accountId: number, point: number) {

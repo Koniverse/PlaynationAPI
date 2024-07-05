@@ -28,6 +28,7 @@ interface BoxInterface {
   accountId: number;
   token: number;
   nps: number;
+  use_point: number;
   eligibility_id: number;
   airdrop_campaign: number;
   campaign_id?: number;
@@ -151,6 +152,8 @@ export class AirdropService {
         const itemData = {
           name: item.name,
           boxCount: item.boxCount,
+          boxPrice: item.boxPrice,
+          boxLimit: item.boxLimit,
           userList: JSON.stringify(item.userList),
           campaign_id: item.campaign_id.id,
           type: item.type,
@@ -338,6 +341,7 @@ export class AirdropService {
               nps: 0,
               eligibility_id: eligibility.id,
               airdrop_campaign: eligibility.campaign_id,
+              use_point: eligibility.boxPrice || 0,
             });
           }
         });
@@ -433,6 +437,7 @@ export class AirdropService {
             snapshot_data: snapshotData,
             eligibility_id: item.eligibility_id,
             point: item.nps,
+            use_point: item.use_point,
           },
           { transaction },
         );
@@ -455,13 +460,49 @@ export class AirdropService {
         accountId: account_id,
         status: AirdropRecordsStatus.CLOSED,
       },
+      order: [['use_point', 'ASC']],
     });
+
+    // Validate raffle status
     if (!airdropRecord || !campaign || !account) {
       throw new Error('You have already opened all boxes');
     }
 
     const type = airdropRecord.token > 0 ? AIRDROP_LOG_TYPE.TOKEN : AIRDROP_LOG_TYPE.NPS;
-    const amount: number = airdropRecord.token > 0 ? airdropRecord.token : airdropRecord.point;
+    const amount = airdropRecord.token > 0 ? airdropRecord.token : airdropRecord.point;
+    const price = airdropRecord.use_point || 0;
+
+    // Validate opened boxes
+    const eligible = await AirdropEligibility.findByPk(airdropRecord.eligibility_id);
+    if (!eligible) {
+      throw new Error('Eligibility not found');
+    }
+
+    if (eligible.boxLimit && eligible.boxLimit > 0) {
+      const openedBoxes = await AirdropRecord.count({
+        where: {
+          campaign_id,
+          eligibility_id: airdropRecord.eligibility_id,
+          status: AirdropRecordsStatus.OPEN,
+        },
+      });
+
+      if (openedBoxes >= eligible.boxLimit) {
+        throw new Error('The campaign has run out of gifts, be quicker next time!');
+      }
+    }
+
+    // Validate remaining point
+    if (price > 0) {
+      const accountAtt = await accountService.getAccountAttribute(account_id);
+      if (accountAtt.point < price) {
+        throw new Error(`You need at least ${price} NPS open the box`);
+      }
+
+      await accountService.addAccountPoint(account_id, -price);
+    }
+
+    // Todo: Should update by the campaign
     // expiry date = current date + 30 day
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
@@ -490,9 +531,13 @@ export class AirdropService {
         airdropRecordLogId: airdropRecordLogResult.id,
         rewardType: type,
         rewardAmount: amount,
+        price,
       };
     } catch (e) {
       await airdropRecord.update({ status: AirdropRecordsStatus.CLOSED });
+      if (price > 0) {
+        await accountService.addAccountPoint(account_id, price);
+      }
       throw e;
     }
   }
