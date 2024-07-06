@@ -206,7 +206,18 @@ export class LeaderBoardService {
                                and ((th."extrinsicHash" is not null and th.status != 'failed') 
                                         or th."extrinsicHash" is null)
                                ${queryTaskGame}
-                             GROUP BY 1),
+                             GROUP BY 1
+                               UNION ALL
+                     SELECT arl.account_id       AS "accountId",
+                            MIN(arl."createdAt") as "createdAt",
+                            sum(ar.point)        as point
+                     from airdrop_record_log arl
+                              JOIN public.airdrop_records ar on ar.id = arl.airdrop_record_id
+                     where arl.type = 'NPS'
+                       AND arl.status = 'RECEIVED'
+                     and arl."createdAt" >= :startDate
+                       and arl."createdAt" <= :endDate
+                     group by 1),
              totalData as (SELECT accountId,
                                   sum(point)                                                   as point,
                                   RANK() OVER (ORDER BY sum(point) DESC, MIN(RankedUsers."createdAt") asc) AS rank
