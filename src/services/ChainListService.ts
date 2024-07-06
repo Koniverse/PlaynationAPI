@@ -1,6 +1,6 @@
 import {ChainService} from '@src/services/ChainService';
 import {keyring} from '@polkadot/ui-keyring';
-import {ChainInfoMap} from '@subwallet/chain-list';
+import {ChainAssetMap, ChainInfoMap} from '@subwallet/chain-list';
 import EnvVars from '@src/constants/EnvVars';
 import {BN} from '@polkadot/util';
 import {isAddress} from '@polkadot/util-crypto';
@@ -10,6 +10,7 @@ export interface CreateTransactionParams {
     network: string;
     decimal: number;
     amount: number;
+    token_slug?: string;
 }
 
 export interface CreatePAAirdropTransactionParams extends CreateTransactionParams {
@@ -65,7 +66,20 @@ export class ChainListService {
     }
   }
 
-  public async createTransfer(address: string, network: string, decimal: number, amount: number) {
+  public async createTransfer(address: string, network: string, decimal: number, amount: number, token_slug?: string) {
+    const isAssetHubNetworks = ['statemint', 'statemine', 'rococo'].includes(network);
+
+    if (token_slug && isAssetHubNetworks) {
+      const tokenInfo = ChainAssetMap[token_slug];
+      if (tokenInfo && tokenInfo?.metadata?.assetId) {
+        return await this.createPolkadotAssetHubTokenTransfer(address, network, tokenInfo.metadata.assetId, decimal, amount);
+      }
+    }
+
+    return await this.createNativeTokenTransfer(address, network, decimal, amount);
+  }
+
+  public async createNativeTokenTransfer(address: string, network: string, decimal: number, amount: number) {
     this.validateAddress(address);
     const chainService = this.getService(network);
     const api = await chainService.getApi();
@@ -82,7 +96,7 @@ export class ChainListService {
     return await chainService.runExtrinsic(extrinsic);
   }
 
-  public async createPolkadotAssetAirdrop(address: string, network: string, assetId: string, decimal: number, amount: number) {
+  public async createPolkadotAssetHubTokenTransfer(address: string, network: string, assetId: string, decimal: number, amount: number) {
     this.validateAddress(address);
     const chainService = this.getService(network);
     const api = await chainService.getApi();

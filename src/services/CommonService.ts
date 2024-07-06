@@ -1,12 +1,14 @@
 import EnvVars from '@src/constants/EnvVars';
 import fetch from 'node-fetch';
-
+import {CreateTransactionParams} from '@src/services/ChainListService';
 
 export class CommonService {
 
-  public constructor() {  }
+  public constructor() {
+    // Empty
+  }
 
-  async callActionChainService<T>(action: string, data: any){
+  async callActionChainService<T>(action: string, data: CreateTransactionParams){
     const  url = `${EnvVars.ChainService.Endpoint}/api/${action}`;
     const response = await fetch(
       url,

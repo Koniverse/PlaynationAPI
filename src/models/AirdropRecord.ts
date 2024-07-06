@@ -14,6 +14,7 @@ export class AirdropRecord extends Model<InferAttributes<AirdropRecord>, InferCr
   declare symbol: string;
   declare decimal: number;
   declare network: string;
+  declare token_slug: CreationOptional<string>;
   declare status: string;
   declare snapshot_data: JSON;
   declare point: number;
@@ -44,6 +45,10 @@ AirdropRecord.init(
     network: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    token_slug: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     snapshot_data: {
       type: DataTypes.JSON,

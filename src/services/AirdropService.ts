@@ -454,6 +454,7 @@ export class AirdropService {
             snapshot_data: snapshotData,
             eligibility_id: item.eligibility_id,
             point: item.nps,
+            token_slug: campaign.token_slug,
             use_point: item.use_point,
           },
           { transaction },
@@ -559,6 +560,26 @@ export class AirdropService {
     }
   }
 
+  async createAirdropTransaction(airdropLog: AirdropRecordLogAttributes): Promise<TransactionInterface> {
+    const account = await Account.findByPk(airdropLog.account_id);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+
+    const transactionData = {
+      address: account.address,
+      amount: airdropLog.token,
+      network: airdropLog.network,
+      decimal: airdropLog.decimal,
+      token_slug: airdropLog.token_slug,
+    };
+
+    return await commonService.callActionChainService(
+      'chain/create-transfer',
+      transactionData,
+    );
+  }
+
   async handleClaim(account_id: number, airdrop_log_id: number) {
     const claimUniqueKey = `claim_${account_id}_${airdrop_log_id}`;
     const claimUniqueValue = v4();
@@ -596,7 +617,9 @@ export class AirdropService {
       throw new Error('Airdrop record not found or already claimed.');
     }
 
-    if (airdropRecordLogData[0] && airdropRecordLogData[0].expiryDate < new Date()) {
+    const firstAirdropLog = airdropRecordLogData[0];
+
+    if (firstAirdropLog && firstAirdropLog.expiryDate < new Date()) {
       throw new Error('This reward has expired and cannot be claimed.');
     }
 
@@ -619,18 +642,8 @@ export class AirdropService {
     }
 
     try {
-      if (airdropRecordLogData[0].type === AIRDROP_LOG_TYPE.TOKEN) {
-        const data = {
-          address: airdropRecordLogData[0].address,
-          network: airdropRecordLogData[0].network,
-          decimal: airdropRecordLogData[0].decimal,
-          amount: airdropRecordLogData[0].token,
-        };
-
-        const sendToken: TransactionInterface = await commonService.callActionChainService(
-          'chain/create-transfer',
-          data,
-        );
+      if (firstAirdropLog.type === AIRDROP_LOG_TYPE.TOKEN) {
+        const sendToken: TransactionInterface = await this.createAirdropTransaction(firstAirdropLog);
 
         const sendTokenResponse = JSON.parse(JSON.stringify(sendToken)) as TransactionInterface;
 
@@ -653,7 +666,7 @@ export class AirdropService {
           throw new Error(errorMessage);
         }
 
-        await this.insertTransactionLog(airdropRecordLogData[0], sendTokenResponse, account_id);
+        await this.insertTransactionLog(firstAirdropLog, sendTokenResponse, account_id);
         await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.RECEIVED });
 
         return { success: true };

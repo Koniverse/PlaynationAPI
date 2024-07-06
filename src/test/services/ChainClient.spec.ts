@@ -23,4 +23,18 @@ describe('Chain Test', () => {
     const result = await Promise.all(promiseList);
     console.log('result', result);
   });
+
+  it('create statemint transaction', async () => {
+    const data = {
+      address: '5HWNHiKDMAMAUk1JNwxKCR3b5kWysVZ1bNv78yg5ds6qaECG',
+      network: 'statemint',
+      decimal: 10,
+      amount: 0.01,
+      token_slug: 'statemint-LOCAL-DED',
+    };
+
+    const result = await CommonService.instance.callActionChainService('chain/create-transfer', data);
+
+    console.log('result', result);
+  });
 });
