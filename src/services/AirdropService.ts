@@ -235,6 +235,7 @@ export class AirdropService {
           start: item.start,
           end: item.end,
           description: item.description,
+          conditionDescription: item.conditionDescription,
           shortDescription: item.shortDescription,
           share: item.share,
           token_slug: item.token_slug,
