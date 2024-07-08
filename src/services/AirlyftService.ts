@@ -16,6 +16,8 @@ export interface AirlyftTokenResponse {
 }
 
 export class AirlyftService {
+
+  private token: string = '';
   constructor(private sequelizeService: SequelizeService) {
   }
 
@@ -114,27 +116,22 @@ export class AirlyftService {
     return true;
 
   }
-
-  getKeyToken(){
-    return 'airlyft_token';
-  }
   
-  async setToken(token: string) {
-    const key = this.getKeyToken();
-    await cacheService.redisClient.set(key, token, { EX: 60 * 60 * 12 });
+  setToken(token: string) {
+    this.token = token;
   }
 
   async getToken() {
-    const key = this.getKeyToken();
-    const token = await cacheService.redisClient.get(key);
-    if (!token){
+    const _token = this.token;
+    console.log('token', _token)
+    if (!_token){
       const dataResponse = await this.getDataToken<AirlyftTokenResponse>();
       if (dataResponse.success){
-        await this.setToken(dataResponse.token);
+        this.setToken(dataResponse.token);
         return dataResponse.token;
       }
     }
-    return token;
+    return _token;
   }
 
 
