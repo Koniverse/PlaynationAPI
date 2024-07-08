@@ -25,6 +25,7 @@ export interface AirdropCampaignInterface {
   start: Date;
   end: Date;
   description: Text;
+  conditionDescription: Text;
   tokenDistributions: JSON;
   npsDistributions: JSON;
   status: string;
@@ -51,6 +52,7 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare tokenDistributions: JSON;
   declare npsDistributions: JSON;
   declare description: Text;
+  declare conditionDescription: Text;
   declare shortDescription: string;
   declare start: Date;
   declare end: Date;
@@ -153,6 +155,9 @@ AirdropCampaign.init(
       allowNull: true,
     },
     description: {
+      type: DataTypes.TEXT,
+    },
+    conditionDescription: {
       type: DataTypes.TEXT,
     },
     shortDescription: {
