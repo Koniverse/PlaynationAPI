@@ -28,6 +28,7 @@ export interface AirdropRecordLogAttributes {
   address: string;
   point: number;
   token: number;
+  token_slug?: string;
   network: string;
   campaign_method: string;
   campaign_name: string;

@@ -8,13 +8,11 @@ import {createPromise} from '@src/utils';
 import {TypeRegistry} from '@polkadot/types';
 import {cryptoWaitReady} from '@polkadot/util-crypto';
 import {keyring} from '@polkadot/ui-keyring';
-import EnvVars from '@src/constants/EnvVars';
 import '@polkadot/types-augment';
 import logger from 'jet-logger';
 import {SubmittableExtrinsic} from '@polkadot/api/promise/types';
 import {BN, u8aToHex} from '@polkadot/util';
-import * as console from 'node:console';
-import * as process from 'node:process';
+import {FrameSystemAccountInfo, PalletAssetsAssetAccount, PalletBalancesAccountData} from '@polkadot/types/lookup';
 
 const BATCH_MAX_SIZE = 24;
 export interface ExtrinsicWithId {
@@ -35,7 +33,7 @@ export class ChainService {
   private extrinsicQueue: ExtrinsicWithId[] = [];
   private queueStatus: 'running' | 'waiting';
   private isConnecting = true;
-  private sendAddress: string;
+  public readonly sendAddress: string;
 
 
   public constructor(endpoint: string, address: string, seedPhrase: string) {
@@ -130,13 +128,31 @@ export class ChainService {
     return (await api.query.system.number()).toPrimitive() as number;
   }
 
-  public async checkBalancesSend(amount: BN) {
+  public async getOnChainFreeBalance(address: string) {
     const api = await this.getApi();
-    // @ts-ignore
-    const { data: { free: balance } } = await api.query.system.account(this.sendAddress);
-    return balance.gte(amount);
+    const balancesAccountData = await api.query.system.account<FrameSystemAccountInfo>(address);
+
+    return balancesAccountData.data.free.toBn();
   }
 
+  public async getAssetHubTokenBalance(assetId: string, address: string) {
+    const api = await this.getApi();
+    const tokenBalanceData = await api.query.assets.account<PalletAssetsAssetAccount>(assetId, address);
+
+    return new BN(String(tokenBalanceData.toPrimitive().balance));
+  }
+
+  public async checkMinTokenBalance(assetId: string, address: string, amount: BN) {
+    const freeBalance = await this.getAssetHubTokenBalance(assetId, address);
+
+    return freeBalance.gte(amount);
+  }
+
+  public async checkMinBalance(address: string, amount: BN) {
+    const freeBalance = await this.getOnChainFreeBalance(address);
+
+    return freeBalance.gte(amount);
+  }
   
   public async runExtrinsic(extrinsic: Extrinsic) {
     const eid = this.addExtrinsic(extrinsic);
