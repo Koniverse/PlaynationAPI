@@ -5,7 +5,7 @@ const INTERVAL_TIME = EnvVars.Airlyft.IntervalCronTime;
 export async function getToken() {
   const response = await AirlyftService.instance.getDataToken<AirlyftTokenResponse>();
   if (response.success) {
-    await AirlyftService.instance.setToken(response.token);
+    AirlyftService.instance.setToken(response.token);
   }
 }
 if (INTERVAL_TIME > 0) {
