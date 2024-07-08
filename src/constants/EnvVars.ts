@@ -4,6 +4,7 @@
 
 /* eslint-disable node/no-process-env */
 import chainConfig from '@src/data/chainConfig.json';
+import * as process from "node:process";
 
 const Environments = {
   NodeEnv: process.env.NODE_ENV ?? '',
@@ -116,11 +117,16 @@ const Environments = {
     CommunityName: process.env.AIRLYFT_COMMUNITY_NAME ?? 'zealy',
     ProjectId: process.env.AIRLYFT_PROJECT_ID ?? '',
     RateLimit: Number(process.env.AIRLYFT_RATE_LIMIT || '20'),
-    IntervalTime: Number(process.env.INTERVAL_AIRLYFT_TIME || '1000'),
+    IntervalTime: Number(process.env.INTERVAL_AIRLYFT_TIME || '43200000'),
     IntervalCronTime: Number(process.env.INTERVAL_AIRLYFT_CRON_TIME || '86400000'),
     TaskSync: process.env.TASK_AIRLYFT_SYNC ?? 'zealy_sync',
     TaskUrlSync: process.env.TASK_AIRLYFT_URL_SYNC ?? 'zealy_sync',
     Token: process.env.AIRLYFT_TOKEN ?? '',
+    LoginUrl: process.env.AIRLYFT_LOGIN_URL,
+    Address: process.env.AIRLYFT_ADDRESS,
+    Message: process.env.AIRLYFT_MESSAGE,
+    Signature: process.env.AIRLYFT_SIGNATURE,
+
   },
 };
 
