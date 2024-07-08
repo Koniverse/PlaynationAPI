@@ -349,7 +349,7 @@ export class TaskService {
       where: {taskId, accountId},
     });
     if (existed) {
-      throw new Error('Task history already exists');
+      return;
     }
     
     const data = {

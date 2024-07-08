@@ -123,7 +123,7 @@ export class AirlyftService {
 
   async getToken() {
     const _token = this.token;
-    console.log('token', _token)
+    console.log('token', _token);
     if (!_token){
       const dataResponse = await this.getDataToken<AirlyftTokenResponse>();
       if (dataResponse.success){
