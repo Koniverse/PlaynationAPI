@@ -4,9 +4,15 @@ import fetch from 'node-fetch';
 import {EventSubmissionsResponse} from '@src/types';
 import {Account, Task} from '@src/models';
 import {TaskService} from '@src/services/TaskService';
-
+import {CacheService} from '@src/services/CacheService';
+const cacheService = CacheService.instance;
 export interface AirlyftSyncParams {
   userId: string;
+}
+
+export interface AirlyftTokenResponse {
+  token: string;
+  success: boolean;
 }
 
 export class AirlyftService {
@@ -60,7 +66,7 @@ export class AirlyftService {
       // @ts-ignore
       variables.where.userId = userId;
     }
-    return  await this.runAction<EventSubmissionsResponse>(query, variables);
+    return await this.runAction<EventSubmissionsResponse>(query, variables);
   }
   
   async syncAccount(userId: string) {
@@ -109,17 +115,65 @@ export class AirlyftService {
 
   }
 
+  getKeyToken(){
+    return 'airlyft_token';
+  }
+  
+  async setToken(token: string) {
+    const key = this.getKeyToken();
+    await cacheService.redisClient.set(key, token, { EX: 60 * 60 * 12 });
+  }
+
+  async getToken() {
+    const key = this.getKeyToken();
+    const token = await cacheService.redisClient.get(key);
+    if (!token){
+      const dataResponse = await this.getDataToken<AirlyftTokenResponse>();
+      if (dataResponse.success){
+        await this.setToken(dataResponse.token);
+        return dataResponse.token;
+      }
+    }
+    return token;
+  }
+
 
   async runAction<T>(query: string, variables: any) {
     // Khởi tạo URL
     const url = EnvVars.Airlyft.Url;
+    const token = await this.getToken();
     const options: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${EnvVars.Airlyft.Token}`,
+        'Authorization': `Bearer ${token}`,
       },
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       body: JSON.stringify({query, variables}),
+      method: 'POST',
+      redirect: 'follow',
+    };
+
+    // @ts-ignore
+    const response = await fetch(url, options);
+
+    return (await response.json()) as T;
+  }
+  
+  
+  async getDataToken<T>() {
+    const data = {
+      'message': EnvVars.Airlyft.Message,
+      'signature': EnvVars.Airlyft.Signature,
+      'address': EnvVars.Airlyft.Address,
+    };
+    // Khởi tạo URL
+    const url = EnvVars.Airlyft.LoginUrl;
+    const options: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      body: JSON.stringify(data),
       method: 'POST',
       redirect: 'follow',
     };
