@@ -30,8 +30,13 @@ const routerMap = {
     const data = await airlyftService.syncAccount(userId);
     return res.status(200).json(data);
   },
+  webhook: async (req: IReq<Query>, res: IRes) => {
+    console.log('data', req.body);
+    return res.status(200).json({});
+  },
 };
 AirlyftRouter.post('/sync-account', routerMap.syncAccount);
+AirlyftRouter.post('/webhook', routerMap.webhook);
 AirlyftRouter.get('/test', routerMap.test);
 
 export default AirlyftRouter;
