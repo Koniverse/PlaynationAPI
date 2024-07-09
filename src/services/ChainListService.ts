@@ -25,8 +25,8 @@ enum ErrorTransfer {
 }
 
 interface ChainData {
-    address: string;
-    seedPhrase: string;
+  address: string;
+  seedPhrase: string;
 }
 
 export class ChainListService {
@@ -93,8 +93,11 @@ export class ChainListService {
       throw new Error(ErrorTransfer.ERR_MISSING_TOKEN);
     }
     const extrinsic = api.tx.balances.transferKeepAlive(address, AIRDROP_AMOUNT);
+
     return await chainService.runExtrinsic(extrinsic);
   }
+
+  private minBalanceFaucetMap: Record<string, boolean> = {};
 
   public async createPolkadotAssetHubTokenTransfer(address: string, network: string, assetId: string, decimal: number, amount: number) {
     this.validateAddress(address);
@@ -107,16 +110,17 @@ export class ChainListService {
     const enoughBalance = await chainService.checkMinBalance(chainService.sendAddress, MINIMUM_BALANCE);
     const enoughTokenBalance = await chainService.checkMinTokenBalance(assetId, chainService.sendAddress, new BN(amount * 10 ** decimal));
 
-    console.log('enoughBalance', enoughBalance, enoughTokenBalance);
-
     if (!enoughBalance || !enoughTokenBalance) {
       throw new Error(ErrorTransfer.ERR_MISSING_TOKEN);
     }
 
-
     // Check and give ED for receiver
     const haveMinBalance = await chainService.checkMinBalance(address, new BN(0.01 * 10 ** decimal));
-    if (!haveMinBalance) {
+
+    // User faucetKey to avoid send faucet multiple times
+    const faucetKey = `${network}-${address}`;
+    if (!haveMinBalance && !this.minBalanceFaucetMap[faucetKey]) {
+      this.minBalanceFaucetMap[faucetKey] = true;
       const edAmount = new BN(0.013 * 10 ** decimal);
       const edExtrinsic = api.tx.balances.transferKeepAlive(address, edAmount);
       const promise1 = chainService.runExtrinsic(edExtrinsic);
@@ -130,4 +134,5 @@ export class ChainListService {
     return await promise2;
   }
 }
+
 export const ChainListServiceImpl = new ChainListService();

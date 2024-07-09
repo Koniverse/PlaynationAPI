@@ -22,6 +22,17 @@ describe('Chain Test', () => {
     console.log(rs);
   });
 
+  it('should create transaction 2', async () => {
+    const address = '5HbfyhWPpu8va7PREiVPYLEDo1CvMLNnCkZzVBnN3AeSjG2E';
+    const network = 'statemint';
+    const decimal = 12;
+    const amount = 0.0025;
+
+    const rs = await ChainListServiceImpl.createTransfer(address, network, decimal, amount);
+
+    console.log(rs);
+  });
+
   it('should create transaction token', async () => {
     const address = '5HWNHiKDMAMAUk1JNwxKCR3b5kWysVZ1bNv78yg5ds6qaECG';
     const network = 'statemint';

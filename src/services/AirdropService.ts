@@ -68,6 +68,7 @@ interface AirdropQueryHistoryData {
   address: string;
   point: number;
   token: number;
+  token_slug: string;
   network: string;
   campaign_method: string;
   campaign_name: string;
@@ -83,6 +84,7 @@ interface AirdropHistoryData {
   rewardValue: number;
   endTime: string;
   name: string;
+  tokenSlug: string;
   id: number;
 }
 
@@ -335,7 +337,6 @@ export class AirdropService {
     ];
 
     // Random sort distribution
-
     this.distributeRewards(boxList, campaign.tokenDistributions as unknown as  { count: number, token: number }[], campaign.npsDistributions as unknown as  { nps: number, count: number }[]);
     await this.insertAirdropRecord(boxList, campaign);
     return {
@@ -598,6 +599,7 @@ export class AirdropService {
                         ar.point,
                         ar.token,
                         ac.network,
+                        ac.token_slug,
                         ac.method as campaign_method,
                         ac.name   as campaign_name,
                         ac.decimal,
@@ -644,7 +646,9 @@ export class AirdropService {
 
     try {
       if (firstAirdropLog.type === AIRDROP_LOG_TYPE.TOKEN) {
+
         const sendToken: TransactionInterface = await this.createAirdropTransaction(firstAirdropLog);
+
 
         const sendTokenResponse = JSON.parse(JSON.stringify(sendToken)) as TransactionInterface;
 
@@ -745,6 +749,7 @@ export class AirdropService {
                         a.address,
                         ar.point,
                         ar.token,
+                        ac.token_slug,
                         ac.network,
                         ac.method as campaign_method,
                         ac.name   as campaign_name,
@@ -775,6 +780,7 @@ export class AirdropService {
         status: item.status,
         type: item.type,
         rewardValue: item.token ? item.token : item.point,
+        tokenSlug: item.token_slug,
         endTime: new Date(endDate).toString() || '',
         name: item.eligibility_name,
         id: item.airdrop_log_id,
