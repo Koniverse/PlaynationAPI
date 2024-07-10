@@ -21,6 +21,7 @@ const MAP_NETWORK = {
   'goldberg_testnet': 'goldberg_testnet',
   'karura': 'karura',
   'acala': 'acala',
+  'vara_network': 'vara',
 } as Record<string, string>;
 
 export class SubscanService {
