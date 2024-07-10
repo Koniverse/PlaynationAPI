@@ -2,10 +2,8 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import EnvVars from '@src/constants/EnvVars';
 import fetch from 'node-fetch';
 import {EventSubmissionsResponse} from '@src/types';
-import {Account, Task} from '@src/models';
+import {Account, AirlyftEvent, AirlyftEventWebhook, Task} from '@src/models';
 import {TaskService} from '@src/services/TaskService';
-import {CacheService} from '@src/services/CacheService';
-const cacheService = CacheService.instance;
 export interface AirlyftSyncParams {
   userId: string;
 }
@@ -17,7 +15,7 @@ export interface AirlyftTokenResponse {
 
 export class AirlyftService {
 
-  private token: string = '';
+  private token = '';
   constructor(private sequelizeService: SequelizeService) {
   }
 
@@ -71,6 +69,44 @@ export class AirlyftService {
     return await this.runAction<EventSubmissionsResponse>(query, variables);
   }
   
+  async syncWebhook(eventWebhook: AirlyftEventWebhook) {
+    const {userId, provider, providerId, xp, points, taskId, eventId, tasktype, apptype, data} = eventWebhook;
+    const webhookData = {...eventWebhook} as unknown as AirlyftEvent;
+    if (data){
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      webhookData.data = JSON.parse(data);
+    }
+    webhookData.content = eventWebhook;
+    
+    const task = await Task.findOne({
+      where: {
+        airlyftId: taskId,
+        airlyftEventId: eventId,
+      },
+    });
+    if (task){
+      const isTaskSync = task.airlyftType === 'telegram-sync';
+      if (isTaskSync){
+        await this.syncAccount(userId);
+      }else {
+        const accountList = await Account.findAll({
+          where: {
+            airlyftId: userId,
+            isEnabled: true,
+          },
+        });
+        if (accountList && accountList.length > 0){
+          for (const account of accountList) {
+            await TaskService.instance.createTaskHistory(task.id, account.id);
+          }
+        }
+      }
+    }
+    
+    await AirlyftEvent.create(webhookData);
+
+    return true;
+  }
   async syncAccount(userId: string) {
     const taskTelegramSync = await Task.findOne({
       where: {

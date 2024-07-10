@@ -8,7 +8,6 @@ import {
 } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import AccountAttribute from '@src/models/AccountAttribute';
-import {AirlyftService} from "@src/services/AirlyftService";
 
 export interface ReferralParams {
   referralCode?: string;
