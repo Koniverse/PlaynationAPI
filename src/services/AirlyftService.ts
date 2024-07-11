@@ -78,30 +78,30 @@ export class AirlyftService {
     }
     webhookData.content = eventWebhook;
     
-    const task = await Task.findOne({
-      where: {
-        airlyftId: taskId,
-        airlyftEventId: eventId,
-      },
-    });
-    if (task){
-      const isTaskSync = task.airlyftType === 'telegram-sync';
-      if (isTaskSync){
-        await this.syncAccount(userId);
-      }else {
-        const accountList = await Account.findAll({
-          where: {
-            airlyftId: userId,
-            isEnabled: true,
-          },
-        });
-        if (accountList && accountList.length > 0){
-          for (const account of accountList) {
-            await TaskService.instance.createTaskHistory(task.id, account.id);
-          }
-        }
-      }
-    }
+    // const task = await Task.findOne({
+    //   where: {
+    //     airlyftId: taskId,
+    //     airlyftEventId: eventId,
+    //   },
+    // });
+    // if (task){
+    //   const isTaskSync = task.airlyftType === 'telegram-sync';
+    //   if (isTaskSync){
+    //     await this.syncAccount(userId);
+    //   }else {
+    //     const accountList = await Account.findAll({
+    //       where: {
+    //         airlyftId: userId,
+    //         isEnabled: true,
+    //       },
+    //     });
+    //     if (accountList && accountList.length > 0){
+    //       for (const account of accountList) {
+    //         await TaskService.instance.createTaskHistory(task.id, account.id);
+    //       }
+    //     }
+    //   }
+    // }
     
     await AirlyftEvent.create(webhookData);
 
