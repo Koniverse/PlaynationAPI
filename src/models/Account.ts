@@ -94,9 +94,6 @@ export class Account
   declare updatedAt: CreationOptional<Date>;
   declare cronAvatar: CreationOptional<boolean>;
   declare isEnabled: CreationOptional<boolean>;
-
-  // Airlyft information
-  declare airlyftId: CreationOptional<string>;
 }
 
 Account.init(
@@ -166,11 +163,6 @@ Account.init(
     isEnabled: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
-      allowNull: true,
-    },
-
-    airlyftId: {
-      type: DataTypes.STRING,
       allowNull: true,
     },
     createdAt: DataTypes.DATE,

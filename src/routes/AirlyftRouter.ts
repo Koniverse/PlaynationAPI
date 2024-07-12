@@ -1,8 +1,8 @@
 import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
-import {AirlyftService, AirlyftSyncParams} from '@src/services/AirlyftService';
-import {AirlyftEventWebhook, Task} from '@src/models';
+import {AirlyftService, AirlyftSyncParams, AirlyftEventWebhook} from '@src/services/AirlyftService';
+import {Task} from '@src/models';
 
 const AirlyftRouter = Router();
 

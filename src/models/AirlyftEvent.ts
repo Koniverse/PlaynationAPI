@@ -1,18 +1,8 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
+import {AirlyftEventWebhook} from '@src/services/AirlyftService';
 
-export interface AirlyftEventWebhook {
-  userId: string;
-  provider: string;
-  providerId: string;
-  xp: number;
-  points: number;
-  data: string;
-  taskId: string;
-  eventId: string;
-  tasktype: string;
-  apptype: string;
-}
+
 
 export class AirlyftEvent extends Model<InferAttributes<AirlyftEvent>, InferCreationAttributes<AirlyftEvent>> {
   declare id: CreationOptional<number>; // id on db
