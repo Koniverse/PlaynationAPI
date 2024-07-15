@@ -2,10 +2,21 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import EnvVars from '@src/constants/EnvVars';
 import fetch from 'node-fetch';
 import {EventSubmissionsResponse} from '@src/types';
-import {Account, Task} from '@src/models';
+import {Account, AirlyftAccount, AirlyftEvent, Task} from '@src/models';
 import {TaskService} from '@src/services/TaskService';
-import {CacheService} from '@src/services/CacheService';
-const cacheService = CacheService.instance;
+export interface AirlyftEventWebhook {
+  userId: string;
+  provider: string;
+  providerId: string;
+  xp: number;
+  points: number;
+  data: JSON;
+  taskId: string;
+  eventId: string;
+  tasktype: string;
+  apptype: string;
+  participationStatus: string;
+}
 export interface AirlyftSyncParams {
   userId: string;
 }
@@ -17,7 +28,7 @@ export interface AirlyftTokenResponse {
 
 export class AirlyftService {
 
-  private token: string = '';
+  private token = '';
   constructor(private sequelizeService: SequelizeService) {
   }
 
@@ -53,7 +64,7 @@ export class AirlyftService {
 }
     `;
     const variables = {
-      'projectId': EnvVars.Airlyft.ProjectId,  
+      'projectId': EnvVars.Airlyft.ProjectId,
       'pagination': {
         'take': 10,
         'skip': 0,
@@ -71,7 +82,121 @@ export class AirlyftService {
     return await this.runAction<EventSubmissionsResponse>(query, variables);
   }
   
+  async getAirlyftUserId(telegramId: number) {
+    const user = await AirlyftAccount.findOne({
+      where: {
+        telegramId: String(telegramId),
+      },
+    });
+    if (user){
+      return user.userId;
+    }
+    return null;
+  }
+
+  async syncWebhook(eventWebhook: AirlyftEventWebhook) {
+    if (!eventWebhook || (eventWebhook && !eventWebhook.userId)){
+      throw new Error('Event webhook not found');
+    }
+
+    const {provider, providerId, xp, points, taskId,
+      eventId, tasktype, apptype, data, participationStatus} = eventWebhook;
+    const userId = eventWebhook.userId || '';
+    const airlyftEvent: AirlyftEvent = {
+      userId,
+      provider,
+      providerId,
+      xp,
+      point: points,
+      taskId,
+      eventId,
+      tasktype,
+      apptype,
+      content: eventWebhook,
+      data,
+      status: participationStatus,
+    } as unknown as AirlyftEvent;
+    
+    let airlyftAccount = await AirlyftAccount.findOne({
+      where: {
+        userId: userId,
+      },
+    });
+    if (!airlyftAccount){
+      airlyftAccount = await AirlyftAccount.create({userId} as unknown as AirlyftAccount);
+    }
+    if (provider === 'TELEGRAM'){
+      airlyftAccount.telegramId = providerId;
+    }else if(provider === 'DISCORD'){
+      airlyftAccount.discordId = providerId;
+    }else if(provider === 'TWITTER'){
+      airlyftAccount.twitterId = providerId;
+    }else if (provider === 'EVM_BLOCKCHAIN'){
+      airlyftAccount.evmAddress = providerId;
+    }
+    await airlyftAccount.save();
+    
+    const task = await Task.findOne({
+      where: {
+        airlyftId: taskId,
+        airlyftEventId: eventId,
+      },
+    });
+    if (task && participationStatus === 'VALID'){
+      const isTaskSync = task.airlyftType === 'telegram-sync';
+      if (isTaskSync && provider === 'TELEGRAM' && providerId && userId){
+        await this.addAccountAirlyft(task.id, providerId);
+      }else {
+        const airlyftAccount = await AirlyftAccount.findOne({
+          where: {
+            userId: userId,
+          },
+        });
+        if  (airlyftAccount){
+          const accountList = await Account.findAll({
+            where: {
+              telegramId: Number(airlyftAccount.telegramId),
+              isEnabled: true,
+            },
+          });
+          if (accountList && accountList.length > 0){
+            for (const account of accountList) {
+              await TaskService.instance.createTaskHistory(task.id, account.id);
+            }
+          }
+        }
+      }
+    }
+
+    await AirlyftEvent.create(airlyftEvent);
+
+    return true;
+  }
+  async addAccountAirlyft(taskId: number,providerId: string) {
+    const accountList = await Account.findAll({
+      where: {
+        telegramId: Number(providerId),
+        isEnabled: true,
+      },
+    });
+    if (!accountList || accountList.length === 0) {
+      throw new Error('Account not found');
+    }
+    for (const account of accountList) {
+      await TaskService.instance.createTaskHistory(taskId, account.id);
+    }
+    return true;
+  }
   async syncAccount(userId: string) {
+
+    const airlyftAccount = await AirlyftAccount.findOne({
+      where: {
+        userId,
+      },
+    });
+    if (airlyftAccount){
+      return;
+    }
     const taskTelegramSync = await Task.findOne({
       where: {
         airlyftType: 'telegram-sync',
@@ -109,8 +234,6 @@ export class AirlyftService {
       throw new Error('Account not found');
     }
     for (const account of accountList) {
-      account.airlyftId = userId;
-      await account.save();
       await TaskService.instance.createTaskHistory(taskTelegramSync.id, account.id);
     }
     return true;
