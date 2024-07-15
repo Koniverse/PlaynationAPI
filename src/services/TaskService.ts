@@ -252,10 +252,9 @@ export class TaskService {
       }
     }
     let isOpenUrl = true;
-    // Zealy action
     if (task.airlyftId && task.airlyftType) {
-      const airlyftUserId = await airlyftService.getAirlyftUserId(account.telegramId);
-      if (task.airlyftType === 'telegram-sync') {
+      const airlyftUserId = await airlyftService.getAirlyftUserIdByAddress(account.address);
+      if (task.airlyftType === 'sync') {
         if (airlyftUserId) {
           throw new Error('Your account is already synced with Airlyft');
         }

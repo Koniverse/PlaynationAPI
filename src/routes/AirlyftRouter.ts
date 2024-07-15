@@ -28,7 +28,8 @@ const routerMap = {
   syncAccount: async (req: IReq<AirlyftSyncParams>, res: IRes) => {
     console.log('data', req.body);
     const userId = req.body.userId;
-    const data = await airlyftService.syncAccount(userId);
+    const address = req.body.address;
+    const data = await airlyftService.syncAccountByAddress(userId, address);
     return res.status(200).json(data);
   },
 

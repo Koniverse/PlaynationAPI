@@ -19,6 +19,7 @@ export interface AirlyftEventWebhook {
 }
 export interface AirlyftSyncParams {
   userId: string;
+  address: string;
 }
 
 export interface AirlyftTokenResponse {
@@ -94,6 +95,18 @@ export class AirlyftService {
     return null;
   }
 
+  async getAirlyftUserIdByAddress(address: string) {
+    const user = await AirlyftAccount.findOne({
+      where: {
+        address,
+      },
+    });
+    if (user){
+      return user.userId;
+    }
+    return null;
+  }
+
   async syncWebhook(eventWebhook: AirlyftEventWebhook) {
     if (!eventWebhook || (eventWebhook && !eventWebhook.userId)){
       throw new Error('Event webhook not found');
@@ -155,7 +168,7 @@ export class AirlyftService {
         if  (airlyftAccount){
           const accountList = await Account.findAll({
             where: {
-              telegramId: Number(airlyftAccount.telegramId),
+              address: airlyftAccount.address,
               isEnabled: true,
             },
           });
@@ -187,7 +200,7 @@ export class AirlyftService {
     }
     return true;
   }
-  async syncAccount(userId: string) {
+  async syncAccount(userId: string, address: string) {
 
     const airlyftAccount = await AirlyftAccount.findOne({
       where: {
@@ -236,6 +249,39 @@ export class AirlyftService {
     for (const account of accountList) {
       await TaskService.instance.createTaskHistory(taskTelegramSync.id, account.id);
     }
+    return true;
+
+  }
+
+
+  async syncAccountByAddress(userId: string, address: string) {
+    const taskTelegramSync = await Task.findOne({
+      where: {
+        airlyftType: 'sync',
+      },
+    });
+    if (!taskTelegramSync) {
+      throw new Error('Task not found');
+    }
+    const account = await Account.findOne({
+      where: {
+        address,
+        isEnabled: true,
+      },
+    });
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    const  airlyftAccount = await AirlyftAccount.findOne({
+      where: {
+        userId: userId,
+        address,
+      },
+    });
+    if (!airlyftAccount){
+      await AirlyftAccount.create({userId, address} as unknown as AirlyftAccount);
+    }
+    await TaskService.instance.createTaskHistory(taskTelegramSync.id, account.id);
     return true;
 
   }
