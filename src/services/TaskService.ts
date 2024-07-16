@@ -1,6 +1,6 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {Account, Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
+import {Account, AirlyftEvent, Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
 import {QueryTypes} from 'sequelize';
@@ -44,7 +44,7 @@ interface TaskHistoryLog {
 
 type TaskHistoryRecord = Task & TaskHistoryLog;
 const accountService = AccountService.instance;
-const zealyService = AirlyftService.instance;
+const airlyftService = AirlyftService.instance;
 
 export class TaskService {
   private taskMap: Record<string, Task> | undefined;
@@ -252,11 +252,10 @@ export class TaskService {
       }
     }
     let isOpenUrl = true;
-    // Zealy action
     if (task.airlyftId && task.airlyftType) {
-
-      if (task.airlyftType === 'telegram-sync') {
-        if (account.airlyftId) {
+      const airlyftUserId = await airlyftService.getAirlyftUserIdByAddress(account.address);
+      if (task.airlyftType === 'sync') {
+        if (airlyftUserId) {
           throw new Error('Your account is already synced with Airlyft');
         }
         return {
@@ -264,7 +263,7 @@ export class TaskService {
           isOpenUrl: isOpenUrl,
         };
       } else {
-        if (!account.airlyftId) {
+        if (!airlyftUserId) {
           return {
             success: false,
             isOpenUrl: isOpenUrl,
@@ -272,7 +271,7 @@ export class TaskService {
             message: 'Please sync your account with Airlyft first',
           };
         }
-        const checkSuccess = await this.checkTaskAirlyft(account, task);
+        const checkSuccess = await this.checkTaskAirlyft(task, airlyftUserId);
         if (!checkSuccess) {
           return {
             success: false,
@@ -324,15 +323,23 @@ export class TaskService {
   }
 
   //
-  async checkTaskAirlyft(account: Account, task: Task) {
-    const userId = account.airlyftId;
+  async checkTaskAirlyft(task: Task, userId: string) {
     const taskIds = [task.airlyftId];
     const eventId = task.airlyftEventId;
-    const data = await zealyService.eventSubmissions(eventId, taskIds, userId);
-    if (!data || (data.errors && data.errors.length > 0)) {
-      return false;
+    const event = await AirlyftEvent.findOne(
+      {where: {
+        userId: userId,
+        taskId: task.airlyftId,
+        eventId: task.airlyftEventId,
+        status: 'VALID',
+      }},
+    );
+    if (event){
+      return true;
     }
-    return true;
+    const data = await airlyftService.eventSubmissions(eventId, taskIds, userId);
+    return !(!data || (data.errors && data.errors.length > 0));
+
   }
 
   async createTaskHistory(taskId: number, accountId: number) {
