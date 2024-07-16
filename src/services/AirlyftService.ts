@@ -107,6 +107,38 @@ export class AirlyftService {
     return null;
   }
 
+  async getAccountToken(accountId: number) {
+    const account = await Account.findOne({
+      where: {
+        id: accountId,
+      }});
+    if (!account){
+      throw new Error('Account not found');
+    }
+    const message = `Login as ${account.telegramUsername}`;
+    const data = {
+      address: account.address,
+      message,
+      name: account.telegramUsername,
+      signature: account.signature,
+      source: 'DOTSAMA_SUBWALLET',
+    };
+    // Khởi tạo URL
+    const url = 'https://fuel.airlyft.one/api/auth/dotsama-blockchain';
+    const options: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      body: JSON.stringify(data),
+      method: 'POST',
+      redirect: 'follow',
+    };
+
+    // @ts-ignore
+    const response = await fetch(url, options);
+    return await response.json();
+  }
   async syncWebhook(eventWebhook: AirlyftEventWebhook) {
     if (!eventWebhook || (eventWebhook && !eventWebhook.userId)){
       throw new Error('Event webhook not found');
