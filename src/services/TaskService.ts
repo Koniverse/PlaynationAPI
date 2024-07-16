@@ -254,36 +254,22 @@ export class TaskService {
     let isOpenUrl = true;
     if (task.airlyftId && task.airlyftType) {
       const airlyftUserId = await airlyftService.getAirlyftUserIdByAddress(account.address);
-      if (task.airlyftType === 'sync') {
-        if (airlyftUserId) {
-          throw new Error('Your account is already synced with Airlyft');
-        }
-        return {
-          success: false,
-          isOpenUrl: isOpenUrl,
-        };
-      } else {
-        if (!airlyftUserId) {
-          return {
-            success: false,
-            isOpenUrl: isOpenUrl,
-            openUrl: EnvVars.Airlyft.TaskUrlSync,
-            message: 'Please sync your account with Airlyft first',
-          };
-        }
+      if (airlyftUserId){
         const checkSuccess = await this.checkTaskAirlyft(task, airlyftUserId);
         if (!checkSuccess) {
           return {
             success: false,
             isOpenUrl: isOpenUrl,
-            message: 'Please sync your account with Airlyft first',
           };
         }else {
           isOpenUrl = false;
         }
+      }else {
+        return {
+          success: false,
+          isOpenUrl: isOpenUrl,
+        };
       }
-
-
     }
     const dataCreate = {
       taskId: task.id,
