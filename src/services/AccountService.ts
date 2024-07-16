@@ -24,6 +24,11 @@ export interface AccountBanedParams {
   accountId: number[];
 }
 
+export interface AccountCheckParams {
+  telegramId: number;
+  point?: number;
+}
+
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
 
@@ -99,6 +104,36 @@ export class AccountService {
     });
 
     return newAccount;
+  }
+
+  public async checkByTelegramId({telegramId, point}: AccountCheckParams) {
+    const account = await Account.findAll({
+      where: {
+        telegramId,
+        isEnabled: true,
+      },
+    });
+
+    if (account.length === 0) {
+      throw new Error('Account not found');
+    }
+
+    const accountAttribute = await AccountAttribute.findOne({
+      where: {
+        accountId: {
+          [Op.in]: account.map((a) => a.id),
+        },
+        point: {
+          [Op.gte]: point || 0,
+        },
+      },
+      order: [['point', 'DESC']],
+    });
+
+    return {
+      telegramId,
+      enoughPoint: !!accountAttribute,
+    };
   }
 
   // Sync account data with Telegram data
