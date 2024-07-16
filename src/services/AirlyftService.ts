@@ -1,7 +1,7 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import EnvVars from '@src/constants/EnvVars';
 import fetch from 'node-fetch';
-import {EventSubmissionsResponse} from '@src/types';
+import {EventSubmissionsResponse, MeResponse} from '@src/types';
 import {Account, AirlyftAccount, AirlyftEvent, Task} from '@src/models';
 import {TaskService} from '@src/services/TaskService';
 export interface AirlyftEventWebhook {
@@ -137,7 +137,46 @@ export class AirlyftService {
 
     // @ts-ignore
     const response = await fetch(url, options);
-    return await response.json();
+    const result = await response.json() as AirlyftTokenResponse;
+    if (result && result.success){
+      const airlyftAccount = await AirlyftAccount.findOne({
+        where: {
+          address: account.address,
+        },
+      });
+      if (!airlyftAccount){
+        
+        const token = result.token;
+        const query = `
+        query Me {
+          me {
+            createdAt
+            updatedAt
+            id
+            firstName
+            lastName
+            email
+            avatar
+            auth {
+              provider
+              providerId
+            }
+            onboarded
+            auths {
+              userId
+              verified
+            }
+          }
+        }`;
+        const  meResponse = await this.runAction<MeResponse>(query, {}, token);
+        if (meResponse && meResponse.data && meResponse.data.me){
+          const {me} = meResponse.data;
+          const {id} = me;
+          await AirlyftAccount.create({userId: id, address: account.address} as unknown as AirlyftAccount);
+        }
+      }
+    }
+    return result;
   }
   async syncWebhook(eventWebhook: AirlyftEventWebhook) {
     if (!eventWebhook || (eventWebhook && !eventWebhook.userId)){
@@ -336,10 +375,14 @@ export class AirlyftService {
   }
 
 
-  async runAction<T>(query: string, variables: any) {
+  async runAction<T>(query: string, variables: any, _token: string | null = null) {
     // Khởi tạo URL
     const url = EnvVars.Airlyft.Url;
-    const token = await this.getToken();
+    let token = _token;
+    
+    if (!token){
+      token = await this.getToken();
+    }
     const options: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
