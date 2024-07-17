@@ -1,11 +1,15 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {Account, AirlyftEvent, Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
+import {Account, AchievementData, AirlyftEvent, Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
 import {QueryTypes} from 'sequelize';
 import {AirlyftService} from '@src/services/AirlyftService';
-import EnvVars from '@src/constants/EnvVars';
+import * as console from "node:console";
+
+interface AchievementRecord {
+  count: number;
+}
 
 
 export interface TaskContentCms {
@@ -271,6 +275,15 @@ export class TaskService {
         };
       }
     }
+
+    if  (task.achievement){
+      console.log(task.achievement);
+      const achievement = task.achievement as unknown as AchievementData;
+      const gameId = task?.gameId || 0;
+      const checkAchievement = await this.checkAchievement(achievement, userId, gameId);
+      throw new Error('Achievement task is not supported');
+    }
+
     const dataCreate = {
       taskId: task.id,
       accountId: userId,
@@ -306,6 +319,45 @@ export class TaskService {
       success: true,
       isOpenUrl: isOpenUrl,
     };
+  }
+
+  // type game_count, game_point, referral_count
+  async checkAchievement(achievement: AchievementData, accountId: number, gameId = 0){
+    const {type, value, to_date, from_date} = achievement;
+    console.log(type, value, to_date, from_date);
+    let gameSql = gameId === 0 ? '' : ' and "gameId" = :gameId';
+    let sql = `
+      Select
+        count(distinct id) as "count"
+        from game_play where "createdAt" between :from_date and :to_date and "accountId" = :accountId 
+         and success is true ${gameSql}
+    `;
+    if (type === 'game_point'){
+      sql = `
+        Select
+        sum(coalesce(point, 0))  as "count"
+        from game_play where  "createdAt" between :from_date and :to_date and "accountId" = :accountId
+          and success is true ${gameSql}
+      `;
+
+    }
+    if (type === 'referral_count'){
+      sql = `
+        Select
+        count(distinct id) as "count"
+        from referral_log where "createdAt" between :from_date and :to_date and "sourceAccountId" = :accountId
+      `;
+    }
+    const data = await this.sequelizeService.sequelize.query<AchievementRecord>(sql, {
+      replacements: { accountId, gameId, from_date, to_date},
+      type: QueryTypes.SELECT,
+    });
+    console.log('data', data);
+    const item  = data.length > 0 ? data[0] : null;
+    if (item){
+      console.log('check', item.count, item.count > value)
+    }
+
   }
 
   //
