@@ -149,7 +149,7 @@ export class AccountService {
     const validSignature = validateSignature(address, message, signature);
 
     if (validateSign && !validSignature) {
-      // throw new Error('Invalid signature ' + message);
+      throw new Error('Invalid signature ' + message);
     }
 
     // Create account if not exists
