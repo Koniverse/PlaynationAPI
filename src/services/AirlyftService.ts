@@ -1,13 +1,25 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import EnvVars from '@src/constants/EnvVars';
 import fetch from 'node-fetch';
-import {EventSubmissionsResponse} from '@src/types';
-import {Account, Task} from '@src/models';
+import {EventSubmissionsResponse, MeResponse} from '@src/types';
+import {Account, AirlyftAccount, AirlyftEvent, Task} from '@src/models';
 import {TaskService} from '@src/services/TaskService';
-import {CacheService} from '@src/services/CacheService';
-const cacheService = CacheService.instance;
+export interface AirlyftEventWebhook {
+  userId: string;
+  provider: string;
+  providerId: string;
+  xp: number;
+  points: number;
+  data: JSON;
+  taskId: string;
+  eventId: string;
+  tasktype: string;
+  apptype: string;
+  participationStatus: string;
+}
 export interface AirlyftSyncParams {
   userId: string;
+  address: string;
 }
 
 export interface AirlyftTokenResponse {
@@ -17,7 +29,7 @@ export interface AirlyftTokenResponse {
 
 export class AirlyftService {
 
-  private token: string = '';
+  private token = '';
   constructor(private sequelizeService: SequelizeService) {
   }
 
@@ -53,7 +65,7 @@ export class AirlyftService {
 }
     `;
     const variables = {
-      'projectId': EnvVars.Airlyft.ProjectId,  
+      'projectId': EnvVars.Airlyft.ProjectId,
       'pagination': {
         'take': 10,
         'skip': 0,
@@ -71,7 +83,204 @@ export class AirlyftService {
     return await this.runAction<EventSubmissionsResponse>(query, variables);
   }
   
-  async syncAccount(userId: string) {
+  async getAirlyftUserId(telegramId: number) {
+    const user = await AirlyftAccount.findOne({
+      where: {
+        telegramId: String(telegramId),
+      },
+    });
+    if (user){
+      return user.userId;
+    }
+    return null;
+  }
+
+  async getAirlyftUserIdByAddress(address: string) {
+    const user = await AirlyftAccount.findOne({
+      where: {
+        address,
+      },
+    });
+    if (user){
+      return user.userId;
+    }
+    return null;
+  }
+
+  async getAccountToken(accountId: number) {
+    const account = await Account.findOne({
+      where: {
+        id: accountId,
+      }});
+    if (!account){
+      throw new Error('Account not found');
+    }
+    const message = `Login as ${account.telegramUsername}`;
+    const data = {
+      address: account.address,
+      message,
+      name: account.telegramUsername,
+      signature: account.signature,
+      source: 'DOTSAMA_SUBWALLET',
+    };
+    // Khởi tạo URL
+    const url = 'https://fuel.airlyft.one/api/auth/dotsama-blockchain';
+    const options: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      body: JSON.stringify(data),
+      method: 'POST',
+      redirect: 'follow',
+    };
+
+    // @ts-ignore
+    const response = await fetch(url, options);
+    const result = await response.json() as AirlyftTokenResponse;
+    if (result && result.success){
+      const airlyftAccount = await AirlyftAccount.findOne({
+        where: {
+          address: account.address,
+        },
+      });
+      if (!airlyftAccount){
+        
+        const token = result.token;
+        const query = `
+        query Me {
+          me {
+            createdAt
+            updatedAt
+            id
+            firstName
+            lastName
+            email
+            avatar
+            auth {
+              provider
+              providerId
+            }
+            onboarded
+            auths {
+              userId
+              verified
+            }
+          }
+        }`;
+        const  meResponse = await this.runAction<MeResponse>(query, {}, token);
+        if (meResponse && meResponse.data && meResponse.data.me){
+          const {me} = meResponse.data;
+          const {id} = me;
+          await AirlyftAccount.create({userId: id, address: account.address} as unknown as AirlyftAccount);
+        }
+      }
+    }
+    return result;
+  }
+  async syncWebhook(eventWebhook: AirlyftEventWebhook) {
+    if (!eventWebhook || (eventWebhook && !eventWebhook.userId)){
+      throw new Error('Event webhook not found');
+    }
+
+    const {provider, providerId, xp, points, taskId,
+      eventId, tasktype, apptype, data, participationStatus} = eventWebhook;
+    const userId = eventWebhook.userId || '';
+    const airlyftEvent: AirlyftEvent = {
+      userId,
+      provider,
+      providerId,
+      xp,
+      point: points,
+      taskId,
+      eventId,
+      tasktype,
+      apptype,
+      content: eventWebhook,
+      data,
+      status: participationStatus,
+    } as unknown as AirlyftEvent;
+    
+    let airlyftAccount = await AirlyftAccount.findOne({
+      where: {
+        userId: userId,
+      },
+    });
+    if (!airlyftAccount){
+      airlyftAccount = await AirlyftAccount.create({userId} as unknown as AirlyftAccount);
+    }
+    if (provider === 'TELEGRAM'){
+      airlyftAccount.telegramId = providerId;
+    }else if(provider === 'DISCORD'){
+      airlyftAccount.discordId = providerId;
+    }else if(provider === 'TWITTER'){
+      airlyftAccount.twitterId = providerId;
+    }else if (provider === 'EVM_BLOCKCHAIN'){
+      airlyftAccount.evmAddress = providerId;
+    }
+    await airlyftAccount.save();
+    
+    const task = await Task.findOne({
+      where: {
+        airlyftId: taskId,
+        airlyftEventId: eventId,
+      },
+    });
+    if (task && participationStatus === 'VALID'){
+      const isTaskSync = task.airlyftType === 'telegram-sync';
+      if (isTaskSync && provider === 'TELEGRAM' && providerId && userId){
+        await this.addAccountAirlyft(task.id, providerId);
+      }else {
+        const airlyftAccount = await AirlyftAccount.findOne({
+          where: {
+            userId: userId,
+          },
+        });
+        if  (airlyftAccount){
+          const accountList = await Account.findAll({
+            where: {
+              address: airlyftAccount.address,
+              isEnabled: true,
+            },
+          });
+          if (accountList && accountList.length > 0){
+            for (const account of accountList) {
+              await TaskService.instance.createTaskHistory(task.id, account.id);
+            }
+          }
+        }
+      }
+    }
+
+    await AirlyftEvent.create(airlyftEvent);
+
+    return true;
+  }
+  async addAccountAirlyft(taskId: number,providerId: string) {
+    const accountList = await Account.findAll({
+      where: {
+        telegramId: Number(providerId),
+        isEnabled: true,
+      },
+    });
+    if (!accountList || accountList.length === 0) {
+      throw new Error('Account not found');
+    }
+    for (const account of accountList) {
+      await TaskService.instance.createTaskHistory(taskId, account.id);
+    }
+    return true;
+  }
+  async syncAccount(userId: string, address: string) {
+
+    const airlyftAccount = await AirlyftAccount.findOne({
+      where: {
+        userId,
+      },
+    });
+    if (airlyftAccount){
+      return;
+    }
     const taskTelegramSync = await Task.findOne({
       where: {
         airlyftType: 'telegram-sync',
@@ -109,10 +318,41 @@ export class AirlyftService {
       throw new Error('Account not found');
     }
     for (const account of accountList) {
-      account.airlyftId = userId;
-      await account.save();
       await TaskService.instance.createTaskHistory(taskTelegramSync.id, account.id);
     }
+    return true;
+
+  }
+
+
+  async syncAccountByAddress(userId: string, address: string) {
+    const taskTelegramSync = await Task.findOne({
+      where: {
+        airlyftType: 'sync',
+      },
+    });
+    if (!taskTelegramSync) {
+      throw new Error('Task not found');
+    }
+    const account = await Account.findOne({
+      where: {
+        address,
+        isEnabled: true,
+      },
+    });
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    const  airlyftAccount = await AirlyftAccount.findOne({
+      where: {
+        userId: userId,
+        address,
+      },
+    });
+    if (!airlyftAccount){
+      await AirlyftAccount.create({userId, address} as unknown as AirlyftAccount);
+    }
+    await TaskService.instance.createTaskHistory(taskTelegramSync.id, account.id);
     return true;
 
   }
@@ -135,10 +375,14 @@ export class AirlyftService {
   }
 
 
-  async runAction<T>(query: string, variables: any) {
+  async runAction<T>(query: string, variables: any, _token: string | null = null) {
     // Khởi tạo URL
     const url = EnvVars.Airlyft.Url;
-    const token = await this.getToken();
+    let token = _token;
+    
+    if (!token){
+      token = await this.getToken();
+    }
     const options: RequestInit = {
       headers: {
         'Content-Type': 'application/json',

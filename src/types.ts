@@ -187,3 +187,25 @@ export interface Auth {
     userId:     string;
     username:   string;
 }
+export interface MeResponse {
+  data: MeData;
+}
+interface MeData {
+  me: AirlyftMe;
+}
+interface AirlyftMe {
+  createdAt: string;
+  updatedAt: string;
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: any;
+  avatar?: any;
+  auth: Auth[];
+  onboarded: any[];
+  auths: Auth2[];
+}
+interface Auth2 {
+  userId: string;
+  verified: boolean;
+}

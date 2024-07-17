@@ -8,7 +8,6 @@ import {
 } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import AccountAttribute from '@src/models/AccountAttribute';
-import {AirlyftService} from "@src/services/AirlyftService";
 
 export interface ReferralParams {
   referralCode?: string;
@@ -95,9 +94,6 @@ export class Account
   declare updatedAt: CreationOptional<Date>;
   declare cronAvatar: CreationOptional<boolean>;
   declare isEnabled: CreationOptional<boolean>;
-
-  // Airlyft information
-  declare airlyftId: CreationOptional<string>;
 }
 
 Account.init(
@@ -167,11 +163,6 @@ Account.init(
     isEnabled: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
-      allowNull: true,
-    },
-
-    airlyftId: {
-      type: DataTypes.STRING,
       allowNull: true,
     },
     createdAt: DataTypes.DATE,
