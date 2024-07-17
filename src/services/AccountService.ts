@@ -138,15 +138,16 @@ export class AccountService {
 
   // Sync account data with Telegram data
   public async syncAccountData(info: AccountParams, code?: string, validateSign = true) {
-    const { signature, telegramUsername, address } = info;
+    const { signature, telegramId, telegramUsername, address } = info;
 
     info.type = checkWalletType(address);
     if (!info.type) {
       throw new Error('Invalid wallet address');
     }
 
-    const message = `Login as ${telegramUsername}`;
-    const validSignature = validateSignature(address, message, signature);
+    const message = `Login with telegram id: ${telegramId}`;
+    const messageOld = `Login as ${telegramUsername}`;
+    const validSignature = validateSignature(address, message, signature) || validateSignature(address, messageOld, signature);
 
     if (validateSign && !validSignature) {
       throw new Error('Invalid signature ' + message);
