@@ -1,11 +1,10 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {Account, AchievementData, AirlyftEvent, Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
+import {AchievementData, AirlyftEvent, Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
 import {QueryTypes} from 'sequelize';
 import {AirlyftService} from '@src/services/AirlyftService';
-import * as console from "node:console";
 
 interface AchievementRecord {
   count: number;
@@ -277,11 +276,15 @@ export class TaskService {
     }
 
     if  (task.achievement){
-      console.log(task.achievement);
       const achievement = task.achievement as unknown as AchievementData;
       const gameId = task?.gameId || 0;
       const checkAchievement = await this.checkAchievement(achievement, userId, gameId);
-      throw new Error('Achievement task is not supported');
+      if  (!checkAchievement){
+        return {
+          success: false,
+          isOpenUrl: isOpenUrl,
+        };
+      }
     }
 
     const dataCreate = {
@@ -324,8 +327,7 @@ export class TaskService {
   // type game_count, game_point, referral_count
   async checkAchievement(achievement: AchievementData, accountId: number, gameId = 0){
     const {type, value, to_date, from_date} = achievement;
-    console.log(type, value, to_date, from_date);
-    let gameSql = gameId === 0 ? '' : ' and "gameId" = :gameId';
+    const gameSql = gameId === 0 ? '' : ' and "gameId" = :gameId';
     let sql = `
       Select
         count(distinct id) as "count"
@@ -352,11 +354,11 @@ export class TaskService {
       replacements: { accountId, gameId, from_date, to_date},
       type: QueryTypes.SELECT,
     });
-    console.log('data', data);
     const item  = data.length > 0 ? data[0] : null;
     if (item){
-      console.log('check', item.count, item.count > value)
+      return item.count > value;
     }
+    return false;
 
   }
 
