@@ -43,9 +43,10 @@ interface TaskHistoryLog {
     status: TaskHistoryStatus,
     daysDiff: number,
     completedAt: Date,
+    buttonView: string
 }
 
-type TaskHistoryRecord = Task & TaskHistoryLog;
+type TaskHistoryRecord = Task & TaskHistory & TaskHistoryLog;
 const accountService = AccountService.instance;
 const airlyftService = AirlyftService.instance;
 
@@ -171,7 +172,20 @@ export class TaskService {
             break;
           }
         }
+        const achievement = item.achievement as unknown as AchievementData;
+        if (achievement){
+          const {daysDiff, interval} = item;
+          const diffInDays = parseInt(String(daysDiff ?? '0'));
+          if (diffInDays < interval) {
+            check = true;
+          }else{
+            check = false;
+            const gameId = item.gameId || 0;
+            const checkAchievement = await this.checkAchievement(achievement, userId, gameId);
+            item.buttonView = checkAchievement.view;
+          }
 
+        }
         //  if daily task is not completed, remove task history
         if (!check) {
           // @ts-ignore
@@ -183,6 +197,12 @@ export class TaskService {
         }
         result.push(item);
       } else {
+        const achievement = item.achievement as unknown as AchievementData;
+        if (achievement && !item.completedAt){
+          const gameId = item.gameId || 0;
+          const checkAchievement = await this.checkAchievement(achievement, userId, gameId);
+          item.buttonView = checkAchievement.view;
+        }
         result.push(item);
       }
     }
@@ -279,7 +299,7 @@ export class TaskService {
       const achievement = task.achievement as unknown as AchievementData;
       const gameId = task?.gameId || 0;
       const checkAchievement = await this.checkAchievement(achievement, userId, gameId);
-      if  (!checkAchievement){
+      if  (!checkAchievement.status){
         return {
           success: false,
           isOpenUrl: isOpenUrl,
@@ -356,9 +376,17 @@ export class TaskService {
     });
     const item  = data.length > 0 ? data[0] : null;
     if (item){
-      return item.count > value;
+      const count = item?.count || 0;
+      const status = count >= value;
+      return {
+        status,
+        view: `${status ? value : count}/${value}`,
+      };
     }
-    return false;
+    return {
+      status: false,
+      view: `0/${value}`,
+    };
 
   }
 
