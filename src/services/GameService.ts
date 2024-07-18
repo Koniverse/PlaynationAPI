@@ -46,6 +46,7 @@ export interface GameContentCms {
   active: boolean;
   maxPoint: number;
   energyPerGame: number;
+  pointConversionRate: number;
   maxPointPerGame: number;
   icon: string;
   rank_definition: string;
@@ -256,13 +257,15 @@ export class GameService {
 
     // Timeout if game is submitting too long
 
+    const point = Math.floor(params.point * game.pointConversionRate);
+
     await gamePlay.update({
-      point: params.point,
+      point: point,
       endTime: new Date(),
       success: true,
     });
 
-    await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, params.point);
+    await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, point);
 
     return gamePlay;
   }

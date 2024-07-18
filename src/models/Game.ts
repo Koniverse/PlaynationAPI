@@ -18,6 +18,7 @@ export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<G
   declare endTime: CreationOptional<Date>;
 
   declare maxPointPerGame: CreationOptional<number>;
+  declare pointConversionRate: CreationOptional<number>;
   declare rankDefinition: CreationOptional<string>;
 }
 
@@ -68,6 +69,10 @@ Game.init({
   endTime: {
     type: DataTypes.DATE,
     allowNull: true,
+  },
+  pointConversionRate: {
+    type: DataTypes.FLOAT,
+    defaultValue: 1,
   },
   active: {
     type: DataTypes.BOOLEAN,
