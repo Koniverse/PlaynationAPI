@@ -227,26 +227,21 @@ export class AirlyftService {
       },
     });
     if (task && participationStatus === 'VALID'){
-      const isTaskSync = task.airlyftType === 'telegram-sync';
-      if (isTaskSync && provider === 'TELEGRAM' && providerId && userId){
-        await this.addAccountAirlyft(task.id, providerId);
-      }else {
-        const airlyftAccount = await AirlyftAccount.findOne({
+      const airlyftAccount = await AirlyftAccount.findOne({
+        where: {
+          userId: userId,
+        },
+      });
+      if  (airlyftAccount){
+        const accountList = await Account.findAll({
           where: {
-            userId: userId,
+            address: airlyftAccount.address,
+            isEnabled: true,
           },
         });
-        if  (airlyftAccount){
-          const accountList = await Account.findAll({
-            where: {
-              address: airlyftAccount.address,
-              isEnabled: true,
-            },
-          });
-          if (accountList && accountList.length > 0){
-            for (const account of accountList) {
-              await TaskService.instance.createTaskHistory(task.id, account.id);
-            }
+        if (accountList && accountList.length > 0){
+          for (const account of accountList) {
+            await TaskService.instance.createTaskHistory(task.id, account.id);
           }
         }
       }
