@@ -405,8 +405,13 @@ export class TaskService {
     if (event){
       return true;
     }
-    const data = await airlyftService.eventSubmissions(eventId, taskIds, userId);
-    return !(!data || (data.errors && data.errors.length > 0));
+    try {
+      const data = await airlyftService.eventSubmissions(eventId, taskIds, userId);
+      return !(!data || (data.errors && data.errors.length > 0));
+    }catch (e) {
+      console.log('error airlyft', e);
+      return false;
+    }
 
   }
 
