@@ -36,7 +36,7 @@ export class LeaderBoardService {
                                     a."photoUrl"                                           as avatar,
                                     (a.id = :accountId)                                    as mine,
                                     SUM(coalesce(gd.point, 0))                             AS point,
-                                    RANK() OVER (ORDER BY SUM(coalesce(gd.point, 0)) DESC) as rank
+                                    RANK() OVER (ORDER BY SUM(coalesce(gd.point, 0)) DESC, MIN(gd."createdAt") asc) as rank
                              FROM game_play gd
                                       JOIN
                                   account a
