@@ -199,7 +199,7 @@ export class GameService {
     });
   }
 
-  async addGameDataPoint(accountId: number, gameId: number, point: number) {
+  async addGameDataPoint(accountId: number, gameId: number, point: number, pointRate: number) {
     const account = await accountService.findById(accountId);
     if (!account || account.isEnabled === false) {
       throw new Error('Your account is suspended');
@@ -208,7 +208,7 @@ export class GameService {
     await gameData.update({
       point: gameData.point + point,
     });
-    await accountService.addAccountPoint(accountId, point);
+    await accountService.addAccountPoint(accountId, pointRate);
   }
 
   async submitGameplay(params: SubmitGamePlayParams) {
@@ -257,15 +257,16 @@ export class GameService {
 
     // Timeout if game is submitting too long
 
-    const point = Math.floor(params.point * game.pointConversionRate);
+    const point = params.point;
+    const pointRate = Math.floor(params.point * game.pointConversionRate);
 
     await gamePlay.update({
-      point: point,
+      point: pointRate,
       endTime: new Date(),
       success: true,
     });
 
-    await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, point);
+    await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, point, pointRate);
 
     return gamePlay;
   }
