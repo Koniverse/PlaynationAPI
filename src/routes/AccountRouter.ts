@@ -1,7 +1,12 @@
 import { IReq, IRes } from '@src/routes/types';
 import { Router } from 'express';
 import { Query } from 'express-serve-static-core';
-import { AccountBanedParams, AccountService, GiveawayPointParams } from '@src/services/AccountService';
+import {
+  AccountBanedParams,
+  AccountCheckParams,
+  AccountService,
+  GiveawayPointParams,
+} from '@src/services/AccountService';
 import { AccountParams } from '@src/models';
 import jwt from 'jsonwebtoken';
 import envVars from '@src/constants/EnvVars';
@@ -10,6 +15,8 @@ import { GameService } from '@src/services/GameService';
 import * as console from 'node:console';
 
 type SyncAccountQuery = AccountParams & Query;
+
+type CheckUserByTelegramQuery = AccountCheckParams & Query;
 
 const AccountRouter = Router();
 
@@ -40,6 +47,24 @@ const routerMap = {
     } catch (e) {
       console.log('Error in sync account', e);
       return res.status(400).json({
+        error: e.message,
+      });
+    }
+  },
+
+  // Sync account data and fetch account details
+  checkByTelegramId: async (req: IReq<CheckUserByTelegramQuery>, res: IRes) => {
+    try {
+      const publicData = await AccountService.instance.checkByTelegramId(req.body);
+
+      return res.status(200).json({
+        ...publicData,
+      });
+    } catch (e) {
+      console.log('Error in check account', e);
+
+      return res.status(404).json({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
         error: e.message,
       });
     }
@@ -101,6 +126,7 @@ const routerMap = {
 };
 
 AccountRouter.post('/sync', routerMap.sync);
+AccountRouter.post('/check-by-telegram-id', routerMap.checkByTelegramId);
 AccountRouter.get('/get-attribute', requireLogin, routerMap.getAttribute);
 AccountRouter.get('/get-rerferal-logs', requireLogin, routerMap.getReferralLog);
 AccountRouter.get('/giveaway', requireSecret, routerMap.giveAway);

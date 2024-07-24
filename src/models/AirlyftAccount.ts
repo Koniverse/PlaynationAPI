@@ -11,6 +11,7 @@ export class AirlyftAccount extends Model<InferAttributes<AirlyftAccount>, Infer
   declare discordId: CreationOptional<string>;
   declare twitterId: CreationOptional<string>;
   declare evmAddress: CreationOptional<string>;
+  declare address: CreationOptional<string>;
   // createdAt can be undefined during creation
   declare createdAt: CreationOptional<Date>;
   // updatedAt can be undefined during creation
@@ -43,7 +44,11 @@ AirlyftAccount.init({
     type: DataTypes.STRING,
     allowNull: true,
   },
-    
+  address: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
 

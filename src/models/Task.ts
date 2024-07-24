@@ -3,6 +3,14 @@ import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
 import TaskCategory from '@src/models/TaskCategory';
 
+export interface AchievementData {
+  id: number;
+  from_date: string;
+  to_date: string;
+  value: number;
+  type: string;
+}
+
 export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<Task>> {
   declare id: CreationOptional<number>; // id on db
   declare gameId: CreationOptional<number>;
@@ -21,10 +29,12 @@ export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<T
   declare startTime: CreationOptional<Date>;
   declare endTime: CreationOptional<Date>;
   declare share_leaderboard: CreationOptional<JSON>;
+  declare achievement: CreationOptional<JSON>;
   declare active: boolean;
   declare airlyftType: CreationOptional<string>;
   declare airlyftId: CreationOptional<string>;
   declare airlyftEventId: CreationOptional<string>;
+  declare airlyftWidgetId: CreationOptional<string>;
 }
 
 Task.init({
@@ -95,6 +105,10 @@ Task.init({
     type: DataTypes.JSON,
     allowNull: true,
   },
+  achievement: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
   active: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
@@ -108,6 +122,10 @@ Task.init({
     allowNull: true,
   },
   airlyftEventId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  airlyftWidgetId: {
     type: DataTypes.STRING,
     allowNull: true,
   },

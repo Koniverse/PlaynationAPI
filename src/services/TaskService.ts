@@ -1,11 +1,14 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
-import {Account, AirlyftEvent, Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
+import {AchievementData, AirlyftEvent, Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
 import {QueryTypes} from 'sequelize';
 import {AirlyftService} from '@src/services/AirlyftService';
-import EnvVars from '@src/constants/EnvVars';
+
+interface AchievementRecord {
+  count: number;
+}
 
 
 export interface TaskContentCms {
@@ -40,9 +43,10 @@ interface TaskHistoryLog {
     status: TaskHistoryStatus,
     daysDiff: number,
     completedAt: Date,
+    buttonView: string
 }
 
-type TaskHistoryRecord = Task & TaskHistoryLog;
+type TaskHistoryRecord = Task & TaskHistory & TaskHistoryLog;
 const accountService = AccountService.instance;
 const airlyftService = AirlyftService.instance;
 
@@ -168,7 +172,20 @@ export class TaskService {
             break;
           }
         }
+        const achievement = item.achievement as unknown as AchievementData;
+        if (achievement){
+          const {daysDiff, interval} = item;
+          const diffInDays = parseInt(String(daysDiff ?? '0'));
+          if (diffInDays < interval) {
+            check = true;
+          }else{
+            check = false;
+            const gameId = item.gameId || 0;
+            const checkAchievement = await this.checkAchievement(achievement, userId, gameId);
+            item.buttonView = checkAchievement.view;
+          }
 
+        }
         //  if daily task is not completed, remove task history
         if (!check) {
           // @ts-ignore
@@ -180,6 +197,12 @@ export class TaskService {
         }
         result.push(item);
       } else {
+        const achievement = item.achievement as unknown as AchievementData;
+        if (achievement && !item.completedAt){
+          const gameId = item.gameId || 0;
+          const checkAchievement = await this.checkAchievement(achievement, userId, gameId);
+          item.buttonView = checkAchievement.view;
+        }
         result.push(item);
       }
     }
@@ -252,40 +275,38 @@ export class TaskService {
       }
     }
     let isOpenUrl = true;
-    // Zealy action
     if (task.airlyftId && task.airlyftType) {
-      const airlyftUserId = await airlyftService.getAirlyftUserId(account.telegramId);
-      if (task.airlyftType === 'telegram-sync') {
-        if (airlyftUserId) {
-          throw new Error('Your account is already synced with Airlyft');
-        }
-        return {
-          success: false,
-          isOpenUrl: isOpenUrl,
-        };
-      } else {
-        if (!airlyftUserId) {
-          return {
-            success: false,
-            isOpenUrl: isOpenUrl,
-            openUrl: EnvVars.Airlyft.TaskUrlSync,
-            message: 'Please sync your account with Airlyft first',
-          };
-        }
+      const airlyftUserId = await airlyftService.getAirlyftUserIdByAddress(account.address);
+      if (airlyftUserId){
         const checkSuccess = await this.checkTaskAirlyft(task, airlyftUserId);
         if (!checkSuccess) {
           return {
             success: false,
             isOpenUrl: isOpenUrl,
-            message: 'Please sync your account with Airlyft first',
           };
         }else {
           isOpenUrl = false;
         }
+      }else {
+        return {
+          success: false,
+          isOpenUrl: isOpenUrl,
+        };
       }
-
-
     }
+
+    if  (task.achievement){
+      const achievement = task.achievement as unknown as AchievementData;
+      const gameId = task?.gameId || 0;
+      const checkAchievement = await this.checkAchievement(achievement, userId, gameId);
+      if  (!checkAchievement.status){
+        return {
+          success: false,
+          isOpenUrl: isOpenUrl,
+        };
+      }
+    }
+
     const dataCreate = {
       taskId: task.id,
       accountId: userId,
@@ -323,6 +344,52 @@ export class TaskService {
     };
   }
 
+  // type game_count, game_point, referral_count
+  async checkAchievement(achievement: AchievementData, accountId: number, gameId = 0){
+    const {type, value, to_date, from_date} = achievement;
+    const gameSql = gameId === 0 ? '' : ' and "gameId" = :gameId';
+    let sql = `
+      Select
+        count(distinct id) as "count"
+        from game_play where "createdAt" between :from_date and :to_date and "accountId" = :accountId 
+         and success is true ${gameSql}
+    `;
+    if (type === 'game_point'){
+      sql = `
+        Select
+        sum(coalesce(point, 0))  as "count"
+        from game_play where  "createdAt" between :from_date and :to_date and "accountId" = :accountId
+          and success is true ${gameSql}
+      `;
+
+    }
+    if (type === 'referral_count'){
+      sql = `
+        Select
+        count(distinct id) as "count"
+        from referral_log where "createdAt" between :from_date and :to_date and "sourceAccountId" = :accountId
+      `;
+    }
+    const data = await this.sequelizeService.sequelize.query<AchievementRecord>(sql, {
+      replacements: { accountId, gameId, from_date, to_date},
+      type: QueryTypes.SELECT,
+    });
+    const item  = data.length > 0 ? data[0] : null;
+    if (item){
+      const count = item?.count || 0;
+      const status = count >= value;
+      return {
+        status,
+        view: `${status ? value : count}/${value}`,
+      };
+    }
+    return {
+      status: false,
+      view: `0/${value}`,
+    };
+
+  }
+
   //
   async checkTaskAirlyft(task: Task, userId: string) {
     const taskIds = [task.airlyftId];
@@ -338,8 +405,13 @@ export class TaskService {
     if (event){
       return true;
     }
-    const data = await airlyftService.eventSubmissions(eventId, taskIds, userId);
-    return !(!data || (data.errors && data.errors.length > 0));
+    try {
+      const data = await airlyftService.eventSubmissions(eventId, taskIds, userId);
+      return !(!data || (data.errors && data.errors.length > 0));
+    }catch (e) {
+      console.log('error airlyft', e);
+      return false;
+    }
 
   }
 

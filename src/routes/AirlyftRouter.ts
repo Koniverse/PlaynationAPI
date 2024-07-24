@@ -3,6 +3,7 @@ import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {AirlyftService, AirlyftSyncParams, AirlyftEventWebhook} from '@src/services/AirlyftService';
 import {Task} from '@src/models';
+import {requireLogin} from "@src/routes/helper";
 
 const AirlyftRouter = Router();
 
@@ -28,7 +29,8 @@ const routerMap = {
   syncAccount: async (req: IReq<AirlyftSyncParams>, res: IRes) => {
     console.log('data', req.body);
     const userId = req.body.userId;
-    const data = await airlyftService.syncAccount(userId);
+    const address = req.body.address;
+    const data = await airlyftService.syncAccountByAddress(userId, address);
     return res.status(200).json(data);
   },
 
@@ -37,9 +39,16 @@ const routerMap = {
     await airlyftService.syncWebhook(req.body);
     return res.status(200).json({});
   },
+
+  getToken: async (req: IReq<Query>, res: IRes) => {
+    const account_id = req.user?.id || 0;
+    const data = await airlyftService.getAccountToken(account_id);
+    return res.status(200).json(data);
+  },
 };
 AirlyftRouter.post('/sync-account', routerMap.syncAccount);
 AirlyftRouter.post('/webhook', routerMap.webhook);
+AirlyftRouter.get('/get-token', requireLogin, routerMap.getToken);
 AirlyftRouter.get('/test', routerMap.test);
 
 export default AirlyftRouter;
