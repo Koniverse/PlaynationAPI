@@ -177,7 +177,7 @@ export class LeaderBoardService {
   }
 
   getInviteToPlayQuery(gameId: number) {
-    const queryGame = gameId > 0 ? 'and gd."gameId" = :gameId' : '';
+    const queryGame = gameId > 0 ? 'and "gameId" = :gameId' : '';
     const sql = `
 
         with 
