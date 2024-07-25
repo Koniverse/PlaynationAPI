@@ -15,6 +15,9 @@ export class GamePlay extends Model<InferAttributes<GamePlay>, InferCreationAttr
   declare endTime: CreationOptional<Date>;
   declare point: CreationOptional<number>;
   declare success: CreationOptional<boolean>;
+  declare state: CreationOptional<any>;
+  declare stateSignature: CreationOptional<string>;
+  declare stateCount: CreationOptional<number>;
 }
 
 GamePlay.init({
@@ -61,6 +64,18 @@ GamePlay.init({
   },
   success: {
     type: DataTypes.BOOLEAN,
+  },
+  stateCount: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  state: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+  },
+  stateSignature: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
 }, {
   indexes: [],

@@ -5,12 +5,12 @@ import {
   GameData,
   GameInventoryItem,
   GameInventoryItemStatus,
-  GamePlay,
-  LeaderboardPerson,
+  GamePlay, GameType,
 } from '@src/models';
 import { v4 } from 'uuid';
 import { AccountService } from '@src/services/AccountService';
-import { QueryTypes } from 'sequelize';
+import { QuickGetService } from '@src/services/QuickGetService';
+import { GameState } from '@playnation/game-sdk/dist/types';
 
 export interface newGamePlayParams {
   gameId: number;
@@ -20,6 +20,15 @@ export interface SubmitGamePlayParams {
   gamePlayId: number;
   signature: string;
   point: number;
+}
+
+export interface GetLastStateParams {
+  gamePlayId: number;
+}
+
+export interface SubmitGamePlayStateParams {
+  gamePlayId: number;
+  stateData: GameState<any>;
 }
 
 interface LeaderboardRecord {
@@ -35,6 +44,7 @@ interface LeaderboardRecord {
 }
 
 const accountService = AccountService.instance;
+const quickGetService = QuickGetService.instance;
 
 export interface GameContentCms {
   id: number;
@@ -83,6 +93,7 @@ export class GameService {
       banner: 'https://via.placeholder.com/1200x600',
       rankDefinition: '{}',
       active: true,
+      gameType: GameType.CASUAL,
     });
   }
 
@@ -93,6 +104,7 @@ export class GameService {
 
     for (const item of data) {
       const itemData = { ...item } as unknown as Game;
+      itemData.gameType = itemData.gameType || GameType.CASUAL;
       const existed = await Game.findOne({ where: { contentId: item.id } });
       itemData.rankDefinition = JSON.stringify(item.rank_definition);
       if (existed) {
@@ -211,18 +223,59 @@ export class GameService {
     await accountService.addAccountPoint(accountId, pointRate);
   }
 
-  async submitGameplay(params: SubmitGamePlayParams) {
-    const gamePlay = await GamePlay.findByPk(params.gamePlayId);
-
-    if (!gamePlay) {
-      throw new Error('Game play not found');
-    }
-
-    const game = await this.findGame(gamePlay?.gameId || 0);
-    if (!game) {
-      throw new Error('Game not found');
-    }
+  async submitGamePlayState(gamePlayId: number, stateData: GameState<any>) {
+    const gamePlay = await quickGetService.requireGamePlay(gamePlayId);
+    const game = await quickGetService.findGame(gamePlay.gameId);
     this.checkGameActive(game);
+
+    // Validate data
+    if (!stateData.data || !stateData.signature) {
+      throw new Error('Invalid state data');
+    }
+
+    // Todo: Validate signature
+
+    const newStateCount = (gamePlay.stateCount || 0) + 1;
+
+    await gamePlay.update({
+      state: stateData.data as unknown,
+      stateSignature: stateData.signature,
+      stateCount: newStateCount,
+      endTime: new Date(),
+      point: 0,
+      success: true,
+    });
+
+    return {
+      success: true,
+    };
+  }
+
+  async getLastState(accountId: number, gameId: number) {
+    const game = await quickGetService.requireGame(gameId);
+    if (game.gameType !== GameType.FARMING) {
+      throw new Error('Invalid method');
+    }
+    const lastGamePlay = await GamePlay.findOne({
+      where: {
+        accountId: accountId,
+        gameId: game.id,
+        state: {$not: null},
+      },
+      order: [['id', 'DESC']],
+    });
+
+    return lastGamePlay;
+  }
+
+  async submitGameplay(params: SubmitGamePlayParams) {
+    const gamePlay = await quickGetService.requireGamePlay(params.gamePlayId);
+    const game = await quickGetService.findGame(gamePlay.gameId);
+    this.checkGameActive(game);
+
+    if (game.gameType !== GameType.CASUAL) {
+      throw new Error('Invalid method');
+    }
 
     // Validate max point
     if (params.point > game.maxPointPerGame) {
