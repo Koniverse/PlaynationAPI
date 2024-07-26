@@ -271,15 +271,11 @@ export class GameService {
   async submitGameplay(params: SubmitGamePlayParams) {
     const gamePlay = await quickGetService.requireGamePlay(params.gamePlayId);
     const game = await quickGetService.findGame(gamePlay.gameId);
+
     this.checkGameActive(game);
 
     if (game.gameType !== GameType.CASUAL) {
       throw new Error('Invalid method');
-    }
-
-    // Validate max point
-    if (params.point > game.maxPointPerGame) {
-      throw new Error('Point limit exceeded');
     }
 
     // Validate point <0
@@ -309,17 +305,23 @@ export class GameService {
     // }
 
     // Timeout if game is submitting too long
-
     const point = params.point;
     const pointRate = Math.floor(params.point * game.pointConversionRate);
+    let success = true;
+    // Validate max point
+    if (params.point > game.maxPointPerGame) {
+      success = false;
+    }
 
     await gamePlay.update({
       point: pointRate,
       endTime: new Date(),
-      success: true,
+      success,
     });
 
-    await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, point, pointRate);
+    if (success) {
+      await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, point, pointRate);
+    }
 
     return gamePlay;
   }
