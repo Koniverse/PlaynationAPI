@@ -6,6 +6,7 @@ import {
   GameInventoryItem,
   GameInventoryItemStatus,
   GameItem,
+  GamePlay,
   Task,
 } from '@src/models';
 
@@ -44,6 +45,19 @@ export class QuickGetService {
     }
 
     return game;
+  }
+
+  async findGamePlay(gameId: number) {
+    return GamePlay.findByPk(gameId);
+  }
+
+  async requireGamePlay(gameId: number) {
+    const gamePlay = await this.findGamePlay(gameId);
+    if (!gamePlay) {
+      throw new Error(`Game Play not found: ${gameId}`);
+    }
+
+    return gamePlay;
   }
 
   // API for GameItem
