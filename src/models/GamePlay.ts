@@ -14,6 +14,8 @@ export class GamePlay extends Model<InferAttributes<GamePlay>, InferCreationAttr
   declare energy: number;
   declare endTime: CreationOptional<Date>;
   declare point: CreationOptional<number>;
+  declare gamePoint: CreationOptional<number>;
+  declare ratio: CreationOptional<number>;
   declare success: CreationOptional<boolean>;
 }
 
@@ -58,6 +60,13 @@ GamePlay.init({
   },
   point: {
     type: DataTypes.INTEGER,
+  },
+  gamePoint: {
+    type: DataTypes.INTEGER,
+  },
+  ratio: {
+    type: DataTypes.FLOAT,
+    defaultValue: 1,
   },
   success: {
     type: DataTypes.BOOLEAN,
