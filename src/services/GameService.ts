@@ -14,6 +14,7 @@ import { GameState } from '@playnation/game-sdk/dist/types';
 import {tryToParseJSON, validatePayload} from '@src/utils';
 import EnvVars from "@src/constants/EnvVars";
 import * as console from "node:console";
+import {Op} from "sequelize";
 
 export interface newGamePlayParams {
   gameId: number;
@@ -267,7 +268,7 @@ export class GameService {
       where: {
         accountId: accountId,
         gameId: game.id,
-        state: {$not: null},
+        state: {[Op.not]: null},
       },
       order: [['id', 'DESC']],
     });
