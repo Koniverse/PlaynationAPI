@@ -11,6 +11,8 @@ import { v4 } from 'uuid';
 import { AccountService } from '@src/services/AccountService';
 import { QuickGetService } from '@src/services/QuickGetService';
 import { GameState } from '@playnation/game-sdk/dist/types';
+import {validatePayload} from '@src/utils';
+import EnvVars from "@src/constants/EnvVars";
 
 export interface newGamePlayParams {
   gameId: number;
@@ -233,7 +235,10 @@ export class GameService {
       throw new Error('Invalid state data');
     }
 
-    // Todo: Validate signature
+    const isSignatureValid = await validatePayload(stateData.data, stateData.signature, EnvVars.Game.FarmingGameToken);
+    if (!isSignatureValid) {
+      throw new Error('Invalid signature');
+    }
 
     const newStateCount = (gamePlay.stateCount || 0) + 1;
 

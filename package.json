@@ -33,6 +33,7 @@
     "node": ">=16.19.0"
   },
   "dependencies": {
+    "@aws-crypto/sha256-browser": "^5.2.0",
     "@ethereumjs/util": "^8.0.6",
     "@metamask/eth-sig-util": "^6.0.0",
     "@playnation/game-sdk": "^1.0.6",

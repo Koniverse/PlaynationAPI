@@ -91,6 +91,7 @@ const Environments = {
     EnergyBuyLimit: parseInt(process.env.ENERGY_BUY_LIMIT || '5'),
     EnergyOneBuy: parseInt(process.env.ENERGY_ONE_BUY || '1'),
     MaxBuyEnergy: parseInt(process.env.MAX_BUY_ENERGY || '1'),
+    FarmingGameToken: process.env.FARMING_GAME_TOKEN || 'secret-key',
   },
   GameItem: {
     EternalItem: parseInt(process.env.ETERNAL_ITEM || '-1'),
