@@ -10,3 +10,11 @@ export function generateRandomString(number = 9) {
 
   return randomString;
 }
+
+export function tryToParseJSON<T>(jsonString: string) {
+  try {
+    return JSON.parse(jsonString) as T;
+  } catch {
+    return jsonString;
+  }
+}

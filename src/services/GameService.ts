@@ -11,8 +11,9 @@ import { v4 } from 'uuid';
 import { AccountService } from '@src/services/AccountService';
 import { QuickGetService } from '@src/services/QuickGetService';
 import { GameState } from '@playnation/game-sdk/dist/types';
-import {validatePayload} from '@src/utils';
+import {tryToParseJSON, validatePayload} from '@src/utils';
 import EnvVars from "@src/constants/EnvVars";
+import * as console from "node:console";
 
 export interface newGamePlayParams {
   gameId: number;
@@ -243,7 +244,8 @@ export class GameService {
     const newStateCount = (gamePlay.stateCount || 0) + 1;
 
     await gamePlay.update({
-      state: stateData.data as unknown,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      state: tryToParseJSON<unknown>(stateData.data),
       stateSignature: stateData.signature,
       stateCount: newStateCount,
       endTime: new Date(),
@@ -269,6 +271,10 @@ export class GameService {
       },
       order: [['id', 'DESC']],
     });
+
+    if (lastGamePlay) {
+      lastGamePlay.state = JSON.stringify(lastGamePlay.state);
+    }
 
     return lastGamePlay;
   }
