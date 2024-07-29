@@ -23,7 +23,7 @@ export interface SubmitGamePlayParams {
 }
 
 export interface GetLastStateParams {
-  gamePlayId: number;
+  gameId: number;
 }
 
 export interface SubmitGamePlayStateParams {

@@ -59,8 +59,8 @@ const routerMap = {
   // Submit game session
   getLastState: async (req: IReq<GetLastStateParams>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const {gamePlayId} = req.body;
-    const result = await gameService.getLastState(userId, gamePlayId);
+    const {gameId} = req.body;
+    const result = await gameService.getLastState(userId, gameId);
 
     return res.status(200).json(result);
   },
