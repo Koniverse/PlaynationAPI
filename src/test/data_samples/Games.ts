@@ -1,4 +1,4 @@
-import { Game, GameData, GameItem } from '@src/models';
+import {Game, GameData, GameItem, GameType} from '@src/models';
 import EnvVars from '@src/constants/EnvVars';
 
 export async function createSampleGameData() {
@@ -23,6 +23,7 @@ export async function createSampleGameData() {
       active: true,
       createdAt: new Date(),
       updatedAt: new Date(),
+      gameType: GameType.CASUAL,
     }));
   }
 

@@ -35,6 +35,7 @@
   "dependencies": {
     "@ethereumjs/util": "^8.0.6",
     "@metamask/eth-sig-util": "^6.0.0",
+    "@playnation/game-sdk": "^1.0.6",
     "@polkadot/api": "^12.1.1",
     "@polkadot/types": "^12.1.1",
     "@polkadot/types-augment": "^12.1.1",

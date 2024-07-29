@@ -1,6 +1,11 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 
+export enum GameType {
+  CASUAL = 'casual',
+  FARMING = 'farming',
+}
+
 export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<Game>> {
   declare id: CreationOptional<number>; // id on db
   declare contentId: number;
@@ -13,6 +18,7 @@ export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<G
   declare maxEnergy: number;
   declare energyPerGame: number;
   declare active: boolean; // Todo: change to field on CMS
+  declare gameType: GameType;
 
   declare startTime: CreationOptional<Date>;
   declare endTime: CreationOptional<Date>;
@@ -28,6 +34,9 @@ Game.init({
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
+  },
+  gameType: {
+    type: DataTypes.ENUM(GameType.CASUAL, GameType.FARMING),
   },
   contentId: {
     type: DataTypes.INTEGER,

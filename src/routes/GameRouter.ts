@@ -4,9 +4,9 @@ import { Query } from 'express-serve-static-core';
 import {
   GameContentCms,
   GameInventoryItemParams,
-  GameService,
+  GameService, GetLastStateParams,
   newGamePlayParams,
-  SubmitGamePlayParams,
+  SubmitGamePlayParams, SubmitGamePlayStateParams,
 } from '@src/services/GameService';
 import { requireLogin, requireSecret } from '@src/routes/helper';
 import { GameItemService } from '@src/services/GameItemService';
@@ -45,6 +45,22 @@ const routerMap = {
   // Submit game session
   submitGameplay: async (req: IReq<SubmitGamePlayParams>, res: IRes) => {
     const result = await gameService.submitGameplay(req.body);
+
+    return res.status(200).json(result);
+  },
+
+  // Submit game session
+  submitState: async (req: IReq<SubmitGamePlayStateParams>, res: IRes) => {
+    const {gamePlayId, stateData} = req.body;
+    const result = await gameService.submitGamePlayState(gamePlayId, stateData);
+
+    return res.status(200).json(result);
+  },
+  // Submit game session
+  getLastState: async (req: IReq<GetLastStateParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const {gameId} = req.body;
+    const result = await gameService.getLastState(userId, gameId);
 
     return res.status(200).json(result);
   },
@@ -90,6 +106,8 @@ GameRouter.post('/leader-board', requireLogin, routerMap.getLeaderBoard);
 
 GameRouter.post('/new-game', requireLogin, routerMap.newGame);
 GameRouter.post('/submit', requireLogin, routerMap.submitGameplay);
+GameRouter.post('/get-last-state', requireLogin, routerMap.getLastState);
+GameRouter.post('/submit-state', requireLogin, routerMap.submitState);
 
 GameRouter.post('/use-item', requireLogin, routerMap.usedGameItem);
 GameRouter.get('/used-item-log', requireLogin, routerMap.getInventoryLogs);
