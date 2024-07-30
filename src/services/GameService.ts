@@ -11,10 +11,9 @@ import { v4 } from 'uuid';
 import { AccountService } from '@src/services/AccountService';
 import { QuickGetService } from '@src/services/QuickGetService';
 import { GameState } from '@playnation/game-sdk/dist/types';
-import {tryToParseJSON, validatePayload} from '@src/utils';
-import EnvVars from "@src/constants/EnvVars";
-import * as console from "node:console";
-import {Op} from "sequelize";
+import {tryToParseJSON, tryToStringify, validatePayload} from '@src/utils';
+import EnvVars from '@src/constants/EnvVars';
+import {Op} from 'sequelize';
 
 export interface newGamePlayParams {
   gameId: number;
@@ -227,7 +226,7 @@ export class GameService {
     await accountService.addAccountPoint(accountId, pointRate);
   }
 
-  async submitGamePlayState(gamePlayId: number, stateData: GameState<any>) {
+  async submitGamePlayState(gamePlayId: number, stateData: GameState<unknown>) {
     const gamePlay = await quickGetService.requireGamePlay(gamePlayId);
     const game = await quickGetService.findGame(gamePlay.gameId);
     this.checkGameActive(game);
@@ -237,25 +236,28 @@ export class GameService {
       throw new Error('Invalid state data');
     }
 
+    const {data, signature, timestamp} = stateData;
+
     const isSignatureValid = await validatePayload(stateData.data, stateData.signature, EnvVars.Game.FarmingGameToken);
-    if (!isSignatureValid) {
-      throw new Error('Invalid signature');
-    }
+    // if (!isSignatureValid) {
+    //   throw new Error('Invalid signature');
+    // }
 
     const newStateCount = (gamePlay.stateCount || 0) + 1;
 
     await gamePlay.update({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      state: tryToParseJSON<unknown>(stateData.data),
-      stateSignature: stateData.signature,
+      state: tryToStringify(data),
+      stateData: tryToParseJSON<unknown>(data),
+      stateSignature: signature,
+      stateTimestamp: timestamp,
       stateCount: newStateCount,
       endTime: new Date(),
       point: 0,
-      success: true,
+      success: isSignatureValid,
     });
 
     return {
-      success: true,
+      success: isSignatureValid,
     };
   }
 
@@ -273,7 +275,8 @@ export class GameService {
       order: [['id', 'DESC']],
     });
 
-    if (lastGamePlay) {
+    if (typeof lastGamePlay?.state !== 'string') {
+      // @ts-ignore
       lastGamePlay.state = JSON.stringify(lastGamePlay.state);
     }
 

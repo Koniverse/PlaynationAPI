@@ -11,10 +11,19 @@ export function generateRandomString(number = 9) {
   return randomString;
 }
 
-export function tryToParseJSON<T>(jsonString: string) {
+export function tryToParseJSON<T>(jsonString: unknown) {
   try {
-    return JSON.parse(jsonString) as T;
-  } catch {
+    if (typeof jsonString === 'string') {
+      return JSON.parse(jsonString) as T;
+    }
+  } catch (e) { /* empty */ }
+  return jsonString;
+}
+
+export function tryToStringify(jsonString: unknown) {
+  if (typeof jsonString === 'string') {
     return jsonString;
   }
+
+  return JSON.stringify(jsonString);
 }

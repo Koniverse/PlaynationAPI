@@ -19,7 +19,7 @@ describe('GameService', () => {
       data.c += 1;
       // const signature = await signPayload(data);
       await gameService.submitGamePlayState(gamePlay.id, {
-        data,
+        data: JSON.stringify(data),
         signature: '0x00000',
         timestamp: new Date().toISOString(),
       });
