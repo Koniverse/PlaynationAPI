@@ -22,6 +22,8 @@ const MAP_NETWORK = {
   'karura': 'karura',
   'acala': 'acala',
   'vara_network': 'vara',
+  'creditcoinTest': 'creditcoin3-testnet',
+  'creditcoin': 'creditcoin',
 } as Record<string, string>;
 
 export class SubscanService {
