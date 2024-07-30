@@ -54,6 +54,35 @@ export class LeaderBoardService {
     return sql;
   }
 
+  getGamePointQuery(gameId: number) {
+    const queryGame = gameId > 0 ? 'and gd."gameId" = :gameId' : '';
+    const sql = `
+        with RankedUsers as (SELECT gd."accountId",
+                                    a."telegramUsername",
+                                    a.address,
+                                    a."firstName",
+                                    a."lastName",
+                                    a."photoUrl"                                           as avatar,
+                                    (a.id = :accountId)                                    as mine,
+                                    SUM(coalesce(gd."gamePoint", 0))                             AS point,
+                                    RANK() OVER (ORDER BY SUM(coalesce(gd.gamePoint, 0)) DESC, MIN(gd."createdAt") asc) as rank                                    
+                             FROM game_play gd
+                                      JOIN
+                                  account a
+                                  ON gd."accountId" = a.id
+                             where gd."createdAt" >= :startDate
+                               and gd."createdAt" <= :endDate
+                                 ${queryGame}
+                             GROUP BY 1, 2, 3, 4, 5, 6, 7
+                             ORDER BY rank asc)
+        select *
+        from RankedUsers
+        where rank <= :limit
+           or mine = true;
+    `;
+    return sql;
+  }
+
   getTaskQuery(gameId: number) {
     const queryTaskGame = gameId > 0 ? 'and ta."gameId" = :gameId' : '';
     const sql = `
@@ -92,6 +121,7 @@ export class LeaderBoardService {
     const sql = `
 
         with combinedPoints as (SELECT "sourceAccountId"       AS accountId,
+                                       Min("createdAt") as createdAt,
                                        SUM(coalesce(point, 0)) AS point
                                 FROM referral_log
                                 where "createdAt" >= :startDate
@@ -99,6 +129,7 @@ export class LeaderBoardService {
                                 GROUP BY "sourceAccountId"
                                 UNION ALL
                                 SELECT "indirectAccount"                 AS accountId,
+                                       Min("createdAt") as createdAt,
                                        SUM(coalesce("indirectPoint", 0)) AS point
                                 FROM referral_log
                                 where "createdAt" >= :startDate
@@ -106,6 +137,7 @@ export class LeaderBoardService {
                                 GROUP BY "indirectAccount"
                                 UNION ALL
                                 SELECT "sourceAccountId"       AS accountId,
+                                       Min("createdAt") as createdAt,
                                        SUM(coalesce(point, 0)) AS point
                                 FROM referral_upgrade_log
                                 where "createdAt" >= :startDate
@@ -113,15 +145,90 @@ export class LeaderBoardService {
                                 GROUP BY "sourceAccountId"
                                 UNION ALL
                                 SELECT "indirectAccount"                 AS accountId,
+                                       Min("createdAt") as createdAt,
                                        SUM(coalesce("indirectPoint", 0)) AS point
                                 FROM referral_upgrade_log
                                 where "createdAt" >= :startDate
                                   and "createdAt" <= :endDate
                                 GROUP BY "indirectAccount"),
              rankedUsers as (SELECT accountId,
-                                    RANK() OVER (ORDER BY SUM(point) DESC) as rank,
+                                    RANK() OVER (ORDER BY SUM(point) DESC, MIN(combinedPoints.createdAt) asc) as rank,
+                                    SUM(point)                             AS point
+                             FROM combinedPoints 
+                             JOIN account a on a.id = accountId
+                             where a."isEnabled"
+                             GROUP BY accountId)
+        SELECT a.id                as "accountId",
+               a."address",
+               a."firstName",
+               a."lastName",
+               a."telegramUsername",
+               a."photoUrl"        as avatar,
+               ra.rank,
+               (a.id = :accountId) as mine,
+               ra.point            AS point
+        FROM rankedUsers ra
+                 JOIN account a ON ra.accountId = a.id
+        where ra.rank <= :limit
+           or a.id = :accountId
+        ORDER BY point DESC;
+    `;
+    return sql;
+  }
+
+  getInviteToPlayQuery(gameId: number) {
+    const queryGame = gameId > 0 ? 'and "gameId" = :gameId' : '';
+    const sql = `
+
+        with 
+            playGamme as (SELECT "accountId"
+                   FROM game_play
+                   where  "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                     ${queryGame}
+                   ),
+            
+            combinedPoints as (SELECT "sourceAccountId"       AS accountId,
+                                   Min("createdAt") as createdAt,
+                                       SUM(coalesce(point, 0)) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "sourceAccountId"
+                                UNION ALL
+                                SELECT "indirectAccount"                 AS accountId,
+                                    Min("createdAt") as createdAt,
+                                       SUM(coalesce("indirectPoint", 0)) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "indirectAccount"
+                                UNION ALL
+                                SELECT "sourceAccountId"       AS accountId,
+                                    Min("createdAt") as createdAt,
+                                       SUM(coalesce(point, 0)) AS point
+                                FROM referral_upgrade_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "sourceAccountId"
+                                UNION ALL
+                                SELECT "indirectAccount"                 AS accountId,
+                                    Min("createdAt") as createdAt,
+                                       SUM(coalesce("indirectPoint", 0)) AS point
+                                FROM referral_upgrade_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "indirectAccount"),
+             rankedUsers as (SELECT accountId,
+                                    RANK() OVER (ORDER BY SUM(point) DESC, MIN(combinedPoints.createdAt) asc) as rank,
                                     SUM(point)                             AS point
                              FROM combinedPoints
+                                JOIN account a on a.id = accountId
+                                where a."isEnabled"
                              GROUP BY accountId)
         SELECT a.id                as "accountId",
                a."address",
@@ -286,10 +393,14 @@ export class LeaderBoardService {
       sql = this.getGameQuery(gameId);
     } else if (typeQuery === 'task') {
       sql = this.getTaskQuery(gameId);
+    } else if (typeQuery === 'gamePoint') {
+      sql = this.getGamePointQuery(gameId);
     } else if (typeQuery === 'accumulatePoint') {
       sql = this.getAccumulatePoint();
     } else if (typeQuery === 'referral') {
       sql = this.getReferralLogQuery();
+    } else if (typeQuery === 'inviteToPlay') {
+      sql = this.getInviteToPlayQuery(gameId);
     }
 
     try {

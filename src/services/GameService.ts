@@ -315,6 +315,8 @@ export class GameService {
 
     await gamePlay.update({
       point: pointRate,
+      gamePoint: point,
+      ratio: game.pointConversionRate,
       endTime: new Date(),
       success,
     });
