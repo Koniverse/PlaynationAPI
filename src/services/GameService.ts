@@ -352,7 +352,7 @@ export class GameService {
 
     playSummary.forEach((p) => {
       pointMap[p.game_slug] = !!p.total_point && p.total_point >= checkPoint;
-      playMap[p.game_slug] = !!p.total_point && p.total_point >= checkPlayCount;
+      playMap[p.game_slug] = !!p.play_count && p.play_count >= checkPlayCount;
     });
 
     return {
