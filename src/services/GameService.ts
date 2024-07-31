@@ -11,6 +11,7 @@ import {
 import { v4 } from 'uuid';
 import { AccountService } from '@src/services/AccountService';
 import { QueryTypes } from 'sequelize';
+import { QuickGetService } from './QuickGetService';
 
 export interface newGamePlayParams {
   gameId: number;
@@ -34,7 +35,27 @@ interface LeaderboardRecord {
   mine: boolean;
 }
 
+export interface GamePlayCheckParams {
+  telegramId: number;
+  point?: number;
+  playCount?: number;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface MultiGamePlayCheckParams extends GamePlayCheckParams{
+  gameSlugs?: string[];
+}
+
+interface PlaySummaryItem {
+  game_slug: string;
+  game_id: number;
+  play_count?: number;
+  total_point?: number;
+}
+
 const accountService = AccountService.instance;
+const quickGetService = QuickGetService.instance;
 
 export interface GameContentCms {
   id: number;
@@ -304,6 +325,65 @@ export class GameService {
     return {
       success: true,
     };
+  }
+
+  public async checkGamePlayByTelegramId({telegramId, gameSlugs, point, playCount, startTime, endTime}: MultiGamePlayCheckParams) {
+    if (!telegramId) {
+      throw new Error('Invalid telegramId');
+    }
+    const checkPoint = point || 0;
+    const checkPlayCount = playCount || 0;
+    const account = await Account.findOne({
+      where: {
+        telegramId,
+        isEnabled: true,
+      },
+    });
+
+    if (!account) {
+      throw new Error('Account not found');
+    }
+
+    const sTime = startTime ? new Date(startTime) : undefined;
+    const eTime = endTime ? new Date(endTime) : undefined;
+    const playSummary = await this.getGamePlaySummary(account.id, gameSlugs, sTime, eTime);
+    const pointMap: Record<string, boolean> = {};
+    const playMap: Record<string, boolean> = {};
+
+    playSummary.forEach((p) => {
+      pointMap[p.game_slug] = !!p.total_point && p.total_point >= checkPoint;
+      playMap[p.game_slug] = !!p.total_point && p.total_point >= checkPlayCount;
+    });
+
+    return {
+      telegramId,
+      pointCheck: pointMap,
+      playCheck: playMap,
+    };
+  }
+
+  public async getGamePlaySummary(accountId: number, gameSlugs?: string[], startTime?: Date, endTime?: Date) {
+    const gameQuery = gameSlugs ? 'and g."slug" in (:gameSlugs)' : '';
+    const startTimeQuery = startTime ? 'and gp."endTime" >= :startTime' : '';
+    const endTimeQuery = endTime ? 'and gp."endTime" <= :endTime' : '';
+
+    const sql = `
+    WITH play_rs AS (
+      SELECT gp."gameId" game_id, count(gp.id) play_count, sum(gp.point) total_point
+      FROM game_play gp
+          JOIN game g ON gp."gameId" = g.id
+          JOIN account a ON gp."accountId" = a.id
+      WHERE a.id = :accountId and gp.success = true ${gameQuery} ${startTimeQuery} ${endTimeQuery} 
+      GROUP BY 1
+    )
+    SELECT g.slug game_slug, play_rs.* from game g
+        LEFT JOIN play_rs ON g.id = play_rs.game_id
+        WHERE 1=1 ${gameQuery}`;
+
+    return await this.sequelizeService.sequelize.query<PlaySummaryItem>(sql, {
+      replacements: {accountId, gameSlugs, startTime, endTime},
+      type: QueryTypes.SELECT,
+    });
   }
 
   // Singleton

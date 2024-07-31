@@ -106,7 +106,10 @@ export class AccountService {
     return newAccount;
   }
 
-  public async checkByTelegramId({telegramId, point}: AccountCheckParams) {
+  public async checkPointByTelegramId({telegramId, point}: AccountCheckParams) {
+    if (!telegramId) {
+      throw new Error('Invalid telegramId');
+    }
     const account = await Account.findAll({
       where: {
         telegramId,
@@ -123,7 +126,7 @@ export class AccountService {
         accountId: {
           [Op.in]: account.map((a) => a.id),
         },
-        point: {
+        accumulatePoint: {
           [Op.gte]: point || 0,
         },
       },
