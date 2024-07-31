@@ -32,7 +32,6 @@ const routerMap = {
   // Sync account data and fetch account details
   checkGamePlayByTelegramId: async (req: IReq<CheckGamePlayByTelegramQuery>, res: IRes) => {
     try {
-      console.log(123, req.body, req.params);
       const publicData = await gameService.checkGamePlayByTelegramId(req.body);
 
       return res.status(200).json({
