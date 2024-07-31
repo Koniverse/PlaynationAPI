@@ -275,7 +275,7 @@ export class GameService {
       order: [['id', 'DESC']],
     });
 
-    if (typeof lastGamePlay?.state !== 'string') {
+    if (lastGamePlay?.state && typeof lastGamePlay?.state !== 'string') {
       // @ts-ignore
       lastGamePlay.state = JSON.stringify(lastGamePlay.state);
     }
