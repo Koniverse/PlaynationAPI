@@ -8,7 +8,9 @@ import {
 } from '@src/models';
 import { QueryTypes } from 'sequelize';
 import {LeaderboardContentCms} from '@src/types';
-import {KeyValueStoreService} from "@src/services/KeyValueStoreService";
+import {KeyValueStoreService} from '@src/services/KeyValueStoreService';
+import * as console from 'node:console';
+import {calculateStartAndEnd} from "@src/utils/date";
 
 export interface LeaderboardParams {
   gameId: number;
@@ -42,8 +44,6 @@ export class LeaderBoardService {
   async syncData(data: LeaderboardContentCms) {
     try {
       const { data: leaderboardData, leaderboard_general } = data;
-      console.log('leaderboardData', leaderboardData);
-      console.log('leaderboard_general', leaderboard_general);
       const keyValue = await KeyValueStore.findOne({where: {key: 'leaderboard_general'}});
       if (keyValue) {
         await keyValue.update({ value: leaderboard_general} as unknown as KeyValueStore);
@@ -89,8 +89,25 @@ export class LeaderBoardService {
     }
   }
 
-  async fetchData(id: number, accountId: number, context: string, limit = 100){
-
+  async fetchData(accountId: number, id: number, context: string, limit = 100){
+    console.log(id, accountId);
+    const leaderboard = await Leaderboard.findOne({
+      where: {'contentId': id},
+    });
+    if (leaderboard){
+      let startTime = leaderboard.startTime as unknown as string;
+      let endTime = leaderboard.endTime as unknown as string;
+      const gameIds = leaderboard.games;
+      const taskIds = leaderboard.tasks;
+      const type = leaderboard.type;
+      if (leaderboard.specialTime){
+        const timeData = calculateStartAndEnd(leaderboard.specialTime);
+        startTime = timeData.start  as unknown as string;
+        endTime = timeData.end as unknown as string;
+      }
+      const data = await this.getTotalLeaderboard(accountId, 0, startTime, endTime, limit);
+      return data;
+    }
   }
 
   getGameQuery(gameId: number) {
@@ -487,27 +504,27 @@ export class LeaderBoardService {
     startDate: string,
     endDate: string,
     limit = 100,
-    typeQuery = 'all',
+    typeQuery = 'all:nps',
   ) {
     let sql = this.getAllDataQuery(gameId);
-    if (typeQuery === 'game') {
+    if (typeQuery === 'game:casual:nps') {
       sql = this.getGameQuery(gameId);
-    } else if (typeQuery === 'task') {
+    } else if (typeQuery === 'task:nps') {
       sql = this.getTaskQuery(gameId);
-    } else if (typeQuery === 'gamePoint') {
+    } else if (typeQuery === 'game:casual:point') {
       sql = this.getGamePointQuery(gameId);
     } else if (typeQuery === 'accumulatePoint') {
       sql = this.getAccumulatePoint();
-    } else if (typeQuery === 'referral') {
+    } else if (typeQuery === 'referral:nps') {
       sql = this.getReferralLogQuery();
     } else if (typeQuery === 'inviteToPlay') {
       sql = this.getInviteToPlayQuery(gameId);
-    } else if (typeQuery.startsWith('farming')) {
+    } else if (typeQuery.startsWith('game:farming')) {
       let field = 'coin';
-      if (typeQuery === 'farming_totalLifetimeMoney') {
+      if (typeQuery === 'game:farming:totalPoint') {
         field = 'totalLifetimeMoney';
       }
-      if (typeQuery === 'farming_coinEarnPerSecond') {
+      if (typeQuery === 'game:farming:earnSpeed') {
         field = 'coinEarnPerSecond';
       }
       sql = this.getFarmingPointQuery(gameId, field);

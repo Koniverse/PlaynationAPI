@@ -5,7 +5,7 @@ import {requireLogin, requireSecret} from '@src/routes/helper';
 import {LeaderboardNewParams, LeaderBoardService} from '@src/services/LeaderBoardService';
 import {LeaderboardContentCms} from '@src/types';
 
-const KeyValueRouter = Router();
+const LeaderboardRouter = Router();
 
 const routerMap = {
   sync: async (req: IReq<Query>, res: IRes) => {
@@ -25,7 +25,7 @@ const routerMap = {
   },
 };
 
-KeyValueRouter.post('/sync', requireSecret, routerMap.sync);
-KeyValueRouter.get('/fetch', requireLogin, routerMap.fetch);
+LeaderboardRouter.post('/sync', requireSecret, routerMap.sync);
+LeaderboardRouter.post('/fetch', requireLogin, routerMap.fetch);
 
-export default KeyValueRouter;
+export default LeaderboardRouter;
