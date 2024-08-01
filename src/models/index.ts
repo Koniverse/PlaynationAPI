@@ -21,7 +21,6 @@ import AirdropTransactionLog from '@src/models/AirdropTransactionLog';
 import AirlyftEvent from '@src/models/AirlyftEvent';
 import AirlyftAccount from '@src/models/AirlyftAccount';
 import KeyValueStore from '@src/models/KeyValueStore';
-import Leaderboard from '@src/models/Leaderboard';
 
 AccountAttribute.belongsTo(Account, { foreignKey: 'accountId' });
 Account.hasOne(AccountAttribute, { foreignKey: 'accountId' });
@@ -66,7 +65,6 @@ SequelizeServiceImpl.addSync(AirdropTransactionLog.sync.bind(AirdropTransactionL
 SequelizeServiceImpl.addSync(AirlyftEvent.sync.bind(AirlyftEvent));
 SequelizeServiceImpl.addSync(AirlyftAccount.sync.bind(AirlyftAccount));
 SequelizeServiceImpl.addSync(KeyValueStore.sync.bind(KeyValueStore));
-SequelizeServiceImpl.addSync(Leaderboard.sync.bind(Leaderboard));
 
 export * from '@src/models/AccountAttribute';
 export * from '@src/models/Account';
@@ -90,4 +88,3 @@ export * from '@src/models/AirdropTransactionLog';
 export * from '@src/models/AirlyftEvent';
 export * from '@src/models/AirlyftAccount';
 export * from '@src/models/KeyValueStore';
-export * from '@src/models/Leaderboard';

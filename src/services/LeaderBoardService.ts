@@ -1,16 +1,12 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
 import {
-  Game,
-  KeyValueStore,
-  Leaderboard,
   LeaderboardPerson,
-  Task,
 } from '@src/models';
 import { QueryTypes } from 'sequelize';
-import {LeaderboardContentCms} from '@src/types';
+import {LeaderboardItem} from '@src/types';
 import {KeyValueStoreService} from '@src/services/KeyValueStoreService';
 import * as console from 'node:console';
-import {calculateStartAndEnd} from "@src/utils/date";
+import {calculateStartAndEnd} from '@src/utils/date';
 
 export interface LeaderboardParams {
   gameId: number;
@@ -40,63 +36,14 @@ export interface LeaderboardRecord {
 export class LeaderBoardService {
   constructor(private sequelizeService: SequelizeService) {}
 
-
-  async syncData(data: LeaderboardContentCms) {
-    try {
-      const { data: leaderboardData, leaderboard_general } = data;
-      const keyValue = await KeyValueStore.findOne({where: {key: 'leaderboard_general'}});
-      if (keyValue) {
-        await keyValue.update({ value: leaderboard_general} as unknown as KeyValueStore);
-      } else {
-        await KeyValueStore.create({
-          key: 'leaderboard_general',
-          value: leaderboard_general,
-        } as unknown as KeyValueStore);
-      }
-
-      for (const item of leaderboardData) {
-        const itemData = {...item} as unknown as Leaderboard;
-        const existed = await Leaderboard.findOne({where: {contentId: item.id}});
-        const contentGameId = item.games;
-        const contentTaskId = item.tasks;
-        const gameList = await Game.findAll({where: {contentId: contentGameId}});
-        // @ts-ignore
-        itemData.games = [];
-        if(gameList) {
-          // @ts-ignore
-          itemData.games = gameList.map(game => game.id);
-        }
-        const taskList = await Task.findAll({where: {contentId: contentTaskId}});
-        // @ts-ignore
-        itemData.tasks = [];
-        if(taskList) {
-          // @ts-ignore
-          itemData.tasks = taskList.map(task => task.id);
-        }
-
-        // Sync data
-        if (existed) {
-          await existed.update(itemData);
-        } else {
-          itemData.contentId = item.id;
-          await Leaderboard.create(itemData);
-        }
-      }
-      await KeyValueStoreService.instance.buildMap();
-      return { success: true };
-    } catch (error) {
-      return { success: false };
-    }
-  }
-
   async fetchData(accountId: number, id: number, context: string, limit = 100){
-    console.log(id, accountId);
-    const leaderboard = await Leaderboard.findOne({
-      where: {'contentId': id},
-    });
+    const leaderboardList = await KeyValueStoreService.instance.get('leaderboard_map') as unknown as LeaderboardItem[];
+    const leaderboard = leaderboardList.find(item => item.id === id);
     if (leaderboard){
       let startTime = leaderboard.startTime as unknown as string;
       let endTime = leaderboard.endTime as unknown as string;
+
+      // TO DO: check task and game by array
       const gameIds = leaderboard.games;
       const taskIds = leaderboard.tasks;
       const type = leaderboard.type;
