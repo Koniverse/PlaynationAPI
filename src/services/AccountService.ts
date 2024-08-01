@@ -10,7 +10,7 @@ import { GameData, GiveAwayPoint } from '@src/models';
 import { TelegramService } from '@src/services/TelegramService';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 import { Op } from 'sequelize';
-import * as console from 'node:console';
+import logger from 'jet-logger';
 
 // CMS input
 export interface GiveawayPointParams {
@@ -175,11 +175,9 @@ export class AccountService {
     if (
       account.firstName !== info.firstName ||
       account.lastName !== info.lastName ||
-      account.photoUrl !== info.photoUrl ||
-      !!account.addedToAttachMenu !== !!info.addedToAttachMenu || // Convert to boolean
       account.languageCode !== info.languageCode
     ) {
-      console.log('Updating account info');
+      logger.info('Updating account info');
       await account.update(info);
     }
 
@@ -441,7 +439,6 @@ export class AccountService {
           inviteCode,
         },
       });
-      console.log('account', account);
 
       if (!account) {
         continue;
@@ -566,7 +563,7 @@ export class AccountService {
       return { success: true };
     } catch (e) {
       await transaction.rollback();
-      console.log('Error in handle baned account', e);
+      logger.info('Error in handle baned account', e);
     }
   }
 
