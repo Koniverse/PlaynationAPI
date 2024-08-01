@@ -1,12 +1,25 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
-import { LeaderboardPerson } from '@src/models';
+import {
+  Game,
+  KeyValueStore,
+  Leaderboard,
+  LeaderboardPerson,
+  Task,
+} from '@src/models';
 import { QueryTypes } from 'sequelize';
+import {LeaderboardContentCms} from '@src/types';
+import {KeyValueStoreService} from "@src/services/KeyValueStoreService";
 
 export interface LeaderboardParams {
   gameId: number;
   startDate: string;
   endDate: string;
   type: 'accumulatePoint' | 'game' | 'task' | 'referral' | 'all';
+  limit: number;
+}
+export interface LeaderboardNewParams {
+  id: number;
+  context: string;
   limit: number;
 }
 
@@ -24,6 +37,61 @@ export interface LeaderboardRecord {
 
 export class LeaderBoardService {
   constructor(private sequelizeService: SequelizeService) {}
+
+
+  async syncData(data: LeaderboardContentCms) {
+    try {
+      const { data: leaderboardData, leaderboard_general } = data;
+      console.log('leaderboardData', leaderboardData);
+      console.log('leaderboard_general', leaderboard_general);
+      const keyValue = await KeyValueStore.findOne({where: {key: 'leaderboard_general'}});
+      if (keyValue) {
+        await keyValue.update({ value: leaderboard_general} as unknown as KeyValueStore);
+      } else {
+        await KeyValueStore.create({
+          key: 'leaderboard_general',
+          value: leaderboard_general,
+        } as unknown as KeyValueStore);
+      }
+
+      for (const item of leaderboardData) {
+        const itemData = {...item} as unknown as Leaderboard;
+        const existed = await Leaderboard.findOne({where: {contentId: item.id}});
+        const contentGameId = item.games;
+        const contentTaskId = item.tasks;
+        const gameList = await Game.findAll({where: {contentId: contentGameId}});
+        // @ts-ignore
+        itemData.games = [];
+        if(gameList) {
+          // @ts-ignore
+          itemData.games = gameList.map(game => game.id);
+        }
+        const taskList = await Task.findAll({where: {contentId: contentTaskId}});
+        // @ts-ignore
+        itemData.tasks = [];
+        if(taskList) {
+          // @ts-ignore
+          itemData.tasks = taskList.map(task => task.id);
+        }
+
+        // Sync data
+        if (existed) {
+          await existed.update(itemData);
+        } else {
+          itemData.contentId = item.id;
+          await Leaderboard.create(itemData);
+        }
+      }
+      await KeyValueStoreService.instance.buildMap();
+      return { success: true };
+    } catch (error) {
+      return { success: false };
+    }
+  }
+
+  async fetchData(id: number, accountId: number, context: string, limit = 100){
+
+  }
 
   getGameQuery(gameId: number) {
     const queryGame = gameId > 0 ? 'and gd."gameId" = :gameId' : '';
@@ -43,6 +111,7 @@ export class LeaderBoardService {
                                   ON gd."accountId" = a.id
                              where gd."createdAt" >= :startDate
                                and gd."createdAt" <= :endDate
+                                and gd.success is true
                                  ${queryGame}
                              GROUP BY 1, 2, 3, 4, 5, 6, 7
                              ORDER BY rank asc)
@@ -72,6 +141,37 @@ export class LeaderBoardService {
                                   ON gd."accountId" = a.id
                              where gd."createdAt" >= :startDate
                                and gd."createdAt" <= :endDate
+                                and gd.success is true
+                                 ${queryGame}
+                             GROUP BY 1, 2, 3, 4, 5, 6, 7
+                             ORDER BY rank asc)
+        select *
+        from RankedUsers
+        where rank <= :limit
+           or mine = true;
+    `;
+    return sql;
+  }
+
+  getFarmingPointQuery(gameId: number, field: string) {
+    const queryGame = gameId > 0 ? 'and gd."gameId" = :gameId' : '';
+    const sql = `
+        with RankedUsers as (SELECT gd."accountId",
+                                    a."telegramUsername",
+                                    a.address,
+                                    a."firstName",
+                                    a."lastName",
+                                    a."photoUrl"                                           as avatar,
+                                    (a.id = :accountId)                                    as mine,
+                                    SUM(coalesce(CAST(gd."stateData"->>'${field}' AS NUMERIC), 0))                             AS point,
+                                    RANK() OVER (ORDER BY SUM(coalesce(CAST(gd."stateData"->>'${field}' AS NUMERIC), 0)) DESC, MIN(gd."createdAt") asc) as rank                                    
+                             FROM game_play gd
+                                      JOIN
+                                  account a
+                                  ON gd."accountId" = a.id
+                             where gd."createdAt" >= :startDate
+                               and gd."createdAt" <= :endDate
+                                and gd.success is true
                                  ${queryGame}
                              GROUP BY 1, 2, 3, 4, 5, 6, 7
                              ORDER BY rank asc)
@@ -292,6 +392,7 @@ export class LeaderBoardService {
                              FROM game_play
                              where "createdAt" >= :startDate
                                and "createdAt" <= :endDate
+                                and success is true
                                  ${queryGame}
                              GROUP BY 1
                              UNION ALL
@@ -401,6 +502,15 @@ export class LeaderBoardService {
       sql = this.getReferralLogQuery();
     } else if (typeQuery === 'inviteToPlay') {
       sql = this.getInviteToPlayQuery(gameId);
+    } else if (typeQuery.startsWith('farming')) {
+      let field = 'coin';
+      if (typeQuery === 'farming_totalLifetimeMoney') {
+        field = 'totalLifetimeMoney';
+      }
+      if (typeQuery === 'farming_coinEarnPerSecond') {
+        field = 'coinEarnPerSecond';
+      }
+      sql = this.getFarmingPointQuery(gameId, field);
     }
 
     try {
