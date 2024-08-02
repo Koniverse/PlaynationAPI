@@ -80,14 +80,14 @@ export function calculateStartAndEnd (key: string) {
     const startOfMonth = new Date(Date.UTC(year, month, 1));
     const endOfMonth = getLastDayOfMonth(year, month);
 
-    return { start: startOfMonth, end: formatDate(endOfMonth, true) };
+    return { start: formatDate(startOfMonth, false), end: formatDate(endOfMonth, true) };
   }
 
   case 'yearly': {
     const startOfYear = new Date(Date.UTC(year, 0, 1));
     const endOfYear = getLastDayOfYear(year);
 
-    return { start: startOfYear, end: formatDate(endOfYear, true) };
+    return { start: formatDate(startOfYear, false), end: formatDate(endOfYear, true) };
   }
 
   default:

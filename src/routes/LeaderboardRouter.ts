@@ -1,14 +1,14 @@
 import { IReq, IRes } from '@src/routes/types';
 import { Router } from 'express';
 import {requireLogin} from '@src/routes/helper';
-import {LeaderboardNewParams, LeaderBoardService} from '@src/services/LeaderBoardService';
+import {LeaderboardParams, LeaderBoardService} from '@src/services/LeaderBoardService';
 import {Query} from 'express-serve-static-core';
 
 const LeaderboardRouter = Router();
 
 const routerMap = {
 
-  fetch: async (req: IReq<LeaderboardNewParams>, res: IRes) => {
+  fetch: async (req: IReq<LeaderboardParams>, res: IRes) => {
     const accountId = req.user?.id || 0;
     const id = req.body.id;
     const context = req.body.context;
