@@ -271,7 +271,7 @@ export class AirdropService {
       },
       order: [['use_point', 'ASC']],
     });
-    console.log(account_id, campaign_id);
+
     const currentProcess = await this.detectCurrentProcess(campaign_id, airdropRecord.length);
 
     if (!airdropRecord || airdropRecord.length === 0) {

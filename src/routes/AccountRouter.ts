@@ -55,7 +55,7 @@ const routerMap = {
   // Sync account data and fetch account details
   checkByTelegramId: async (req: IReq<CheckUserByTelegramQuery>, res: IRes) => {
     try {
-      const publicData = await AccountService.instance.checkByTelegramId(req.body);
+      const publicData = await AccountService.instance.checkPointByTelegramId(req.body);
 
       return res.status(200).json({
         ...publicData,

@@ -8,6 +8,7 @@ import TaskCategoryRouter from '@src/routes/TaskCategoryRouter';
 import AirdropRouter from '@src/routes/AirdropRouter';
 import AirlyftRouter from '@src/routes/AirlyftRouter';
 import ConfigRouter from '@src/routes/ConfigRouter';
+import PublicRouter from '@src/routes/PublicRouter';
 
 const apiRouter = Router();
 
@@ -20,5 +21,6 @@ apiRouter.use('/telegram', TelegramRouter);
 apiRouter.use('/airdrop', AirdropRouter);
 apiRouter.use('/airlyft', AirlyftRouter);
 apiRouter.use('/config', ConfigRouter);
+apiRouter.use('/public', PublicRouter);
 
 export default apiRouter;
