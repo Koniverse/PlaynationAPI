@@ -7,13 +7,16 @@ import {LeaderboardItem} from '@src/types';
 import {KeyValueStoreService} from '@src/services/KeyValueStoreService';
 import * as console from 'node:console';
 import {calculateStartAndEnd} from '@src/utils/date';
-
-export interface LeaderboardParams {
-  id: number;
-  context: string;
-  limit: number;
+export interface LeaderboardContext {
+    games?: number[];
+    tasks?: number[];
 }
 
+export interface LeaderboardParams {
+    id: number;
+    context: LeaderboardContext;
+    limit: number;
+}
 export interface LeaderboardRecord {
   rank: string; // SQL query returns rank as string
   accountId: number;
@@ -34,7 +37,7 @@ export class LeaderBoardService {
     const leaderboard_general = await KeyValueStoreService.instance.get('leaderboard_general');
     return {leaderboard_map, leaderboard_general};
   }
-  async fetchData(accountId: number, id: number, context: string, limit = 100){
+  async fetchData(accountId: number, id: number, context: LeaderboardContext = {}, limit = 100){
     const leaderboardList = await KeyValueStoreService.instance.get('leaderboard_map') as unknown as LeaderboardItem[];
     const leaderboard = leaderboardList.find(item => item.id === id);
     if (leaderboard){
@@ -42,8 +45,14 @@ export class LeaderBoardService {
       let endTime = leaderboard.endTime as unknown as string;
 
       // TO DO: check task and game by array
-      const gameIds = leaderboard.games;
-      const taskIds = leaderboard.tasks;
+      let gameIds = leaderboard.games;
+      let taskIds = leaderboard.tasks;
+      if (context.games){
+        gameIds = context.games;
+      }
+      if (context.tasks){
+        taskIds = context.tasks;
+      }
       const type = leaderboard.type;
       if (leaderboard.specialTime){
         const timeData = calculateStartAndEnd(leaderboard.specialTime);
