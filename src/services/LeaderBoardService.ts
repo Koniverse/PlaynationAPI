@@ -36,6 +36,11 @@ export interface LeaderboardRecord {
 export class LeaderBoardService {
   constructor(private sequelizeService: SequelizeService) {}
 
+  async getConfig(){
+    const leaderboard_map = await KeyValueStoreService.instance.get('leaderboard_map') as unknown as LeaderboardItem[];
+    const leaderboard_general = await KeyValueStoreService.instance.get('leaderboard_general');
+    return {leaderboard_map, leaderboard_general};
+  }
   async fetchData(accountId: number, id: number, context: string, limit = 100){
     const leaderboardList = await KeyValueStoreService.instance.get('leaderboard_map') as unknown as LeaderboardItem[];
     const leaderboard = leaderboardList.find(item => item.id === id);

@@ -2,13 +2,12 @@ import { IReq, IRes } from '@src/routes/types';
 import { Router } from 'express';
 import {requireLogin} from '@src/routes/helper';
 import {LeaderboardNewParams, LeaderBoardService} from '@src/services/LeaderBoardService';
+import {Query} from 'express-serve-static-core';
 
 const LeaderboardRouter = Router();
 
 const routerMap = {
 
-
-  // Get event list
   fetch: async (req: IReq<LeaderboardNewParams>, res: IRes) => {
     const accountId = req.user?.id || 0;
     const id = req.body.id;
@@ -17,9 +16,16 @@ const routerMap = {
 
     return res.status(200).json(data);
   },
+
+  getConfig: async (req: IReq<Query>, res: IRes) => {
+    const data = await LeaderBoardService.instance.getConfig();
+
+    return res.status(200).json(data);
+  },
 };
 
 
 LeaderboardRouter.post('/fetch', requireLogin, routerMap.fetch);
+LeaderboardRouter.get('/get-config', requireLogin, routerMap.getConfig);
 
 export default LeaderboardRouter;
