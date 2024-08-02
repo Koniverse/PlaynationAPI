@@ -136,31 +136,16 @@ export class GameService {
         await Game.create(itemData);
       }
     }
-    await this.buildGameMap();
+    await quickGetService.buildGameMap();
     return response;
   }
 
-  async buildGameMap() {
-    const data = await Game.findAll();
-    const gameMap: Record<string, Game> = {};
-    data.forEach((game) => {
-      gameMap[game.id.toString()] = game;
-    });
-
-    this.gameMap = gameMap;
-    return gameMap;
-  }
-
   async listGame() {
-    const gameMap = !!this.gameMap ? this.gameMap : await this.buildGameMap();
-
-    return Object.values(gameMap);
+    return await quickGetService.listGame();
   }
 
   async findGame(gameId: number) {
-    const gameMap = !!this.gameMap ? this.gameMap : await this.buildGameMap();
-
-    return gameMap[gameId.toString()];
+    return await quickGetService.findGame(gameId);
   }
 
   async getGameDataByAccount(accountId: number) {
