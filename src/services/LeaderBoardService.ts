@@ -290,7 +290,61 @@ export class LeaderBoardService {
     return sql;
   }
 
-  getInviteToPlayQuery(gameId: number[]) {
+  getInviteToPlayQuantity(gameId: number[]) {
+    const queryGame = gameId.length > 0 ? 'and "gameId" in (:gameIds)' : '';
+    const sql = `
+
+        with 
+            playGamme as (SELECT "accountId"
+                   FROM game_play
+                   where  "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                     ${queryGame}
+                   ),
+            
+            combinedPoints as (SELECT "sourceAccountId"       AS accountId,
+                                   Min("createdAt") as createdAt,
+                                       count(distinct id) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "sourceAccountId"
+                                UNION ALL
+                                SELECT "indirectAccount"                 AS accountId,
+                                    Min("createdAt") as createdAt,
+                                       count(distinct id) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "indirectAccount"),
+             rankedUsers as (SELECT accountId,
+                                    RANK() OVER (ORDER BY SUM(point) DESC, MIN(combinedPoints.createdAt) asc) as rank,
+                                    SUM(point)                             AS point
+                             FROM combinedPoints
+                                JOIN account a on a.id = accountId
+                                where a."isEnabled"
+                             GROUP BY accountId)
+        SELECT a.id                as "accountId",
+               a."address",
+               a."firstName",
+               a."lastName",
+               a."telegramUsername",
+               a."photoUrl"        as avatar,
+               ra.rank,
+               (a.id = :accountId) as mine,
+               ra.point            AS point
+        FROM rankedUsers ra
+                 JOIN account a ON ra.accountId = a.id
+        where ra.rank <= :limit
+           or a.id = :accountId
+        ORDER BY point DESC;
+    `;
+    return sql;
+  }
+
+  getInviteToPlayNps(gameId: number[]) {
     const queryGame = gameId.length > 0 ? 'and "gameId" in (:gameIds)' : '';
     const sql = `
 
@@ -523,7 +577,9 @@ export class LeaderBoardService {
     } else if (typeQuery === 'referral:quantity') {
       sql = this.getReferralQuantityLogQuery();
     } else if (typeQuery === 'referral:inviteToPlay:nps') {
-      sql = this.getInviteToPlayQuery(gameIds);
+      sql = this.getInviteToPlayNps(gameIds);
+    }  else if (typeQuery === 'referral:inviteToPlay:quantity') {
+      sql = this.getInviteToPlayQuantity(gameIds);
     } else if (typeQuery.startsWith('game:farming')) {
       let field = 'coin';
       if (typeQuery === 'game:farming:totalPoint') {
