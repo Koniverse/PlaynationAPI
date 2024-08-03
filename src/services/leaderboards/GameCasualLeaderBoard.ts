@@ -47,7 +47,7 @@ ORDER BY rank asc`;
     const result = await SequelizeServiceImpl.sequelize.query<LeaderBoardItem>(sql, {
       type: QueryTypes.SELECT,
       replacements: {
-        gameIds: gameIds.join(','),
+        gameIds: gameIds,
         accountId,
         startTime,
         endTime,

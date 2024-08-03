@@ -1,4 +1,5 @@
 import {createPromise, PromiseObject} from '@src/utils';
+import {LeaderboardMetadata} from '@src/types';
 
 export interface LeaderboardContext {
     games?: number[];
@@ -11,7 +12,10 @@ export enum LeaderboardType {
   GAME_CASUAL_QUANTITY = 'game:casual:quantity',
   GAME_FARMING_POINT = 'game:farming:point',
   GAME_FARMING_EARN_SPEED = 'game:farming:earnSpeed',
-  GAME_FARMING_TOTAL_POINT = 'game:farming:totalPoint',
+  REFERRAL_NPS = 'referral:nps',
+  REFERRAL_QUANTITY = 'referral:quantity',
+  REFERRAL_INVITE_TO_PLAY_NPS = 'referral:inviteToPlay:nps',
+  REFERRAL_INVITE_TO_PLAY_QUANTITY = 'referral:inviteToPlay:quantity',
 }
 
 export interface LeaderBoardQueryInputRaw {
@@ -21,6 +25,7 @@ export interface LeaderBoardQueryInputRaw {
   context?: LeaderboardContext;
   limit?: number;
   accountId?: number;
+  metadata?: LeaderboardMetadata;
 }
 
 export interface LeaderBoardItem {

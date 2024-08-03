@@ -15,6 +15,7 @@ import {
 import {GameCasualLeaderBoard} from '@src/services/leaderboards/GameCasualLeaderBoard';
 import logger from "jet-logger";
 import {GameFarmingLeaderBoard} from "@src/services/leaderboards/GameFarmingLeaderBoard";
+import {ReferralLeaderBoard} from "@src/services/leaderboards/ReferralLeaderBoard";
 
 
 export interface LeaderboardParams {
@@ -622,6 +623,8 @@ export class LeaderBoardService {
         leaderBoard = new GameCasualLeaderBoard(input);
       } else if (input.type.startsWith('game:farming')) {
         leaderBoard = new GameFarmingLeaderBoard(input);
+      } else if (input.type.startsWith('referral')) {
+        leaderBoard = new ReferralLeaderBoard(input);
       }
       this.leaderboardMap[key] = leaderBoard;
     }
