@@ -103,32 +103,52 @@ export class LeaderBoardService {
 
   getFarmingPointQuery(gameId: number[], field: string) {
     const queryGame = gameId.length > 0 ? 'and gd."gameId" = (:gameIds)' : '';
-    const sql = `
-        with RankedUsers as (SELECT gd."accountId",
-                                    a."telegramUsername",
-                                    a.address,
-                                    a."firstName",
-                                    a."lastName",
-                                    a."photoUrl"                                           as avatar,
-                                    (a.id = :accountId)                                    as mine,
-                                    SUM(coalesce(CAST(gd."stateData"->>'${field}' AS NUMERIC), 0))                             AS point,
-                                    RANK() OVER (ORDER BY SUM(coalesce(CAST(gd."stateData"->>'${field}' AS NUMERIC), 0)) DESC, MIN(gd."createdAt") asc) as rank                                    
-                             FROM game_play gd
-                                      JOIN
-                                  account a
-                                  ON gd."accountId" = a.id
-                             where gd."createdAt" >= :startDate
-                               and gd."createdAt" <= :endDate
-                                and gd.success is true
-                                 ${queryGame}
-                             GROUP BY 1, 2, 3, 4, 5, 6, 7
-                             ORDER BY rank asc)
-        select *
-        from RankedUsers
-        where rank <= :limit
-           or mine = true;
+    const query = `
+    WITH LastGamePlay AS (
+    SELECT
+        gd."accountId",
+        a."telegramUsername",
+        a.address,
+        a."firstName",
+        a."lastName",
+        a."photoUrl" AS avatar,
+        (a.id = :accountId)           AS mine,
+        coalesce(CAST(gd."stateData" ->> '${field}' AS NUMERIC), 0) AS point,
+        gd."createdAt",
+        ROW_NUMBER() OVER (PARTITION BY gd."accountId" ORDER BY gd."createdAt" DESC) AS rn
+    FROM
+        game_play gd
+        JOIN account a ON gd."accountId" = a.id
+    WHERE
+        gd."createdAt" >= :startDate
+        and gd."createdAt" <= :endDate
+        AND gd.success IS TRUE
+      and a."isEnabled" IS TRUE
+        ${queryGame}
+)
+      , RankedUsers AS (
+          SELECT
+              "accountId",
+              "telegramUsername",
+              address,
+              "firstName",
+              "lastName",
+              avatar,
+              mine,
+              point,
+              RANK() OVER (ORDER BY point DESC, "createdAt" ASC) AS rank
+          FROM
+              LastGamePlay
+          WHERE
+              rn = 1
+      )
+      SELECT *
+      FROM RankedUsers
+      where rank <= :limit
+                 or mine = true
+      ORDER BY rank ASC;
     `;
-    return sql;
+    return query;
   }
 
   getTaskQuery(gameIds: number[], taskIds: number[], type = 'nps') {
