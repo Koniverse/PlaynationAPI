@@ -3,7 +3,7 @@ import {
   LeaderboardPerson,
 } from '@src/models';
 import { QueryTypes } from 'sequelize';
-import {LeaderboardItem} from '@src/types';
+import {LeaderboardItem, LeaderboardMetadata} from '@src/types';
 import {KeyValueStoreService} from '@src/services/KeyValueStoreService';
 import * as console from 'node:console';
 import {calculateStartAndEnd, getLastDayOfYearCurrent} from '@src/utils/date';
@@ -53,13 +53,14 @@ export class LeaderBoardService {
       if (context.tasks){
         taskIds = context.tasks;
       }
+      const metaData = leaderboard.metadata;
       const type = leaderboard.type;
       if (leaderboard.specialTime){
         const timeData = calculateStartAndEnd(leaderboard.specialTime);
         startTime = timeData.start  as unknown as string;
         endTime = timeData.end as unknown as string;
       }
-      const data = await this.getTotalLeaderboard(accountId, startTime, endTime, gameIds, taskIds, limit, type);
+      const data = await this.getTotalLeaderboard(accountId, startTime, endTime, gameIds, taskIds, limit, type, metaData);
       return data;
     }
   }
@@ -190,24 +191,15 @@ export class LeaderBoardService {
     return sql;
   }
 
-  getReferralLogQuery() {
-    const sql = `
-
-        with combinedPoints as (SELECT "sourceAccountId"       AS accountId,
+  getReferralLogQuery(refLevel = 0) {
+    let queryF1 = `
+    SELECT "sourceAccountId"       AS accountId,
                                        Min("createdAt") as createdAt,
                                        SUM(coalesce(point, 0)) AS point
                                 FROM referral_log
                                 where "createdAt" >= :startDate
                                   and "createdAt" <= :endDate
                                 GROUP BY "sourceAccountId"
-                                UNION ALL
-                                SELECT "indirectAccount"                 AS accountId,
-                                       Min("createdAt") as createdAt,
-                                       SUM(coalesce("indirectPoint", 0)) AS point
-                                FROM referral_log
-                                where "createdAt" >= :startDate
-                                  and "createdAt" <= :endDate
-                                GROUP BY "indirectAccount"
                                 UNION ALL
                                 SELECT "sourceAccountId"       AS accountId,
                                        Min("createdAt") as createdAt,
@@ -216,6 +208,16 @@ export class LeaderBoardService {
                                 where "createdAt" >= :startDate
                                   and "createdAt" <= :endDate
                                 GROUP BY "sourceAccountId"
+    `;
+    let queryF2 = `
+    SELECT "indirectAccount"                 AS accountId,
+                                       Min("createdAt") as createdAt,
+                                       SUM(coalesce("indirectPoint", 0)) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                GROUP BY "indirectAccount"
+                                
                                 UNION ALL
                                 SELECT "indirectAccount"                 AS accountId,
                                        Min("createdAt") as createdAt,
@@ -223,7 +225,21 @@ export class LeaderBoardService {
                                 FROM referral_upgrade_log
                                 where "createdAt" >= :startDate
                                   and "createdAt" <= :endDate
-                                GROUP BY "indirectAccount"),
+                                GROUP BY "indirectAccount"
+    `
+    const unionAll = refLevel === 0 || refLevel > 2 ? ' UNION ALL ' : '';
+    if (refLevel == 1){
+      queryF2 = '';
+    }
+    if (refLevel == 2) {
+      queryF1 = '';
+    }
+    const sql = `
+        with combinedPoints as (
+          ${queryF1}
+                                ${unionAll}
+                                ${queryF2}
+                                ),
              rankedUsers as (SELECT accountId,
                                     RANK() OVER (ORDER BY SUM(point) DESC, MIN(combinedPoints.createdAt) asc) as rank,
                                     SUM(point)                             AS point
@@ -248,23 +264,36 @@ export class LeaderBoardService {
     `;
     return sql;
   }
-  getReferralQuantityLogQuery() {
-    const sql = `
-        with combinedPoints as (SELECT "sourceAccountId"       AS accountId,
+  getReferralQuantityLogQuery(refLevel = 0) {
+    let queryF1 = `
+    SELECT "sourceAccountId"       AS accountId,
                                        Min("createdAt") as createdAt,
                                        count(distinct id) AS point
                                 FROM referral_log
                                 where "createdAt" >= :startDate
                                   and "createdAt" <= :endDate
                                 GROUP BY "sourceAccountId"
-                                UNION ALL
-                                SELECT "indirectAccount"                 AS accountId,
+    `;
+    let queryF2 = `
+        SELECT "indirectAccount"                 AS accountId,
                                        Min("createdAt") as createdAt,
                                        count(distinct id) AS point
                                 FROM referral_log
                                 where "createdAt" >= :startDate
                                   and "createdAt" <= :endDate
-                                GROUP BY "indirectAccount"),
+                                GROUP BY "indirectAccount"
+    `;
+    const unionAll = refLevel === 0 || refLevel > 2 ? ' UNION ALL ' : '';
+    if (refLevel == 1){
+      queryF2 = '';
+    }
+    if (refLevel == 2) {
+      queryF1 = '';
+    }
+    const sql = `
+        with combinedPoints as (
+            ${queryF1} ${unionAll} ${queryF2}
+                                ),
              rankedUsers as (SELECT accountId,
                                     RANK() OVER (ORDER BY SUM(point) DESC, MIN(combinedPoints.createdAt) asc) as rank,
                                     SUM(point)                             AS point
@@ -290,8 +319,35 @@ export class LeaderBoardService {
     return sql;
   }
 
-  getInviteToPlayQuantity(gameId: number[]) {
+  getInviteToPlayQuantity(gameId: number[], refLevel = 0) {
     const queryGame = gameId.length > 0 ? 'and "gameId" in (:gameIds)' : '';
+     let queryF1 = `
+    SELECT "sourceAccountId"       AS accountId,
+                                       Min("createdAt") as createdAt,
+                                       count(distinct id) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "sourceAccountId"
+    `;
+    let queryF2 = `
+        SELECT "indirectAccount"                 AS accountId,
+                                       Min("createdAt") as createdAt,
+                                       count(distinct id) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "indirectAccount"
+    `;
+    const unionAll = refLevel === 0 || refLevel > 2 ? ' UNION ALL ' : '';
+    if (refLevel == 1){
+      queryF2 = '';
+    }
+    if (refLevel == 2) {
+      queryF1 = '';
+    }
     const sql = `
 
         with 
@@ -302,23 +358,7 @@ export class LeaderBoardService {
                                      ${queryGame}
                    ),
             
-            combinedPoints as (SELECT "sourceAccountId"       AS accountId,
-                                   Min("createdAt") as createdAt,
-                                       count(distinct id) AS point
-                                FROM referral_log
-                                where "createdAt" >= :startDate
-                                  and "createdAt" <= :endDate
-                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
-                                GROUP BY "sourceAccountId"
-                                UNION ALL
-                                SELECT "indirectAccount"                 AS accountId,
-                                    Min("createdAt") as createdAt,
-                                       count(distinct id) AS point
-                                FROM referral_log
-                                where "createdAt" >= :startDate
-                                  and "createdAt" <= :endDate
-                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
-                                GROUP BY "indirectAccount"),
+            combinedPoints as (${queryF1} ${unionAll} ${queryF2}),
              rankedUsers as (SELECT accountId,
                                     RANK() OVER (ORDER BY SUM(point) DESC, MIN(combinedPoints.createdAt) asc) as rank,
                                     SUM(point)                             AS point
@@ -344,7 +384,53 @@ export class LeaderBoardService {
     return sql;
   }
 
-  getInviteToPlayNps(gameId: number[]) {
+  getInviteToPlayNps(gameId: number[], refLevel = 0) {
+    let queryF1 = `
+    SELECT "sourceAccountId"       AS accountId,
+                                       Min("createdAt") as createdAt,
+                                       SUM(coalesce(point, 0)) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "sourceAccountId"
+                                UNION ALL
+                                SELECT "sourceAccountId"       AS accountId,
+                                       Min("createdAt") as createdAt,
+                                       SUM(coalesce(point, 0)) AS point
+                                FROM referral_upgrade_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "sourceAccountId"
+    `;
+    let queryF2 = `
+    SELECT "indirectAccount"                 AS accountId,
+                                       Min("createdAt") as createdAt,
+                                       SUM(coalesce("indirectPoint", 0)) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "indirectAccount"
+                                
+                                UNION ALL
+                                SELECT "indirectAccount"                 AS accountId,
+                                       Min("createdAt") as createdAt,
+                                       SUM(coalesce("indirectPoint", 0)) AS point
+                                FROM referral_upgrade_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "indirectAccount"
+    `
+    const unionAll = refLevel === 0 || refLevel > 2 ? ' UNION ALL ' : '';
+    if (refLevel == 1){
+      queryF2 = '';
+    }
+    if (refLevel == 2) {
+      queryF1 = '';
+    }
     const queryGame = gameId.length > 0 ? 'and "gameId" in (:gameIds)' : '';
     const sql = `
 
@@ -356,41 +442,9 @@ export class LeaderBoardService {
                                      ${queryGame}
                    ),
             
-            combinedPoints as (SELECT "sourceAccountId"       AS accountId,
-                                   Min("createdAt") as createdAt,
-                                       SUM(coalesce(point, 0)) AS point
-                                FROM referral_log
-                                where "createdAt" >= :startDate
-                                  and "createdAt" <= :endDate
-                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
-                                GROUP BY "sourceAccountId"
-                                UNION ALL
-                                SELECT "indirectAccount"                 AS accountId,
-                                    Min("createdAt") as createdAt,
-                                       SUM(coalesce("indirectPoint", 0)) AS point
-                                FROM referral_log
-                                where "createdAt" >= :startDate
-                                  and "createdAt" <= :endDate
-                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
-                                GROUP BY "indirectAccount"
-                                UNION ALL
-                                SELECT "sourceAccountId"       AS accountId,
-                                    Min("createdAt") as createdAt,
-                                       SUM(coalesce(point, 0)) AS point
-                                FROM referral_upgrade_log
-                                where "createdAt" >= :startDate
-                                  and "createdAt" <= :endDate
-                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
-                                GROUP BY "sourceAccountId"
-                                UNION ALL
-                                SELECT "indirectAccount"                 AS accountId,
-                                    Min("createdAt") as createdAt,
-                                       SUM(coalesce("indirectPoint", 0)) AS point
-                                FROM referral_upgrade_log
-                                where "createdAt" >= :startDate
-                                  and "createdAt" <= :endDate
-                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
-                                GROUP BY "indirectAccount"),
+            combinedPoints as (
+          ${queryF1} ${unionAll} ${queryF2}
+          ),
              rankedUsers as (SELECT accountId,
                                     RANK() OVER (ORDER BY SUM(point) DESC, MIN(combinedPoints.createdAt) asc) as rank,
                                     SUM(point)                             AS point
@@ -558,8 +612,13 @@ export class LeaderBoardService {
     taskIds: number[],
     limit = 100,
     typeQuery = 'all:nps',
+    metaData: LeaderboardMetadata | undefined
   ) {
     let sql = this.getAllDataQuery(gameIds, taskIds);
+    let refLevel = 0;
+    if (metaData && metaData.refLevel){
+      refLevel = metaData.refLevel;
+    }
     if (typeQuery === 'game:casual:nps') {
       sql = this.getGameQuery(gameIds);
     } else if (typeQuery === 'game:casual:point') {
@@ -573,13 +632,13 @@ export class LeaderBoardService {
     } else if (typeQuery === 'accumulatePoint') {
       sql = this.getAccumulatePoint();
     } else if (typeQuery === 'referral:nps') {
-      sql = this.getReferralLogQuery();
+      sql = this.getReferralLogQuery(refLevel);
     } else if (typeQuery === 'referral:quantity') {
-      sql = this.getReferralQuantityLogQuery();
+      sql = this.getReferralQuantityLogQuery(refLevel);
     } else if (typeQuery === 'referral:inviteToPlay:nps') {
-      sql = this.getInviteToPlayNps(gameIds);
+      sql = this.getInviteToPlayNps(gameIds, refLevel);
     }  else if (typeQuery === 'referral:inviteToPlay:quantity') {
-      sql = this.getInviteToPlayQuantity(gameIds);
+      sql = this.getInviteToPlayQuantity(gameIds, refLevel);
     } else if (typeQuery.startsWith('game:farming')) {
       let field = 'coin';
       if (typeQuery === 'game:farming:totalPoint') {

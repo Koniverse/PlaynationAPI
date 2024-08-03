@@ -219,6 +219,12 @@ export interface LeaderboardGeneral {
   leaderboardGroupName: string;
   leaderboards: LeaderboardItem[];
 }
+
+
+export interface LeaderboardMetadata {
+    refLevel?: number;
+}
+
 export interface LeaderboardItem {
   id: number;
   name: string;
@@ -227,7 +233,7 @@ export interface LeaderboardItem {
   specialTime: string;
   startTime?: any;
   endTime?: any;
-  metadata?: any;
+  metadata?: LeaderboardMetadata;
   games: number[];
   tasks: number[];
 }
