@@ -53,12 +53,22 @@ function getLastDayOfMonth (year: number, month: number): Date {
   return nextMonth;
 }
 
-function getLastDayOfYear (year: number): Date {
+export function getLastDayOfYear (year: number): Date {
   const nextYearStart = new Date(Date.UTC(year + 1, 0, 1)); // Ngày đầu năm sau theo UTC
 
   nextYearStart.setUTCDate(nextYearStart.getUTCDate() - 1); // Trừ đi 1 ngày để được ngày cuối năm hiện tại
 
   return nextYearStart;
+}
+
+export function getLastDayOfYearCurrent (): string {
+  const today = new Date();
+  const year = today.getUTCFullYear();
+  const nextYearStart = new Date(Date.UTC(year + 1, 0, 1)); // Ngày đầu năm sau theo UTC
+
+  nextYearStart.setUTCDate(nextYearStart.getUTCDate() - 1); // Trừ đi 1 ngày để được ngày cuối năm hiện tại
+
+  return formatDate(nextYearStart, true);
 }
 
 export function calculateStartAndEnd (key: string) {
