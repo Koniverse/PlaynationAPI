@@ -12,8 +12,9 @@ import {
   LeaderboardContext,
   LeaderBoardQueryInputRaw,
 } from '@src/services/leaderboards/BaseLeaderBoard';
-import {GamePointLeaderBoard} from '@src/services/leaderboards/GamePointLeaderBoard';
+import {GameCasualLeaderBoard} from '@src/services/leaderboards/GameCasualLeaderBoard';
 import logger from "jet-logger";
+import {GameFarmingLeaderBoard} from "@src/services/leaderboards/GameFarmingLeaderBoard";
 
 
 export interface LeaderboardParams {
@@ -564,7 +565,9 @@ export class LeaderBoardService {
     if (!leaderBoard) {
       logger.info(`Create new leader board with key: ${key}`);
       if (input.type.startsWith('game:casual')) {
-        leaderBoard = new GamePointLeaderBoard(input);
+        leaderBoard = new GameCasualLeaderBoard(input);
+      } else if (input.type.startsWith('game:farming')) {
+        leaderBoard = new GameFarmingLeaderBoard(input);
       }
       this.leaderboardMap[key] = leaderBoard;
     }

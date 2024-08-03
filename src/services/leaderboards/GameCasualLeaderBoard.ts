@@ -7,7 +7,7 @@ import {
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {QueryTypes} from 'sequelize';
 
-export class GamePointLeaderBoard extends BaseLeaderBoard {
+export class GameCasualLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
     const type = input.type;
     const gameIds = input.context?.games || [];
