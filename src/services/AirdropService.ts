@@ -22,6 +22,7 @@ import { AccountService } from '@src/services/AccountService';
 import { LeaderboardRecord } from './LeaderBoardService';
 import { CacheService } from '@src/services/CacheService';
 import { v4 } from 'uuid';
+import logger from 'jet-logger';
 
 // Interfaces
 interface BoxInterface {
@@ -128,6 +129,7 @@ function shuffleArray(array: any[]) {
 // AirdropService Class
 export class AirdropService {
   constructor(private sequelizeService: SequelizeService) {}
+  private airdropCampaignsData: AirdropCampaignData[] | undefined;
 
   // Synchronizes data for airdrop campaigns with the database
   async syncDataCampaign(data: AirdropCampaignInterface[]) {
@@ -142,6 +144,7 @@ export class AirdropService {
           await AirdropCampaign.create(itemData);
         }
       }
+      this.airdropCampaignsData = await this.buildAirdropCampaignsData();
       return { success: true };
     } catch (error) {
       return { success: false };
@@ -173,6 +176,7 @@ export class AirdropService {
           await AirdropEligibility.create(itemData);
         }
       }
+      this.airdropCampaignsData = await this.buildAirdropCampaignsData();
       return { success: true };
     } catch (error) {
       console.error(error);
@@ -180,8 +184,7 @@ export class AirdropService {
     }
   }
 
-  // Lists all active airdrop campaigns
-  async listAirdropCampaign() {
+  async buildAirdropCampaignsData() {
     const status = AirdropCampaignStatus.ACTIVE;
     const results = await this.sequelizeService.sequelize.query<AirdropCampaignList>(
       `SELECT airdrop_campaigns.id          AS airdrop_campaign_id,
@@ -263,6 +266,16 @@ export class AirdropService {
     return campaigns;
   }
 
+  // Lists all active airdrop campaigns
+  async listAirdropCampaign() {
+    if (this.airdropCampaignsData) {
+      return this.airdropCampaignsData;
+    } else {
+      this.airdropCampaignsData = await this.buildAirdropCampaignsData();
+      return this.airdropCampaignsData;
+    }
+  }
+
   async checkEligibility(account_id: number, campaign_id: number) {
     const airdropRecord = await AirdropRecord.findAll({
       where: {
@@ -271,7 +284,7 @@ export class AirdropService {
       },
       order: [['use_point', 'ASC']],
     });
-    console.log(account_id, campaign_id);
+
     const currentProcess = await this.detectCurrentProcess(campaign_id, airdropRecord.length);
 
     if (!airdropRecord || airdropRecord.length === 0) {

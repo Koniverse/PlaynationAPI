@@ -1,6 +1,8 @@
 import {AccountService} from '@src/services/AccountService';
-import {Account, AccountParams} from '@src/models';
+import {Account, AccountParams, GamePlay} from '@src/models';
 import {GameService} from '@src/services/GameService';
+// import { signPayload } from '@src/utils';
+// import envVars from '@src/constants/EnvVars';
 
 
 describe('General Test', () => {
@@ -94,5 +96,37 @@ describe('General Test', () => {
     } catch (e) {
       console.log(e);
     }
+  });
+
+  // it('fix signature', async function () {
+  //   const gamePlay = await GamePlay.findAll({
+  //     where: {
+  //       gameId: 7,
+  //     },
+  //   });
+  //
+  //   for (const gp of gamePlay) {
+  //     let signature = (await signPayload(gp.state, envVars.Game.FarmingGameToken)) as string;
+  //     if (signature.startsWith('0x')) {
+  //       signature = signature.slice(2);
+  //     }
+  //
+  //     if (signature !== gp.stateSignature) {
+  //       await gp.update({
+  //         stateSignature: signature,
+  //       });
+  //     }
+  //   }
+  // });
+
+  it('telegram-check', async function () {
+    const rs = await gameService.checkGamePlayByTelegramId({
+      telegramId: 1466229978,
+      point: 10,
+      startTime: '2023-07-31T07:37:24.085Z',
+      endTime: '2025-07-31T07:37:24.085Z',
+    });
+
+    console.log(rs);
   });
 });

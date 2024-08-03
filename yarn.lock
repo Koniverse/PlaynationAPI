@@ -1826,10 +1826,10 @@
   resolved "https://registry.yarnpkg.com/@pkgjs/parseargs/-/parseargs-0.11.0.tgz#a77ea742fab25775145434eb1d2328cf5013ac33"
   integrity sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==
 
-"@playnation/game-sdk@^1.0.6":
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/@playnation/game-sdk/-/game-sdk-1.0.6.tgz#87f04228a2fcb23f071fac82d7cb76d40a0516f5"
-  integrity sha512-VpbY9z9+P/loHgP961Q1kgSYW9PvxZNgres0N0j6HGrUcUVmV9CTOUMup1j4CRAGtvDE6kZcIq9zxFQUU9IgQA==
+"@playnation/game-sdk@^1.0.9":
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/@playnation/game-sdk/-/game-sdk-1.0.9.tgz#ea4d9ce219bf3f79b52f81301b8b3c97a83f91d2"
+  integrity sha512-Sw0jDfCtKnrRuoXJkTzl2wR0E5x53tSc5aZUv2Jf6XxPszZOjUkLFEDFfH8gaii+Xhmcn5hxCj2df3IP5Dsccg==
   dependencies:
     "@aws-crypto/sha256-browser" "^5.2.0"
     lodash "^4.17.21"
