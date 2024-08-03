@@ -1,13 +1,15 @@
 import {
   BaseLeaderBoard,
   LeaderBoardItem,
-  LeaderBoardQueryInputRaw
+  LeaderBoardQueryInputRaw,
+  LeaderboardType,
 } from '@src/services/leaderboards/BaseLeaderBoard';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {QueryTypes} from 'sequelize';
 
 export class GamePointLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
+    const type = input.type;
     const gameIds = input.context?.games || [];
     const accountId = input.accountId;
     const startTime = input.startTime;
@@ -18,6 +20,14 @@ export class GamePointLeaderBoard extends BaseLeaderBoard {
     const queryStartTime = startTime ? 'AND gp."createdAt" >= :startTime' : '';
     const queryEndTime = endTime ? 'AND gp."createdAt" <= :endTime' : '';
 
+    let pointQuery = 'SUM(coalesce(gp.point, 0))';
+    if (type === LeaderboardType.GAME_CASUAL_POINT) {
+      pointQuery = 'SUM(coalesce(gp."gamePoint", 0))';
+    }
+    if (type === LeaderboardType.GAME_CASUAL_QUANTITY) {
+      pointQuery = 'count(gp.id)';
+    }
+
     const sql = `
 SELECT gp."accountId",
     a."telegramUsername",
@@ -26,8 +36,8 @@ SELECT gp."accountId",
     a."lastName",
     a."photoUrl"                                           as avatar,
     false as mine,
-    SUM(coalesce(gp."gamePoint", 0))::int                             AS point,
-    RANK() OVER (ORDER BY SUM(coalesce(gp."gamePoint", 0)) DESC, MIN(gp."createdAt") asc)::int as rank
+    ${pointQuery}::int                             AS point,
+    RANK() OVER (ORDER BY ${pointQuery} DESC, MIN(gp."createdAt") asc)::int as rank
 FROM game_play gp
     JOIN account a ON gp."accountId" = a.id
 WHERE gp.success is true AND a."isEnabled" is true ${queryGame} ${queryStartTime} ${queryEndTime} ${queryAccount}
@@ -39,6 +49,8 @@ ORDER BY rank asc`;
       replacements: {
         gameIds: gameIds.join(','),
         accountId,
+        startTime,
+        endTime,
       },
     });
 

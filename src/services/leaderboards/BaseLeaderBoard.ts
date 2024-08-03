@@ -5,9 +5,16 @@ export interface LeaderboardContext {
     tasks?: number[];
 }
 
+export enum LeaderboardType {
+  GAME_CASUAL_NPS = 'game:casual:nps',
+  GAME_CASUAL_POINT = 'game:casual:point',
+  GAME_CASUAL_QUANTITY = 'game:casual:quantity',
+}
+
 export interface LeaderBoardQueryInputRaw {
-  startTime?: Date;
-  endTime?: Date;
+  type: LeaderboardType;
+  startTime?: Date | string;
+  endTime?: Date | string;
   context?: LeaderboardContext;
   limit?: number;
   accountId?: number;
@@ -69,28 +76,28 @@ export abstract class BaseLeaderBoard {
 
   }
 
-  public static getKey(input: LeaderBoardQueryInputRaw) {
-    return JSON.stringify(input); // Maybe implement a better hashing function
+  public static getKey({type, startTime, endTime, context}: LeaderBoardQueryInputRaw) {
+    return `${type}|${String(startTime||'')}|${String(endTime||'')}|${JSON.stringify(context)}`;
   }
 
-  protected async getTopLeaderboard() : Promise<LeaderBoardItem[]> {
+  async getDisplayLeaderboard(limit: number) : Promise<LeaderBoardItem[]> {
     const data = this.getFullLeaderboard();
 
     // Return top leaderboard records
-    const limit = Math.min(this.topRefresh, this.leaderBoardLength);
-    return (await data).slice(0, limit);
+    const top = Math.min(Math.max(this.topDisplay, limit), this.leaderBoardLength);
+    return (await data).slice(0, top);
+  }
+
+  protected async getTopLeaderboard(limit: number) : Promise<LeaderBoardItem[]> {
+    const data = this.getFullLeaderboard();
+
+    // Return top leaderboard records
+    const top = Math.min(Math.max(this.topRefresh, limit), this.leaderBoardLength);
+    return (await data).slice(0, top);
   }
 
   async getAccountData(accountId: number): Promise<LeaderBoardItem | undefined> {
     return (await this.queryData({...this.input, limit: 1, accountId}))[0];
-  }
-
-  async getDisplayLeaderboard() : Promise<LeaderBoardItem[]> {
-    const data = this.getFullLeaderboard();
-
-    // Return top leaderboard records
-    const limit = Math.min(this.topDisplay, this.leaderBoardLength);
-    return (await data).slice(0, limit);
   }
 
   async getFullLeaderboard() {
@@ -135,11 +142,11 @@ export abstract class BaseLeaderBoard {
   /**
    * Get leaderboard data for current user
    * */
-  async getLeaderBoardData(accountId: number) : Promise<LeaderBoardItem[]> {
+  async getLeaderBoardData(accountId: number, limit=100) : Promise<LeaderBoardItem[]> {
     // Get current user's leaderboard record
     const accountData = await this.getAccountData(accountId);
-    const topLeaderboard = await this.getTopLeaderboard();
-    const topDisplay = await this.getDisplayLeaderboard();
+    const topLeaderboard = await this.getTopLeaderboard(limit);
+    const topDisplay = await this.getDisplayLeaderboard(limit);
 
     const topRefreshMinPoint = topLeaderboard[topLeaderboard.length - 1]?.point || 0;
     const topDisplayMinPoint = topLeaderboard[topDisplay.length - 1]?.point || 0;

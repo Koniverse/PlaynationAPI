@@ -7,10 +7,14 @@ import {LeaderboardItem} from '@src/types';
 import {KeyValueStoreService} from '@src/services/KeyValueStoreService';
 import * as console from 'node:console';
 import {calculateStartAndEnd, getLastDayOfYearCurrent} from '@src/utils/date';
-export interface LeaderboardContext {
-    games?: number[];
-    tasks?: number[];
-}
+import {
+  BaseLeaderBoard,
+  LeaderboardContext,
+  LeaderBoardQueryInputRaw,
+} from '@src/services/leaderboards/BaseLeaderBoard';
+import {GamePointLeaderBoard} from '@src/services/leaderboards/GamePointLeaderBoard';
+import logger from "jet-logger";
+
 
 export interface LeaderboardParams {
     id: number;
@@ -548,6 +552,28 @@ export class LeaderBoardService {
         ORDER BY rank;
     `;
     return sql;
+  }
+
+  // Todo: Auto clear cache after 10 minutes not used
+  private leaderboardMap: Record<string, BaseLeaderBoard> = {};
+
+  async getLeaderBoardV2(accountId: number, input: LeaderBoardQueryInputRaw) {
+    const key = BaseLeaderBoard.getKey(input);
+
+    let leaderBoard = this.leaderboardMap[key];
+    if (!leaderBoard) {
+      logger.info(`Create new leader board with key: ${key}`);
+      if (input.type.startsWith('game:casual')) {
+        leaderBoard = new GamePointLeaderBoard(input);
+      }
+      this.leaderboardMap[key] = leaderBoard;
+    }
+
+    if (!leaderBoard) {
+      return [];
+    }
+
+    return await leaderBoard.fetchLeaderBoard(accountId);
   }
 
   async getTotalLeaderboard(

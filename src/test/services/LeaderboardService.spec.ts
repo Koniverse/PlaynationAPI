@@ -1,15 +1,23 @@
-import {GamePointLeaderBoard} from '@src/services/leaderboards/GamePointLeaderBoard';
+import {LeaderboardType} from '@src/services/leaderboards/BaseLeaderBoard';
+import {LeaderBoardService} from '@src/services/LeaderBoardService';
+
+const leaderBoardService = LeaderBoardService.instance;
 
 describe('LeaderBoard Test', () => {
   it('Check game Leaderboard', async function () {
-    const gameLB = new GamePointLeaderBoard({
+    const leaderBoardInfo = {
+      type: LeaderboardType.GAME_CASUAL_NPS,
+      startTime: '2024-07-01',
+      endTime: '2024-07-30',
       context: {
         games: [7],
       },
-    });
+    };
+    
+    const r1 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
+    const r2 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
+    const r3 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
 
-    const rs = await gameLB.fetchLeaderBoard(25601);
-
-    console.table(rs);
+    console.table(r1);
   });
 });
