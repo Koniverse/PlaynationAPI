@@ -6,7 +6,7 @@ import { QueryTypes } from 'sequelize';
 import {LeaderboardItem} from '@src/types';
 import {KeyValueStoreService} from '@src/services/KeyValueStoreService';
 import * as console from 'node:console';
-import {calculateStartAndEnd} from '@src/utils/date';
+import {calculateStartAndEnd, getLastDayOfYearCurrent} from '@src/utils/date';
 export interface LeaderboardContext {
     games?: number[];
     tasks?: number[];
@@ -590,10 +590,19 @@ export class LeaderBoardService {
       }
       sql = this.getFarmingPointQuery(gameIds, field);
     }
+    let start = startDate;
+    let end = endDate;
+    if (!start){
+      start = '2024-01-01';
+    }
+
+    if (!end){
+      end = getLastDayOfYearCurrent();
+    }
 
     try {
       const data = await this.sequelizeService.sequelize.query<LeaderboardRecord>(sql, {
-        replacements: { accountId, gameIds, taskIds, startDate, endDate, limit }, // Use replacements for parameterized queries
+        replacements: { accountId, gameIds, taskIds, startDate: start, endDate: end, limit }, // Use replacements for parameterized queries
         type: QueryTypes.SELECT,
       });
 
