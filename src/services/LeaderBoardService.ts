@@ -6,7 +6,7 @@ import { QueryTypes } from 'sequelize';
 import {LeaderboardItem} from '@src/types';
 import {KeyValueStoreService} from '@src/services/KeyValueStoreService';
 import * as console from 'node:console';
-import {calculateStartAndEnd} from '@src/utils/date';
+import {calculateStartAndEnd, getLastDayOfYearCurrent} from '@src/utils/date';
 export interface LeaderboardContext {
     games?: number[];
     tasks?: number[];
@@ -103,32 +103,52 @@ export class LeaderBoardService {
 
   getFarmingPointQuery(gameId: number[], field: string) {
     const queryGame = gameId.length > 0 ? 'and gd."gameId" = (:gameIds)' : '';
-    const sql = `
-        with RankedUsers as (SELECT gd."accountId",
-                                    a."telegramUsername",
-                                    a.address,
-                                    a."firstName",
-                                    a."lastName",
-                                    a."photoUrl"                                           as avatar,
-                                    (a.id = :accountId)                                    as mine,
-                                    SUM(coalesce(CAST(gd."stateData"->>'${field}' AS NUMERIC), 0))                             AS point,
-                                    RANK() OVER (ORDER BY SUM(coalesce(CAST(gd."stateData"->>'${field}' AS NUMERIC), 0)) DESC, MIN(gd."createdAt") asc) as rank                                    
-                             FROM game_play gd
-                                      JOIN
-                                  account a
-                                  ON gd."accountId" = a.id
-                             where gd."createdAt" >= :startDate
-                               and gd."createdAt" <= :endDate
-                                and gd.success is true
-                                 ${queryGame}
-                             GROUP BY 1, 2, 3, 4, 5, 6, 7
-                             ORDER BY rank asc)
-        select *
-        from RankedUsers
-        where rank <= :limit
-           or mine = true;
+    const query = `
+    WITH LastGamePlay AS (
+    SELECT
+        gd."accountId",
+        a."telegramUsername",
+        a.address,
+        a."firstName",
+        a."lastName",
+        a."photoUrl" AS avatar,
+        (a.id = :accountId)           AS mine,
+        coalesce(CAST(gd."stateData" ->> '${field}' AS NUMERIC), 0) AS point,
+        gd."createdAt",
+        ROW_NUMBER() OVER (PARTITION BY gd."accountId" ORDER BY gd."createdAt" DESC) AS rn
+    FROM
+        game_play gd
+        JOIN account a ON gd."accountId" = a.id
+    WHERE
+        gd."createdAt" >= :startDate
+        and gd."createdAt" <= :endDate
+        AND gd.success IS TRUE
+      and a."isEnabled" IS TRUE
+        ${queryGame}
+)
+      , RankedUsers AS (
+          SELECT
+              "accountId",
+              "telegramUsername",
+              address,
+              "firstName",
+              "lastName",
+              avatar,
+              mine,
+              point,
+              RANK() OVER (ORDER BY point DESC, "createdAt" ASC) AS rank
+          FROM
+              LastGamePlay
+          WHERE
+              rn = 1
+      )
+      SELECT *
+      FROM RankedUsers
+      where rank <= :limit
+                 or mine = true
+      ORDER BY rank ASC;
     `;
-    return sql;
+    return query;
   }
 
   getTaskQuery(gameIds: number[], taskIds: number[], type = 'nps') {
@@ -270,7 +290,61 @@ export class LeaderBoardService {
     return sql;
   }
 
-  getInviteToPlayQuery(gameId: number[]) {
+  getInviteToPlayQuantity(gameId: number[]) {
+    const queryGame = gameId.length > 0 ? 'and "gameId" in (:gameIds)' : '';
+    const sql = `
+
+        with 
+            playGamme as (SELECT "accountId"
+                   FROM game_play
+                   where  "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                     ${queryGame}
+                   ),
+            
+            combinedPoints as (SELECT "sourceAccountId"       AS accountId,
+                                   Min("createdAt") as createdAt,
+                                       count(distinct id) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "sourceAccountId"
+                                UNION ALL
+                                SELECT "indirectAccount"                 AS accountId,
+                                    Min("createdAt") as createdAt,
+                                       count(distinct id) AS point
+                                FROM referral_log
+                                where "createdAt" >= :startDate
+                                  and "createdAt" <= :endDate
+                                and "invitedAccountId" in (SELECT "accountId" from playGamme)
+                                GROUP BY "indirectAccount"),
+             rankedUsers as (SELECT accountId,
+                                    RANK() OVER (ORDER BY SUM(point) DESC, MIN(combinedPoints.createdAt) asc) as rank,
+                                    SUM(point)                             AS point
+                             FROM combinedPoints
+                                JOIN account a on a.id = accountId
+                                where a."isEnabled"
+                             GROUP BY accountId)
+        SELECT a.id                as "accountId",
+               a."address",
+               a."firstName",
+               a."lastName",
+               a."telegramUsername",
+               a."photoUrl"        as avatar,
+               ra.rank,
+               (a.id = :accountId) as mine,
+               ra.point            AS point
+        FROM rankedUsers ra
+                 JOIN account a ON ra.accountId = a.id
+        where ra.rank <= :limit
+           or a.id = :accountId
+        ORDER BY point DESC;
+    `;
+    return sql;
+  }
+
+  getInviteToPlayNps(gameId: number[]) {
     const queryGame = gameId.length > 0 ? 'and "gameId" in (:gameIds)' : '';
     const sql = `
 
@@ -503,7 +577,9 @@ export class LeaderBoardService {
     } else if (typeQuery === 'referral:quantity') {
       sql = this.getReferralQuantityLogQuery();
     } else if (typeQuery === 'referral:inviteToPlay:nps') {
-      sql = this.getInviteToPlayQuery(gameIds);
+      sql = this.getInviteToPlayNps(gameIds);
+    }  else if (typeQuery === 'referral:inviteToPlay:quantity') {
+      sql = this.getInviteToPlayQuantity(gameIds);
     } else if (typeQuery.startsWith('game:farming')) {
       let field = 'coin';
       if (typeQuery === 'game:farming:totalPoint') {
@@ -514,10 +590,19 @@ export class LeaderBoardService {
       }
       sql = this.getFarmingPointQuery(gameIds, field);
     }
+    let start = startDate;
+    let end = endDate;
+    if (!start){
+      start = '2024-01-01';
+    }
+
+    if (!end){
+      end = getLastDayOfYearCurrent();
+    }
 
     try {
       const data = await this.sequelizeService.sequelize.query<LeaderboardRecord>(sql, {
-        replacements: { accountId, gameIds, taskIds, startDate, endDate, limit }, // Use replacements for parameterized queries
+        replacements: { accountId, gameIds, taskIds, startDate: start, endDate: end, limit }, // Use replacements for parameterized queries
         type: QueryTypes.SELECT,
       });
 
