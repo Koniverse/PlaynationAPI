@@ -3,8 +3,10 @@ import Game from '@src/models/Game';
 import {AchievementData, AirlyftEvent, Task, TaskCategory, TaskHistory, TaskHistoryStatus} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
-import {QueryTypes} from 'sequelize';
+import {Op, QueryTypes} from 'sequelize';
 import {AirlyftService} from '@src/services/AirlyftService';
+import {CacheService} from '@src/services/CacheService';
+import {v4} from 'uuid';
 
 interface AchievementRecord {
   count: number;
@@ -49,6 +51,7 @@ interface TaskHistoryLog {
 type TaskHistoryRecord = Task & TaskHistory & TaskHistoryLog;
 const accountService = AccountService.instance;
 const airlyftService = AirlyftService.instance;
+const cacheService = CacheService.instance;
 
 export class TaskService {
   private taskMap: Record<string, Task> | undefined;
@@ -119,6 +122,39 @@ export class TaskService {
 
   async checkCompleteTask(userId: number, taskId: number) {
     let completed = false;
+    const task = await this.findTask(taskId);
+    if (!task) {
+      return {completed};
+    }
+    if (task.onChainType){
+      const taskUniqueKey = `task_on_chain:${task.id}:${userId}`;
+      const taskUniqueValue = await cacheService.redisClient.get(taskUniqueKey);
+      if (taskUniqueValue){
+        return {completed: false};
+      }
+      const latestLast = await TaskHistory.findAll({
+        where: {taskId: task.id, accountId: userId, status: {
+          [Op.not]: TaskHistoryStatus.FAILED,
+        }},
+        order: [['createdAt', 'DESC']],
+        limit: 1,
+      });
+      const now = new Date();
+      const interval = task.interval;
+      if (latestLast.length > 0 && interval > 0) {
+        const lastSubmit = latestLast[0];
+        const diffInDays = dateDiffInDays(lastSubmit.createdAt, now);
+        if (diffInDays < interval) {
+          return {completed: false};
+        }
+        
+        // create unique redis key
+        
+        const taskUniqueValue = v4();
+        await cacheService.redisClient.set(taskUniqueKey, taskUniqueValue, { EX: 60 });
+        return {completed: true};
+      }
+    }
     const taskHistory = await TaskHistory.findOne({
       where: {taskId, accountId: userId, status: TaskHistoryStatus.COMPLETED},
     });
