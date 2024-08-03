@@ -26,7 +26,7 @@ export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<G
   declare maxPointPerGame: CreationOptional<number>;
   declare pointConversionRate: CreationOptional<number>;
   declare rankDefinition: CreationOptional<string>;
-  declare leaderboards: CreationOptional<JSON>;
+  declare leaderboard_groups: CreationOptional<JSON>;
 }
 
 Game.init({
@@ -82,7 +82,7 @@ Game.init({
   },
   
       
-  leaderboards: {
+  leaderboard_groups: {
     type: DataTypes.JSON,
     allowNull: true,
   },
