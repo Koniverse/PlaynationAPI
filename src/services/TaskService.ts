@@ -126,12 +126,9 @@ export class TaskService {
     if (!task) {
       return {completed};
     }
-    if (task.onChainType){
-      const taskUniqueKey = `task_on_chain:${task.id}:${userId}`;
-      const taskUniqueValue = await cacheService.redisClient.get(taskUniqueKey);
-      if (taskUniqueValue){
-        return {completed: false};
-      }
+    const interval = task.interval;
+    if (task.onChainType && interval > 0){
+
       const latestLast = await TaskHistory.findAll({
         where: {taskId: task.id, accountId: userId, status: {
           [Op.not]: TaskHistoryStatus.FAILED,
@@ -140,20 +137,21 @@ export class TaskService {
         limit: 1,
       });
       const now = new Date();
-      const interval = task.interval;
-      if (latestLast.length > 0 && interval > 0) {
+      if (latestLast.length > 0) {
         const lastSubmit = latestLast[0];
         const diffInDays = dateDiffInDays(lastSubmit.createdAt, now);
         if (diffInDays < interval) {
-          return {completed: false};
+          completed = true;
         }
-        
-        // create unique redis key
-        
-        const taskUniqueValue = v4();
-        await cacheService.redisClient.set(taskUniqueKey, taskUniqueValue, { EX: 60 });
-        return {completed: true};
       }
+      const taskUniqueKey = `task_on_chain:${task.id}:${userId}`;
+      const taskUniqueValue = await cacheService.redisClient.get(taskUniqueKey);
+
+      if (!completed){
+        const taskUniqueValue = v4();
+        await cacheService.redisClient.set(taskUniqueKey, taskUniqueValue, { EX: 30 });
+      }
+      return {completed, isSubmitting: !!taskUniqueValue};
     }
     const taskHistory = await TaskHistory.findOne({
       where: {taskId, accountId: userId, status: TaskHistoryStatus.COMPLETED},
