@@ -5,19 +5,54 @@ import * as console from 'node:console';
 const leaderBoardService = LeaderBoardService.instance;
 
 describe('LeaderBoard Test', () => {
+  it('Check ALL NPS Leaderboard', async function () {
+    const leaderBoardInfo = {
+      type: LeaderboardType.ALL_NPS,
+    };
+
+    console.time('leaderBoardService.getLeaderBoardV2');
+    console.time('leaderBoardService.getLeaderBoardV2-01');
+    const r1 = await leaderBoardService.getLeaderBoardV2(3,leaderBoardInfo);
+    console.timeEnd('leaderBoardService.getLeaderBoardV2-01');
+    const r2 = await leaderBoardService.getLeaderBoardV2(12,leaderBoardInfo);
+    const r3 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
+    console.timeEnd('leaderBoardService.getLeaderBoardV2');
+
+    console.table(r1);
+  });
   it('Check game Leaderboard', async function () {
     const leaderBoardInfo = {
-      type: LeaderboardType.GAME_CASUAL_NPS,
-      startTime: '2024-07-01',
-      endTime: '2024-07-30',
+      type: LeaderboardType.GAME_CASUAL_POINT,
+      context: {
+        games: [1],
+      },
+    };
+
+    console.time('leaderBoardService.getLeaderBoardV2');
+    console.time('leaderBoardService.getLeaderBoardV2-01');
+    const r1 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
+    console.timeEnd('leaderBoardService.getLeaderBoardV2-01');
+    const r2 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
+    const r3 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
+    console.timeEnd('leaderBoardService.getLeaderBoardV2');
+
+    console.table(r1);
+  });
+  it('Check game farming Leaderboard', async function () {
+    const leaderBoardInfo = {
+      type: LeaderboardType.GAME_FARMING_POINT,
       context: {
         games: [7],
       },
     };
-    
+
+    console.time('leaderBoardService.getLeaderBoardV2');
+    console.time('leaderBoardService.getLeaderBoardV2-01');
     const r1 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
+    console.timeEnd('leaderBoardService.getLeaderBoardV2-01');
     const r2 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
     const r3 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
+    console.timeEnd('leaderBoardService.getLeaderBoardV2');
 
     console.table(r1);
   });
