@@ -60,7 +60,7 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare createdAt: Date;
   declare updatedAt: Date;
   declare share: CreationOptional<JSON>;
-  declare leaderboards: CreationOptional<JSON>;
+  declare leaderboard_groups: CreationOptional<JSON>;
   declare token_slug: CreationOptional<string>;
 }
 
@@ -181,7 +181,7 @@ AirdropCampaign.init(
       allowNull: true,
     },
 
-    leaderboards: {
+    leaderboard_groups: {
       type: DataTypes.JSON,
       allowNull: true,
     },

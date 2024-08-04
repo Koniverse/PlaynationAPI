@@ -1,35 +1,31 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 
-export class Config extends Model<InferAttributes<Config>, InferCreationAttributes<Config>> {
+export class KeyValueStore extends Model<InferAttributes<KeyValueStore>, InferCreationAttributes<KeyValueStore>> {
   declare id: CreationOptional<number>; // id on db
-  declare name: string;
-  declare slug: string;
+  declare key: string;
   declare value: CreationOptional<JSON>;
 }
 
-Config.init({
+KeyValueStore.init({
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
   },
-  name: {
-    type: DataTypes.STRING,
-  },
-  slug: {
+  key: {
     type: DataTypes.STRING,
   },
   value: {
-    type: DataTypes.JSON,
+    type: DataTypes.JSONB,
     allowNull: true,
   },
 }, {
-  indexes: [{unique: true, fields: ['slug']}],
-  tableName: 'config',
+  indexes: [{unique: true, fields: ['key']}],
+  tableName: 'key_value_store',
   sequelize: SequelizeServiceImpl.sequelize,
   createdAt: true,
   updatedAt: true,
 });
 
-export default Config;
+export default KeyValueStore;

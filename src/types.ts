@@ -209,3 +209,31 @@ interface Auth2 {
   userId: string;
   verified: boolean;
 }
+
+export interface LeaderboardContentCms {
+  data: LeaderboardItem[];
+  leaderboard_general: LeaderboardGeneral[];
+}
+export interface LeaderboardGeneral {
+  leaderboardGroupId: number;
+  leaderboardGroupName: string;
+  leaderboards: LeaderboardItem[];
+}
+
+
+export interface LeaderboardMetadata {
+    refLevel?: number;
+}
+
+export interface LeaderboardItem {
+  id: number;
+  name: string;
+  slug: string;
+  type: string;
+  specialTime: string;
+  startTime?: any;
+  endTime?: any;
+  metadata?: LeaderboardMetadata;
+  games: number[];
+  tasks: number[];
+}
