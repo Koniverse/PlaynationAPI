@@ -8,15 +8,11 @@ import {QueryTypes} from 'sequelize';
 
 export class SummaryLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const gameIds = input.context?.games || [];
-    const taskIds = input.context?.tasks || [];
-    const accountId = input.accountId;
-    const startTime = input.startTime;
-    const endTime = input.endTime;
+    const {gameIds, taskIds, accountId, startTime, endTime} = input;
 
-    const queryGame = gameIds.length > 0 ? 'AND "gameId" IN (:gameIds)' : '';
-    const queryTaskGame = gameIds.length > 0 ? 'AND t."gameId" IN (:gameIds)' : '';
-    const queryTask = taskIds.length > 0 ? 'AND th."taskId" IN (:taskIds)' : '';
+    const queryGame = (gameIds && gameIds.length > 0) ? 'AND "gameId" IN (:gameIds)' : '';
+    const queryTaskGame = (gameIds && gameIds.length > 0) ? 'AND t."gameId" IN (:gameIds)' : '';
+    const queryTask = (taskIds && taskIds.length > 0) ? 'AND th."taskId" IN (:taskIds)' : '';
     const querySourceAccountId = accountId ? 'AND "sourceAccountId" = :accountId' : '';
     const queryAccount = accountId ? 'AND "accountId" = :accountId' : '';
     const queryIndirectAccount = accountId ? 'AND "indirectAccount" = :accountId' : '';

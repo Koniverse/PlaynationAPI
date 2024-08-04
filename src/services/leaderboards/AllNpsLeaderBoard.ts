@@ -9,15 +9,10 @@ import {buildDynamicCondition} from '@src/utils';
 
 export class AllNpsLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const gameIds = input.context?.games || [];
-    const taskIds = input.context?.tasks || [];
-    const accountId = input.accountId;
-    const startTime = input.startTime;
-    const endTime = input.endTime;
-
+    const {gameIds, taskIds, accountId, startTime, endTime} = input;
     const timeStateMap: Record<string, boolean> = {
-      '"createdAt" >= :startDate': !!startTime,
-      '"createdAt" <= :endDate': !!endTime,
+      '"createdAt" >= :startTime': !!startTime,
+      '"createdAt" <= :endTime': !!endTime,
     };
 
     const timeCondition = buildDynamicCondition(timeStateMap, 'WHERE');
@@ -32,25 +27,28 @@ export class AllNpsLeaderBoard extends BaseLeaderBoard {
       ...timeStateMap,
     }, 'WHERE');
 
+    const filerByGameIds = !!gameIds && gameIds?.length > 0;
     const gamePlayCondition = buildDynamicCondition({
       'success IS TRUE': true,
-      '"gameId" in (:gameIds)': gameIds?.length > 0,
+      '"gameId" in (:gameIds)': filerByGameIds,
       '"accountId" = :accountId': !!accountId,
       ...timeStateMap,
     }, 'WHERE');
 
+    const filterByTaskIds = !!taskIds && taskIds?.length > 0;
     const taskCondition = buildDynamicCondition({
       // '(th."extrinsicHash" IS NOT NULL AND th.status != \'failed\') OR th."extrinsicHash" IS NULL)': true,
-      't."gameId" in (:gameIds)': gameIds?.length > 0,
-      'h."taskId" in (:taskIds)': gameIds?.length > 0,
+      't."gameId" in (:gameIds)': filerByGameIds,
+      'h."taskId" in (:taskIds)': filterByTaskIds,
       'th."accountId" = :accountId': !!accountId,
-      ...timeStateMap,
+      'th."createdAt" >= :startTime': !!startTime,
+      'th."createdAt" <= :endTime': !!endTime,
     }, 'WHERE');
 
     const airdropCondition = buildDynamicCondition({
       'arl.type = \'NPS\' AND arl.status = \'RECEIVED\'': true,
-      'arl."createdAt" >= :startDate': !!startTime,
-      'arl."createdAt" <= :endDate': !!endTime,
+      'arl."createdAt" >= :startTime': !!startTime,
+      'arl."createdAt" <= :endTime': !!endTime,
     }, 'WHERE');
 
     const accountCondition = buildDynamicCondition({

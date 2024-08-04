@@ -10,16 +10,13 @@ import {buildDynamicCondition} from '@src/utils';
 
 export class GameFarmingLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const type = input.type;
-    const gameIds = input.context?.games || [];
-    const accountId = input.accountId;
-    const startTime = input.startTime;
-    const endTime = input.endTime;
+    const {type, gameIds, taskIds, accountId, startTime, endTime} = input;
 
+    const filterByGameIds = !!gameIds && gameIds?.length > 0;
     const conditionQuery = buildDynamicCondition({
       'a."isEnabled" IS TRUE': true,
       'gp.success IS TRUE': true,
-      'gp."gameId" IN (:gameIds)': gameIds.length > 0,
+      'gp."gameId" IN (:gameIds)': filterByGameIds,
       'gp."accountId" = :accountId': !!accountId,
       'gp."createdAt" >= :startTime': !!startTime,
       'gp."createdAt" <= :endTime': !!endTime,

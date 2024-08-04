@@ -27,7 +27,8 @@ export interface LeaderBoardQueryInputRaw {
   type: LeaderboardType;
   startTime?: Date | string;
   endTime?: Date | string;
-  context?: LeaderboardContext;
+  gameIds?: number[];
+  taskIds?: number[];
   limit?: number;
   accountId?: number;
   metadata?: LeaderboardMetadata;
@@ -89,8 +90,8 @@ export abstract class BaseLeaderBoard {
 
   }
 
-  public static getKey({type, startTime, endTime, context}: LeaderBoardQueryInputRaw) {
-    return `${type}|${String(startTime||'')}|${String(endTime||'')}|${JSON.stringify(context)}`;
+  public static getKey({type, startTime, endTime, gameIds, taskIds}: LeaderBoardQueryInputRaw) {
+    return `${type}|${String(startTime||'')}|${String(endTime||'')}|${gameIds?.join(',')||''}|${taskIds?.join(',')||''}`;
   }
 
   async getDisplayLeaderboard(limit: number) : Promise<LeaderBoardItem[]> {

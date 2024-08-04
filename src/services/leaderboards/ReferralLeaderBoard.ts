@@ -1,7 +1,7 @@
 import {
   BaseLeaderBoard,
   LeaderBoardItem,
-  LeaderBoardQueryInputRaw
+  LeaderBoardQueryInputRaw,
 } from '@src/services/leaderboards/BaseLeaderBoard';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {QueryTypes} from 'sequelize';
@@ -9,22 +9,17 @@ import {buildDynamicCondition} from '@src/utils';
 
 export class ReferralLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const type = input.type;
-    const gameIds = input.context?.games || [];
-    const accountId = input.accountId;
-    const startTime = input.startTime;
-    const endTime = input.endTime;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
-    const refLevel = input.metadata?.refLevel || 0;
-
+    const {type, gameIds, taskIds, accountId, startTime, endTime, metadata} = input;
+    const refLevel = metadata?.refLevel || 0;
 
     const timeStatement = {
       '"createdAt" >= :startTime': !!startTime,
       '"createdAt" <= :endTime': !!endTime,
     };
-    
+
+    const filterByGameIds = !!gameIds && gameIds?.length > 0;
     const gameCondition = buildDynamicCondition({
-      '"gameId" IN (:gameIds)': gameIds.length > 0,
+      '"gameId" IN (:gameIds)': filterByGameIds,
       '"accountId" = :accountId': !!accountId,
       ...timeStatement,
     }, 'WHERE');
@@ -90,6 +85,7 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
         ${sourceAccountCondition}
         GROUP BY "sourceAccountId"
     ` + sqlUpgradeRankSourceAccount;
+
     let queryF2 = `
         SELECT "indirectAccount"     AS accountId,
                Min("createdAt")      as createdAt,
@@ -98,6 +94,7 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
         ${indirectAccountCondition}
         GROUP BY "indirectAccount"
     ` + sqlUpgradeRankIndirectAccount;
+
     const unionAll = refLevel === 0 || refLevel > 2 ? ' UNION ALL ' : '';
     if (refLevel == 1){
       queryF2 = '';
@@ -105,6 +102,7 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
     if (refLevel == 2) {
       queryF1 = '';
     }
+
     const sql = `
         with 
             ${sqlPlayGame}

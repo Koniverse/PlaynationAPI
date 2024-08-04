@@ -38,7 +38,11 @@ export interface LeaderboardRecord {
 }
 
 export class LeaderBoardService {
-  constructor(private sequelizeService: SequelizeService) {}
+  constructor(private sequelizeService: SequelizeService) {
+    setInterval(() => {
+      this.clearUnusedLeaderBoard();
+    }, 10000);
+  }
 
   async getConfig(){
     const leaderboard_map = await KeyValueStoreService.instance.get('leaderboard_map') as unknown as LeaderboardItem[];
@@ -612,15 +616,31 @@ export class LeaderBoardService {
     return sql;
   }
 
-  // Todo: Auto clear cache after 10 minutes not used
-  private leaderboardMap: Record<string, BaseLeaderBoard> = {};
+
+  private leaderboardMap: Record<string, {
+    lastUsed: number;
+    leaderBoard: BaseLeaderBoard;
+  }> = {};
+
+  // Auto clear cache after 10 minutes not used
+  clearUnusedLeaderBoard() {
+    const currentTime = Date.now();
+    const cacheTime = 10 * 60 * 1000;
+    Object.keys(this.leaderboardMap).forEach((key) => {
+      const leaderBoardInfo = this.leaderboardMap[key];
+      if (currentTime - leaderBoardInfo.lastUsed > cacheTime) {
+        delete this.leaderboardMap[key];
+      }
+    });
+  }
 
   async getLeaderBoardV2(accountId: number, input: LeaderBoardQueryInputRaw) {
     const key = BaseLeaderBoard.getKey(input);
 
-    let leaderBoard = this.leaderboardMap[key];
-    if (!leaderBoard) {
+    let leaderBoardInfo = this.leaderboardMap[key];
+    if (!leaderBoardInfo) {
       logger.info(`Create new leader board with key: ${key}`);
+      let leaderBoard: BaseLeaderBoard | undefined;
       if (input.type.startsWith('game:casual')) {
         leaderBoard = new GameCasualLeaderBoard(input);
       } else if (input.type.startsWith('game:farming')) {
@@ -632,14 +652,24 @@ export class LeaderBoardService {
       } else if (input.type.startsWith('all')) {
         leaderBoard = new AllNpsLeaderBoard(input);
       }
-      this.leaderboardMap[key] = leaderBoard;
+
+      if (leaderBoard) {
+        leaderBoardInfo = {
+          lastUsed: Date.now(),
+          leaderBoard: leaderBoard,
+        };
+
+        this.leaderboardMap[key] = leaderBoardInfo;
+      }
     }
 
-    if (!leaderBoard) {
+    if (!leaderBoardInfo) {
       return [];
     }
 
-    return await leaderBoard.fetchLeaderBoard(accountId);
+    // set last used
+    leaderBoardInfo.lastUsed = Date.now();
+    return await leaderBoardInfo.leaderBoard.fetchLeaderBoard(accountId);
   }
 
   async getTotalLeaderboard(
