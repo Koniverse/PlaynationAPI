@@ -17,7 +17,7 @@ import logger from 'jet-logger';
 import {GameFarmingLeaderBoard} from '@src/services/leaderboards/GameFarmingLeaderBoard';
 import {ReferralLeaderBoard} from '@src/services/leaderboards/ReferralLeaderBoard';
 import {TaskLeaderBoard} from '@src/services/leaderboards/TaskLeaderBoard';
-import {SummaryLeaderBoard} from "@src/services/leaderboards/SummaryLeaderBoard";
+import {AllNpsLeaderBoard} from '@src/services/leaderboards/AllNpsLeaderBoard';
 
 
 export interface LeaderboardParams {
@@ -629,8 +629,8 @@ export class LeaderBoardService {
         leaderBoard = new ReferralLeaderBoard(input);
       } else if (input.type.startsWith('task')) {
         leaderBoard = new TaskLeaderBoard(input);
-      }else if (input.type.startsWith('all')) {
-        leaderBoard = new SummaryLeaderBoard(input);
+      } else if (input.type.startsWith('all')) {
+        leaderBoard = new AllNpsLeaderBoard(input);
       }
       this.leaderboardMap[key] = leaderBoard;
     }

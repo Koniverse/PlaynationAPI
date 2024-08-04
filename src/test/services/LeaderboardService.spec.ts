@@ -10,13 +10,17 @@ describe('LeaderBoard Test', () => {
       type: LeaderboardType.ALL_NPS,
     };
 
-    console.time('leaderBoardService.getLeaderBoardV2');
-    console.time('leaderBoardService.getLeaderBoardV2-01');
+    console.time('leaderBoardService.firstLeaderBoard');
     const r1 = await leaderBoardService.getLeaderBoardV2(3,leaderBoardInfo);
-    console.timeEnd('leaderBoardService.getLeaderBoardV2-01');
-    const r2 = await leaderBoardService.getLeaderBoardV2(12,leaderBoardInfo);
-    const r3 = await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
-    console.timeEnd('leaderBoardService.getLeaderBoardV2');
+    console.timeEnd('leaderBoardService.firstLeaderBoard');
+    console.time('leaderBoardService.nextMoreLeaderBoard');
+    await leaderBoardService.getLeaderBoardV2(12,leaderBoardInfo);
+    await leaderBoardService.getLeaderBoardV2(18,leaderBoardInfo);
+    await leaderBoardService.getLeaderBoardV2(34,leaderBoardInfo);
+    await leaderBoardService.getLeaderBoardV2(45,leaderBoardInfo);
+    await leaderBoardService.getLeaderBoardV2(2390,leaderBoardInfo);
+    await leaderBoardService.getLeaderBoardV2(25601,leaderBoardInfo);
+    console.timeEnd('leaderBoardService.nextMoreLeaderBoard');
 
     console.table(r1);
   });

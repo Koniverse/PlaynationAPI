@@ -15,23 +15,13 @@ export class AllNpsLeaderBoard extends BaseLeaderBoard {
     const startTime = input.startTime;
     const endTime = input.endTime;
 
-    // const queryGame = gameIds.length > 0 ? 'AND ta."gameId" IN (:gameIds)' : '';
-    // const queryTask = taskIds.length > 0 ? 'AND t."taskId" IN (:taskIds)' : '';
-    const queryAccount = accountId ? 'AND "accountId" = :accountId' : '';
-    const queryStartTime = startTime ? 'AND "createdAt" >= :startTime' : '';
-    const queryEndTime = endTime ? 'AND "createdAt" <= :endTime' : '';
-
-    const queryGame = gameIds.length > 0 ? 'AND "gameId" in (:gameIds)' : '';
-    const queryTaskGame = gameIds.length > 0 ? 'AND t."gameId" in (:gameIds)' : '';
-    const queryTask = taskIds.length > 0 ? 'AND th."taskId" in (:taskIds)' : '';
-
     const timeStateMap: Record<string, boolean> = {
       '"createdAt" >= :startDate': !!startTime,
       '"createdAt" <= :endDate': !!endTime,
     };
 
     const timeCondition = buildDynamicCondition(timeStateMap, 'WHERE');
-    
+
     const directRefCondition = buildDynamicCondition({
       '"sourceAccountId" = :accountId': !!accountId,
       ...timeStateMap,
@@ -50,7 +40,7 @@ export class AllNpsLeaderBoard extends BaseLeaderBoard {
     }, 'WHERE');
 
     const taskCondition = buildDynamicCondition({
-      '(th."extrinsicHash" IS NOT NULL AND th.status != \'failed\') OR th."extrinsicHash" IS NULL)': true,
+      // '(th."extrinsicHash" IS NOT NULL AND th.status != \'failed\') OR th."extrinsicHash" IS NULL)': true,
       't."gameId" in (:gameIds)': gameIds?.length > 0,
       'h."taskId" in (:taskIds)': gameIds?.length > 0,
       'th."accountId" = :accountId': !!accountId,
@@ -61,6 +51,10 @@ export class AllNpsLeaderBoard extends BaseLeaderBoard {
       'arl.type = \'NPS\' AND arl.status = \'RECEIVED\'': true,
       'arl."createdAt" >= :startDate': !!startTime,
       'arl."createdAt" <= :endDate': !!endTime,
+    }, 'WHERE');
+
+    const accountCondition = buildDynamicCondition({
+      'a.id = :accountId': !!accountId,
     }, 'WHERE');
 
     const sql = `
@@ -152,14 +146,13 @@ export class AllNpsLeaderBoard extends BaseLeaderBoard {
                a."firstName",
                a."lastName",
                a."photoUrl"             as avatar,
-               (accountId = :accountId) as mine,
-               point,
-               rank
+               false as mine,
+               point::INTEGER,
+               rank::INTEGER
         FROM final_data r
-                 JOIN account a ON r.accountId = a.id
-        WHERE rank <= :limit
-           or accountId = :accountId
-        order by rank asc`;
+           JOIN account a ON r.accountId = a.id
+        ${accountCondition}
+        ORDER BY rank ASC`;
 
     const result = await SequelizeServiceImpl.sequelize.query<LeaderBoardItem>(sql, {
       type: QueryTypes.SELECT,
