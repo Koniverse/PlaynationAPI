@@ -1,12 +1,11 @@
 import {
   BaseLeaderBoard,
   LeaderBoardItem,
-  LeaderBoardQueryInputRaw,
-  LeaderboardType,
+  LeaderBoardQueryInputRaw
 } from '@src/services/leaderboards/BaseLeaderBoard';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {QueryTypes} from 'sequelize';
-import * as console from 'node:console';
+import {buildDynamicCondition} from '@src/utils';
 
 export class ReferralLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
@@ -15,51 +14,66 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
     const accountId = input.accountId;
     const startTime = input.startTime;
     const endTime = input.endTime;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
     const refLevel = input.metadata?.refLevel || 0;
 
-    const queryGame = gameIds.length > 0 ? 'AND "gameId" IN (:gameIds)' : '';
-    const querySourceAccountId = accountId ? 'AND "sourceAccountId" = :accountId' : '';
-    const queryAccount = accountId ? 'AND "accountId" = :accountId' : '';
-    const queryIndirectAccount = accountId ? 'AND "indirectAccount" = :accountId' : '';
-    const queryStartTime = startTime ? 'AND "createdAt" >= :startTime' : '';
-    const queryEndTime = endTime ? 'AND "createdAt" <= :endTime' : '';
+
+    const timeStatement = {
+      '"createdAt" >= :startTime': !!startTime,
+      '"createdAt" <= :endTime': !!endTime,
+    };
+    
+    const gameCondition = buildDynamicCondition({
+      '"gameId" IN (:gameIds)': gameIds.length > 0,
+      '"accountId" = :accountId': !!accountId,
+      ...timeStatement,
+    }, 'WHERE');
 
     let pointQuery = 'SUM(coalesce(point, 0))';
     let indirectPointQuery = 'SUM(coalesce("indirectPoint", 0))';
 
 
     let sqlPlayGame = '';
-    let queryPlayGame = '';
+    const inviteToPlayStatement: Record<string, boolean> = {};
 
     if (type.includes('inviteToPlay')) {
       sqlPlayGame = `
-      playGamme as (SELECT "accountId"
+      game_play_data as (SELECT "accountId"
                    FROM game_play
-                   where  1=1 ${queryStartTime} ${queryEndTime} ${queryGame} ${queryAccount}
-                   ),
+                   ${gameCondition}),
       `;
-      queryPlayGame = ' and "invitedAccountId" in (SELECT "accountId" from playGamme)';
+      inviteToPlayStatement['"invitedAccountId" in (SELECT "accountId" from game_play_data)'] = true;
     }
+
+    const sourceAccountCondition = buildDynamicCondition({
+      ...inviteToPlayStatement,
+      ...timeStatement,
+      '"sourceAccountId" = :accountId': !!accountId,
+    }, 'WHERE');
+
+    const indirectAccountCondition = buildDynamicCondition({
+      ...inviteToPlayStatement,
+      ...timeStatement,
+      '"indirectAccount" = :accountId': !!accountId,
+    }, 'WHERE');
 
     let sqlUpgradeRankSourceAccount = `
       UNION ALL
-                                SELECT "sourceAccountId"       AS accountId,
-                                       Min("createdAt") as createdAt,
-                                       ${pointQuery} AS point
-                                FROM referral_upgrade_log
-                                where 1=1 ${queryStartTime}
-                                  ${queryEndTime} ${queryPlayGame} ${querySourceAccountId}
-                                GROUP BY "sourceAccountId"
+      SELECT "sourceAccountId"       AS accountId,
+             Min("createdAt") as createdAt,
+             ${pointQuery} AS point
+      FROM referral_upgrade_log
+      ${sourceAccountCondition}
+      GROUP BY "sourceAccountId"
       `;
     let sqlUpgradeRankIndirectAccount = `
         UNION ALL
-                                SELECT "indirectAccount"                 AS accountId,
-                                       Min("createdAt") as createdAt,
-                                       ${indirectPointQuery} AS point
-                                FROM referral_upgrade_log
-                                where 1=1 ${queryStartTime}
-                                  ${queryEndTime} ${queryPlayGame} ${queryIndirectAccount}
-                                GROUP BY "indirectAccount"
+        SELECT "indirectAccount"                 AS accountId,
+               Min("createdAt") as createdAt,
+               ${indirectPointQuery} AS point
+        FROM referral_upgrade_log
+        ${indirectAccountCondition}
+        GROUP BY "indirectAccount"
       `;
     if (type.endsWith('quantity')) {
       pointQuery = 'count(id)';
@@ -68,27 +82,22 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
       sqlUpgradeRankIndirectAccount = '';
     }
 
-
     let queryF1 = `
-    SELECT "sourceAccountId"       AS accountId,
-                                       Min("createdAt") as createdAt,
-                                       ${pointQuery} AS point
-                                FROM referral_log
-                                where 1=1 ${queryStartTime}
-                                  ${queryEndTime} ${queryPlayGame} ${querySourceAccountId}
-                                GROUP BY "sourceAccountId"
-                                ${sqlUpgradeRankSourceAccount}
-    `;
+        SELECT "sourceAccountId" AS accountId,
+               Min("createdAt")  as createdAt,
+               ${pointQuery}     AS point
+        FROM referral_log
+        ${sourceAccountCondition}
+        GROUP BY "sourceAccountId"
+    ` + sqlUpgradeRankSourceAccount;
     let queryF2 = `
-    SELECT "indirectAccount"                 AS accountId,
-                                       Min("createdAt") as createdAt,
-                                       ${indirectPointQuery} AS point
-                                FROM referral_log
-                                where 1=1 ${queryStartTime}
-                                  ${queryEndTime} ${queryPlayGame} ${queryIndirectAccount}
-                                GROUP BY "indirectAccount"
-                                ${sqlUpgradeRankIndirectAccount}
-    `;
+        SELECT "indirectAccount"     AS accountId,
+               Min("createdAt")      as createdAt,
+               ${indirectPointQuery} AS point
+        FROM referral_log
+        ${indirectAccountCondition}
+        GROUP BY "indirectAccount"
+    ` + sqlUpgradeRankIndirectAccount;
     const unionAll = refLevel === 0 || refLevel > 2 ? ' UNION ALL ' : '';
     if (refLevel == 1){
       queryF2 = '';
@@ -99,17 +108,15 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
     const sql = `
         with 
             ${sqlPlayGame}
-            combinedPoints as (
-          ${queryF1} ${unionAll} ${queryF2}
-                                ),
-             rankedUsers as (SELECT accountId,
-                                    RANK() OVER (ORDER BY SUM(point) DESC, MIN(combinedPoints.createdAt) asc) as rank,
+            combined_point AS (${queryF1} ${unionAll} ${queryF2}),
+           rankedUsers AS (SELECT accountId,
+                                    RANK() OVER (ORDER BY SUM(point) DESC, MIN(combined_point.createdAt) ASC) as rank,
                                     SUM(point)                             AS point
-                             FROM combinedPoints 
+                             FROM combined_point 
                              JOIN account a on a.id = accountId
                              where a."isEnabled"
                              GROUP BY accountId)
-        SELECT a.id                as "accountId",
+        SELECT a.id                AS "accountId",
                a."address",
                a."firstName",
                a."lastName",
@@ -120,7 +127,7 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
                ra.point::int            AS point
         FROM rankedUsers ra
                  JOIN account a ON ra.accountId = a.id
-        ORDER BY point DESC;
+        ORDER BY point DESC
     `;
 
     const result = await SequelizeServiceImpl.sequelize.query<LeaderBoardItem>(sql, {

@@ -6,6 +6,7 @@ import {
 } from '@src/services/leaderboards/BaseLeaderBoard';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {QueryTypes} from 'sequelize';
+import {buildDynamicCondition} from '@src/utils';
 
 export class GameFarmingLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
@@ -15,10 +16,14 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
     const startTime = input.startTime;
     const endTime = input.endTime;
 
-    const queryGame = gameIds.length > 0 ? 'AND gp."gameId" IN (:gameIds)' : '';
-    const queryAccount = accountId ? 'AND gp."accountId" = :accountId' : '';
-    const queryStartTime = startTime ? 'AND gp."createdAt" >= :startTime' : '';
-    const queryEndTime = endTime ? 'AND gp."createdAt" <= :endTime' : '';
+    const conditionQuery = buildDynamicCondition({
+      'a."isEnabled" IS TRUE': true,
+      'gp.success IS TRUE': true,
+      'gp."gameId" IN (:gameIds)': gameIds.length > 0,
+      'gp."accountId" = :accountId': !!accountId,
+      'gp."createdAt" >= :startTime': !!startTime,
+      'gp."createdAt" <= :endTime': !!endTime,
+    }, 'WHERE');
 
     let field = 'totalLifetimeMoney';
     if (type === LeaderboardType.GAME_FARMING_EARN_SPEED) {
@@ -36,18 +41,13 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
             a."firstName",
             a."lastName",
             a."photoUrl" AS avatar,
-            coalesce(CAST(gp."stateData" -> '${field}' AS NUMERIC), 0) point,
+            coalesce(CAST(gp."stateData" -> '${field}' AS NUMERIC), 0) AS point,
             gp."createdAt",
             ROW_NUMBER() OVER (PARTITION BY gp."accountId" ORDER BY gp."createdAt" DESC) AS rn
         FROM
             game_play gp
             JOIN account a ON gp."accountId" = a.id
-        WHERE gp.success IS TRUE
-            AND a."isEnabled" IS TRUE
-            ${queryGame}
-            ${queryAccount}
-            ${queryStartTime}
-            ${queryEndTime}
+        ${conditionQuery}
     )
       SELECT
           "accountId",

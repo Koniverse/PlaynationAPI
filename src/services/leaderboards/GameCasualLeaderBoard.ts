@@ -6,6 +6,7 @@ import {
 } from '@src/services/leaderboards/BaseLeaderBoard';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {QueryTypes} from 'sequelize';
+import {buildDynamicCondition} from '@src/utils';
 
 export class GameCasualLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
@@ -15,10 +16,14 @@ export class GameCasualLeaderBoard extends BaseLeaderBoard {
     const startTime = input.startTime;
     const endTime = input.endTime;
 
-    const queryGame = gameIds.length > 0 ? 'AND gp."gameId" IN (:gameIds)' : '';
-    const queryAccount = accountId ? 'AND gp."accountId" = :accountId' : '';
-    const queryStartTime = startTime ? 'AND gp."createdAt" >= :startTime' : '';
-    const queryEndTime = endTime ? 'AND gp."createdAt" <= :endTime' : '';
+    const conditionQuery = buildDynamicCondition({
+      'a."isEnabled" IS TRUE': true,
+      'gp.success IS TRUE': true,
+      'gp."gameId" IN (:gameIds)': gameIds.length > 0,
+      'gp."accountId" = :accountId': !!accountId,
+      'gp."createdAt" >= :startTime': !!startTime,
+      'gp."createdAt" <= :endTime': !!endTime,
+    }, 'WHERE');
 
     let pointQuery = 'SUM(coalesce(gp.point, 0))';
     if (type === LeaderboardType.GAME_CASUAL_POINT) {
@@ -40,7 +45,7 @@ SELECT gp."accountId",
     RANK() OVER (ORDER BY ${pointQuery} DESC, MIN(gp."createdAt") asc)::int as rank
 FROM game_play gp
     JOIN account a ON gp."accountId" = a.id
-WHERE gp.success is true AND a."isEnabled" is true ${queryGame} ${queryStartTime} ${queryEndTime} ${queryAccount}
+${conditionQuery}
 GROUP BY 1, 2, 3, 4, 5, 6
 ORDER BY rank asc`;
 

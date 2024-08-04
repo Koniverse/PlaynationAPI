@@ -7,10 +7,12 @@ export interface LeaderboardContext {
 }
 
 export enum LeaderboardType {
+  ALL_NPS = 'all:nps',
   GAME_CASUAL_NPS = 'game:casual:nps',
   GAME_CASUAL_POINT = 'game:casual:point',
   GAME_CASUAL_QUANTITY = 'game:casual:quantity',
   GAME_FARMING_POINT = 'game:farming:point',
+  GAME_FARMING_TOTAL_POINT = 'game:farming:totalPoint',
   GAME_FARMING_EARN_SPEED = 'game:farming:earnSpeed',
   REFERRAL_NPS = 'referral:nps',
   REFERRAL_QUANTITY = 'referral:quantity',
