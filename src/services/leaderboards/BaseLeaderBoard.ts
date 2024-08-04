@@ -90,8 +90,8 @@ export abstract class BaseLeaderBoard {
 
   }
 
-  public static getKey({type, startTime, endTime, gameIds, taskIds}: LeaderBoardQueryInputRaw) {
-    return `${type}|${String(startTime||'')}|${String(endTime||'')}|${gameIds?.join(',')||''}|${taskIds?.join(',')||''}`;
+  public static getKey({type, startTime, endTime, gameIds, taskIds, metadata}: LeaderBoardQueryInputRaw) {
+    return `${type}|${String(startTime||'')}|${String(endTime||'')}|${gameIds?.join(',')||''}|${taskIds?.join(',')||''}|${JSON.stringify(metadata ?? {})}`;
   }
 
   async getDisplayLeaderboard(limit: number) : Promise<LeaderBoardItem[]> {

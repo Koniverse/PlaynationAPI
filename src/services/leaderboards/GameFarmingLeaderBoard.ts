@@ -15,7 +15,7 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
     const filterByGameIds = !!gameIds && gameIds?.length > 0;
     const conditionQuery = buildDynamicCondition({
       'a."isEnabled" IS TRUE': true,
-      'gp.success IS TRUE': true,
+      'gp.state IS NOT NULL': true,
       'gp."gameId" IN (:gameIds)': filterByGameIds,
       'gp."accountId" = :accountId': !!accountId,
       'gp."createdAt" >= :startTime': !!startTime,
@@ -40,7 +40,7 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
             a."photoUrl" AS avatar,
             coalesce(CAST(gp."stateData" -> '${field}' AS NUMERIC), 0) AS point,
             gp."createdAt",
-            ROW_NUMBER() OVER (PARTITION BY gp."accountId" ORDER BY gp."createdAt" DESC) AS rn
+            ROW_NUMBER() OVER (PARTITION BY gp."accountId" ORDER BY gp.id DESC) AS rn
         FROM
             game_play gp
             JOIN account a ON gp."accountId" = a.id

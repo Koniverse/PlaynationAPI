@@ -1,12 +1,7 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
-import {
-  LeaderboardPerson,
-} from '@src/models';
-import { QueryTypes } from 'sequelize';
-import {LeaderboardItem, LeaderboardMetadata} from '@src/types';
+import {LeaderboardItem} from '@src/types';
 import {KeyValueStoreService} from '@src/services/KeyValueStoreService';
-import * as console from 'node:console';
-import {calculateStartAndEnd, getLastDayOfYearCurrent} from '@src/utils/date';
+import {calculateStartAndEnd} from '@src/utils/date';
 import {
   BaseLeaderBoard,
   LeaderboardContext,
@@ -43,6 +38,14 @@ export class LeaderBoardServiceV2 {
     });
   }
 
+
+
+  async getConfig(){
+    const leaderboard_map = await KeyValueStoreService.instance.get('leaderboard_map') as unknown as LeaderboardItem[];
+    const leaderboard_general = await KeyValueStoreService.instance.get('leaderboard_general');
+    return {leaderboard_map, leaderboard_general};
+  }
+
   async fetchData(accountId: number, id: number, context: LeaderboardContext = {}, limit = 100){
     const leaderboardList = await KeyValueStoreService.instance.get('leaderboard_map') as unknown as LeaderboardItem[];
     const leaderboard = leaderboardList.find(item => item.id === id);
@@ -50,7 +53,6 @@ export class LeaderBoardServiceV2 {
       let startTime = leaderboard.startTime as unknown as string;
       let endTime = leaderboard.endTime as unknown as string;
 
-      // TO DO: check task and game by array
       let gameIds = leaderboard.games;
       let taskIds = leaderboard.tasks;
       if (context.games){

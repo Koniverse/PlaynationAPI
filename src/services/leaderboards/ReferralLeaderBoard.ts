@@ -11,6 +11,7 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
     const {type, gameIds, taskIds, accountId, startTime, endTime, metadata} = input;
     const refLevel = metadata?.refLevel || 0;
+    console.log('refLevel', refLevel);
 
     const timeStatement = {
       '"createdAt" >= :startTime': !!startTime,
