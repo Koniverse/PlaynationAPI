@@ -13,10 +13,11 @@ import {
   LeaderBoardQueryInputRaw,
 } from '@src/services/leaderboards/BaseLeaderBoard';
 import {GameCasualLeaderBoard} from '@src/services/leaderboards/GameCasualLeaderBoard';
-import logger from "jet-logger";
-import {GameFarmingLeaderBoard} from "@src/services/leaderboards/GameFarmingLeaderBoard";
-import {ReferralLeaderBoard} from "@src/services/leaderboards/ReferralLeaderBoard";
-import {TaskLeaderBoard} from "@src/services/leaderboards/TaskLeaderBoard";
+import logger from 'jet-logger';
+import {GameFarmingLeaderBoard} from '@src/services/leaderboards/GameFarmingLeaderBoard';
+import {ReferralLeaderBoard} from '@src/services/leaderboards/ReferralLeaderBoard';
+import {TaskLeaderBoard} from '@src/services/leaderboards/TaskLeaderBoard';
+import {SummaryLeaderBoard} from "@src/services/leaderboards/SummaryLeaderBoard";
 
 
 export interface LeaderboardParams {
@@ -233,7 +234,7 @@ export class LeaderBoardService {
                                 where "createdAt" >= :startDate
                                   and "createdAt" <= :endDate
                                 GROUP BY "indirectAccount"
-    `
+    `;
     const unionAll = refLevel === 0 || refLevel > 2 ? ' UNION ALL ' : '';
     if (refLevel == 1){
       queryF2 = '';
@@ -328,7 +329,7 @@ export class LeaderBoardService {
 
   getInviteToPlayQuantity(gameId: number[], refLevel = 0) {
     const queryGame = gameId.length > 0 ? 'and "gameId" in (:gameIds)' : '';
-     let queryF1 = `
+    let queryF1 = `
     SELECT "sourceAccountId"       AS accountId,
                                        Min("createdAt") as createdAt,
                                        count(distinct id) AS point
@@ -430,7 +431,7 @@ export class LeaderBoardService {
                                   and "createdAt" <= :endDate
                                 and "invitedAccountId" in (SELECT "accountId" from playGamme)
                                 GROUP BY "indirectAccount"
-    `
+    `;
     const unionAll = refLevel === 0 || refLevel > 2 ? ' UNION ALL ' : '';
     if (refLevel == 1){
       queryF2 = '';
@@ -628,6 +629,8 @@ export class LeaderBoardService {
         leaderBoard = new ReferralLeaderBoard(input);
       } else if (input.type.startsWith('task')) {
         leaderBoard = new TaskLeaderBoard(input);
+      }else if (input.type.startsWith('all')) {
+        leaderBoard = new SummaryLeaderBoard(input);
       }
       this.leaderboardMap[key] = leaderBoard;
     }
@@ -647,7 +650,7 @@ export class LeaderBoardService {
     taskIds: number[],
     limit = 100,
     typeQuery = 'all:nps',
-    metaData: LeaderboardMetadata | undefined
+    metaData: LeaderboardMetadata | undefined,
   ) {
     let sql = this.getAllDataQuery(gameIds, taskIds);
     let refLevel = 0;

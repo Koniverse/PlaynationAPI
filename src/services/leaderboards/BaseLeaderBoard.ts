@@ -18,6 +18,7 @@ export enum LeaderboardType {
   REFERRAL_INVITE_TO_PLAY_QUANTITY = 'referral:inviteToPlay:quantity',
   TASK_NPS = 'task:nps',
   TASK_QUANTITY = 'task:quantity',
+  SUMMARY_NPS = 'all:nps',
 }
 
 export interface LeaderBoardQueryInputRaw {
