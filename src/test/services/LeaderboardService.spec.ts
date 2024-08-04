@@ -21,6 +21,32 @@ describe('LeaderBoard Test', () => {
 
     console.table(r1);
   });
+  it('Check task Leaderboard', async function () {
+    const leaderBoardInfo = {
+      type: LeaderboardType.TASK_NPS,
+      startTime: '2024-07-01',
+      endTime: '2024-07-30',
+      context: {
+        games: [7],
+        tasks: [1, 2],
+      },
+    };
+
+    const r1 = await leaderBoardService.getLeaderBoardV2(2,leaderBoardInfo);
+
+    console.table(r1);
+    const leaderBoardInfo1 = {
+      type: LeaderboardType.TASK_QUANTITY,
+      startTime: '2024-07-01',
+      endTime: '2024-07-30',
+      context: {
+      },
+    };
+
+    const r2 = await leaderBoardService.getLeaderBoardV2(2,leaderBoardInfo1);
+
+    console.table(r2);
+  });
   it('Check Referral Leaderboard', async function () {
     const leaderBoardInfo = {
       type: LeaderboardType.REFERRAL_NPS,

@@ -16,6 +16,7 @@ import {GameCasualLeaderBoard} from '@src/services/leaderboards/GameCasualLeader
 import logger from "jet-logger";
 import {GameFarmingLeaderBoard} from "@src/services/leaderboards/GameFarmingLeaderBoard";
 import {ReferralLeaderBoard} from "@src/services/leaderboards/ReferralLeaderBoard";
+import {TaskLeaderBoard} from "@src/services/leaderboards/TaskLeaderBoard";
 
 
 export interface LeaderboardParams {
@@ -625,6 +626,8 @@ export class LeaderBoardService {
         leaderBoard = new GameFarmingLeaderBoard(input);
       } else if (input.type.startsWith('referral')) {
         leaderBoard = new ReferralLeaderBoard(input);
+      } else if (input.type.startsWith('task')) {
+        leaderBoard = new TaskLeaderBoard(input);
       }
       this.leaderboardMap[key] = leaderBoard;
     }
