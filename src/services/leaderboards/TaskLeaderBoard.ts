@@ -13,7 +13,7 @@ export class TaskLeaderBoard extends BaseLeaderBoard {
     const {type, gameIds, taskIds, accountId, startTime, endTime} = input;
 
     const conditionQuery = buildDynamicCondition({
-      '(t."extrinsicHash" IS NOT NULL AND t.status != \'failed\')': true,
+      '((t."extrinsicHash" IS NOT NULL AND t.status != \'failed\') or t."extrinsicHash" is null)': true,
       'ta."gameId" IN (:gameIds)': !!gameIds && gameIds.length > 0,
       't."taskId" IN (:taskIds)': !!taskIds && taskIds.length > 0,
       't."accountId" = :accountId': !!accountId,

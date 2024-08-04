@@ -37,7 +37,7 @@ export class AllNpsLeaderBoard extends BaseLeaderBoard {
 
     const filterByTaskIds = !!taskIds && taskIds?.length > 0;
     const taskCondition = buildDynamicCondition({
-      // '(th."extrinsicHash" IS NOT NULL AND th.status != \'failed\') OR th."extrinsicHash" IS NULL)': true,
+      '((th."extrinsicHash" IS NOT NULL AND th.status != \'failed\') OR th."extrinsicHash" IS NULL)': true,
       't."gameId" in (:gameIds)': filerByGameIds,
       'h."taskId" in (:taskIds)': filterByTaskIds,
       'th."accountId" = :accountId': !!accountId,
