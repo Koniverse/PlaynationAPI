@@ -211,8 +211,8 @@ export abstract class BaseLeaderBoard {
     }
   }
 
-  async fetchLeaderBoard(accountId: number) : Promise<LeaderBoardOutput[]> {
-    const data = await this.getLeaderBoardData(accountId);
+  async fetchLeaderBoard(accountId: number, limit = 100) : Promise<LeaderBoardOutput[]> {
+    const data = await this.getLeaderBoardData(accountId, limit);
     return this.processOutput(data);
   }
 }
