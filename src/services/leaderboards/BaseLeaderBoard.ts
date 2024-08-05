@@ -179,12 +179,29 @@ export abstract class BaseLeaderBoard {
       const topDisplayRs = deepCopy(topDisplay);
       const resultList: LeaderBoardItem[] = [];
 
+      // Just update mine record if it's point is not changed
+      const currentRecord = this.fullLeaderBoardMap[accountData.accountId];
+      if (currentRecord.point === accountPoint) {
+        topDisplay.forEach((item) => {
+          if (item.accountId === accountData.accountId) {
+            item.mine = true;
+          }
+        });
+
+        return topDisplayRs;
+      }
+
+      // Sort user's record in topDisplay
       let isInserted = false;
       for (let i = 0; i < topDisplayRs.length; i++) {
         const item = topDisplayRs[i];
 
         // Skip user's record
         if (item.accountId === accountData.accountId) {
+          // Just push user's record if it's the last record
+          if (i === topDisplayRs.length - 1) {
+            resultList.push(accountData);
+          }
           continue;
         }
 
