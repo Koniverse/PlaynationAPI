@@ -181,7 +181,7 @@ export abstract class BaseLeaderBoard {
       // Just update mine record if it's point is not changed
       const currentRecord = this.fullLeaderBoardMap[accountData.accountId];
       if (currentRecord.point === accountPoint) {
-        topDisplay.forEach((item) => {
+        topDisplayRs.forEach((item) => {
           if (item.accountId === accountData.accountId) {
             item.mine = true;
           }
