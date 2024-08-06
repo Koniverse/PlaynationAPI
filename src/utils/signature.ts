@@ -11,7 +11,7 @@ export function validateSignature(address: string, signedMessage: string, signat
     //   return recoveredAddress.toLocaleLowerCase() === address.toLocaleLowerCase();
     // }
 
-    if (!isAddress(address) || !isEthereumAddress(address)) {
+    if (!isAddress(address) && !isEthereumAddress(address)) {
       return false;
     }
 
