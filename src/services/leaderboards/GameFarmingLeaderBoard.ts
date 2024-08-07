@@ -40,7 +40,7 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
             a."photoUrl" AS avatar,
             coalesce(CAST(gp."stateData" -> '${field}' AS NUMERIC), 0) AS point,
             gp."createdAt",
-            ROW_NUMBER() OVER (PARTITION BY gp."accountId" ORDER BY gp.id DESC) AS rn
+            ROW_NUMBER() OVER (PARTITION BY gp."accountId" ORDER BY gp."updatedAt" DESC) AS rn
         FROM
             game_play gp
             JOIN account a ON gp."accountId" = a.id
@@ -55,7 +55,7 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
           avatar,
           false as mine,
           point::BIGINT as point,
-          RANK() OVER (ORDER BY point DESC, "createdAt" ASC)::INTEGER AS rank
+          RANK() OVER (ORDER BY point DESC, "accountId" ASC)::INTEGER AS rank
       FROM
           LastGamePlay
       WHERE

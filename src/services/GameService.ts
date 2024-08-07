@@ -276,7 +276,7 @@ export class GameService {
         gameId: game.id,
         state: {[Op.not]: null},
       },
-      order: [['id', 'DESC']],
+      order: [['updatedAt', 'DESC']],
     });
 
     if (lastGamePlay?.state && typeof lastGamePlay?.state !== 'string') {
