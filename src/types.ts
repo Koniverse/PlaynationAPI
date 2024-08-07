@@ -237,3 +237,10 @@ export interface LeaderboardItem {
   games: number[];
   tasks: number[];
 }
+
+export interface ChainData {
+  address: string;
+  seedPhrase: string;
+  minimumBalance: number;
+  estimatedFee: number;
+}

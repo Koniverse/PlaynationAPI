@@ -4,7 +4,7 @@
 
 /* eslint-disable node/no-process-env */
 import chainConfig from '@src/data/chainConfig.json';
-import * as process from "node:process";
+import {ChainData} from '@src/types';
 
 const Environments = {
   NodeEnv: process.env.NODE_ENV ?? '',
@@ -104,9 +104,9 @@ const Environments = {
   ChainService: {
     Endpoint: process.env.CHAIN_SERVICE_ENDPOINT ?? '',
     Token: process.env.CHAIN_SERVICE_TOKEN ?? '',
-    networkConfig: chainConfig,
-    minimumBalance: parseInt(process.env.MINIMUM_BALANCE || '30'),
-    estimatedFee: parseFloat(process.env.ESTIMATED_FEE || '0.002410001367'),
+    networkConfig: chainConfig as Record<string, ChainData>,
+    minimumBalance: parseInt(process.env.MINIMUM_BALANCE || '10'), // deprecated
+    estimatedFee: parseFloat(process.env.ESTIMATED_FEE || '0.0127'), // deprecated
   },
   TaskOnChain: {
     IntervalTime: parseInt(process.env.INTERVAL_TASK_ON_CHAIN_TIME || '6000'),

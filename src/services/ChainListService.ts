@@ -4,6 +4,7 @@ import {ChainAssetMap, ChainInfoMap} from '@subwallet/chain-list';
 import EnvVars from '@src/constants/EnvVars';
 import {BN} from '@polkadot/util';
 import {isAddress} from '@polkadot/util-crypto';
+import logger from "jet-logger";
 
 export interface CreateTransactionParams {
     address: string;
@@ -24,16 +25,11 @@ enum ErrorTransfer {
   ERR_INSUFFICIENT_GAS_FEES = 'ERR_INSUFFICIENT_GAS_FEES',
 }
 
-interface ChainData {
-  address: string;
-  seedPhrase: string;
-}
-
 export class ChainListService {
   public chainServiceList: Record<string, ChainService> = {};
   public constructor() {
     keyring.loadAll({type: 'sr25519'});
-    const chainList = EnvVars.ChainService.networkConfig as Record<string, ChainData>;
+    const chainList = EnvVars.ChainService.networkConfig;
     Object.keys(chainList).forEach((chain) => {
       const dataChain = chainList[chain] ?? {};
       const {address, seedPhrase} = dataChain;
@@ -69,6 +65,8 @@ export class ChainListService {
   public async createTransfer(address: string, network: string, decimal: number, amount: number, token_slug?: string) {
     const isAssetHubNetworks = ['statemint', 'statemine', 'rococo'].includes(network);
 
+    logger.info(`createTransfer ${address} | ${network} | ${decimal} | ${amount} | ${token_slug || ''}`)
+
     if (token_slug && isAssetHubNetworks) {
       const tokenInfo = ChainAssetMap[token_slug];
       if (tokenInfo && tokenInfo?.metadata?.assetId) {
@@ -83,10 +81,11 @@ export class ChainListService {
     this.validateAddress(address);
     const chainService = this.getService(network);
     const api = await chainService.getApi();
-    const airdropAccount = (amount - EnvVars.ChainService.estimatedFee) * 10 ** decimal;
+    const {estimatedFee, minimumBalance} = EnvVars.ChainService.networkConfig[network];
+    const airdropAccount = (amount - estimatedFee) * 10 ** decimal;
 
     const AIRDROP_AMOUNT = new BN(airdropAccount);
-    const MINIMUM_BALANCE = new BN(EnvVars.ChainService.minimumBalance  * 10 ** decimal);
+    const MINIMUM_BALANCE = new BN(minimumBalance  * 10 ** decimal);
 
     const enoughBalance = await chainService.checkMinBalance(chainService.sendAddress, MINIMUM_BALANCE);
     if (!enoughBalance) {
@@ -105,8 +104,9 @@ export class ChainListService {
     const api = await chainService.getApi();
     await api.isReady;
 
+    const { minimumBalance} = EnvVars.ChainService.networkConfig[network];
     // Validate current sender balance
-    const MINIMUM_BALANCE = new BN(EnvVars.ChainService.minimumBalance  * 10 ** decimal);
+    const MINIMUM_BALANCE = new BN(minimumBalance  * 10 ** decimal);
     const enoughBalance = await chainService.checkMinBalance(chainService.sendAddress, MINIMUM_BALANCE);
     const enoughTokenBalance = await chainService.checkMinTokenBalance(assetId, chainService.sendAddress, new BN(amount * 10 ** decimal));
 
