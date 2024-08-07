@@ -682,6 +682,8 @@ export class AirdropService {
             errorMessage = 'The system is currently overloaded, please try again later.';
           }
 
+          logger.err(sendTokenResponse.error);
+
           throw new Error(errorMessage);
         }
 
@@ -693,7 +695,6 @@ export class AirdropService {
         throw new Error('NPS point is automatically added to your account.');
       }
     } catch (error) {
-      logger.err(error);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/restrict-template-expressions
       throw new Error(`Claim failed: ${error.message}`);
     }
