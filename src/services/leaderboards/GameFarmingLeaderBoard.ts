@@ -10,7 +10,10 @@ import {buildDynamicCondition} from '@src/utils';
 
 export class GameFarmingLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const {type, gameIds, taskIds, accountId, startTime, endTime} = input;
+    const {type, gameIds, taskIds, accountId, startTime, endTime, metadata} = input;
+
+    const checkNewPlayer = metadata?.newPlayer || false;
+    
 
     const filterByGameIds = !!gameIds && gameIds?.length > 0;
     const conditionQuery = buildDynamicCondition({
@@ -20,6 +23,7 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
       'gp."accountId" = :accountId': !!accountId,
       'gp."createdAt" >= :startTime': !!startTime,
       'gp."createdAt" <= :endTime': !!endTime,
+      'gp."accountId" not in (select * from PlayedList)': checkNewPlayer,
     }, 'WHERE');
 
     let field = 'totalLifetimeMoney';
@@ -28,9 +32,24 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
     } else if (type === LeaderboardType.GAME_FARMING_POINT) {
       field = 'coin';
     }
+    
+    let queryCheckNewPlayer = '';
+
+    if (checkNewPlayer) {
+      const conditionQueryNewPlayer = buildDynamicCondition({
+        'gp.state IS NOT NULL': true,
+        'gp."gameId" IN (:gameIds)': filterByGameIds,
+        'gp."createdAt" < :startTime': !!startTime,
+      }, 'WHERE');
+      queryCheckNewPlayer = ` PlayedList as (
+      select distinct gp."accountId" from game_play gp ${conditionQueryNewPlayer}
+    ),`;
+    }
 
     const sql = `
-    WITH LastGamePlay AS (
+    WITH
+        ${queryCheckNewPlayer}
+        LastGamePlay AS (
         SELECT
             gp."accountId",
             a."telegramUsername",

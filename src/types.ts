@@ -223,6 +223,7 @@ export interface LeaderboardGeneral {
 
 export interface LeaderboardMetadata {
     refLevel?: number;
+    newPlayer?: boolean;
 }
 
 export interface LeaderboardItem {
