@@ -104,7 +104,7 @@ const Environments = {
   ChainService: {
     Endpoint: process.env.CHAIN_SERVICE_ENDPOINT ?? '',
     Token: process.env.CHAIN_SERVICE_TOKEN ?? '',
-    networkConfig: chainConfig as Record<string, ChainData>,
+    networkConfig: chainConfig as unknown as Record<string, ChainData>,
     minimumBalance: parseInt(process.env.MINIMUM_BALANCE || '10'), // deprecated
     estimatedFee: parseFloat(process.env.ESTIMATED_FEE || '0.0127'), // deprecated
   },
