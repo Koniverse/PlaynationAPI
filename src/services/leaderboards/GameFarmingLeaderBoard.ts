@@ -18,6 +18,7 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
     const filterByGameIds = !!gameIds && gameIds?.length > 0;
     const conditionFirstQuery = buildDynamicCondition({
       'gp.state IS NOT NULL': true,
+      'gp."accountId" = :accountId': !!accountId,
       'gp."gameId" IN (:gameIds)': filterByGameIds,
     }, 'WHERE');
     const conditionQuery = buildDynamicCondition({
