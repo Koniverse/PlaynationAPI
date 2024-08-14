@@ -17,13 +17,17 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
 
     const filterByGameIds = !!gameIds && gameIds?.length > 0;
     const conditionQuery = buildDynamicCondition({
-      'a."isEnabled" IS TRUE': true,
       'gp.state IS NOT NULL': true,
       'gp."gameId" IN (:gameIds)': filterByGameIds,
       'gp."accountId" = :accountId': !!accountId,
       'gp."createdAt" >= :startTime': !!startTime,
       'gp."createdAt" <= :endTime': !!endTime,
-      'gp."accountId" not in (select * from PlayedList)': checkNewPlayer,
+    }, 'WHERE');
+    const conditionTotalQuery = buildDynamicCondition({
+      'rn=1': true,
+      'a."isEnabled" IS TRUE': true,
+      'first_created_at >= :startTime': !!startTime && checkNewPlayer,
+      'first_created_at <= :endTime': !!endTime && checkNewPlayer,
     }, 'WHERE');
 
     let field = 'totalLifetimeMoney';
@@ -32,33 +36,15 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
     } else if (type === LeaderboardType.GAME_FARMING_POINT) {
       field = 'coin';
     }
-    
-    let queryCheckNewPlayer = '';
-
-    if (checkNewPlayer) {
-      const conditionQueryNewPlayer = buildDynamicCondition({
-        'gp.state IS NOT NULL': true,
-        'gp."gameId" IN (:gameIds)': filterByGameIds,
-        'gp."createdAt" < :startTime': !!startTime,
-      }, 'WHERE');
-      queryCheckNewPlayer = ` PlayedList as (
-      select distinct gp."accountId" from game_play gp ${conditionQueryNewPlayer}
-    ),`;
-    }
 
     const sql = `
     WITH
-        ${queryCheckNewPlayer}
-        LastGamePlay AS (
+        last_game_play AS (
         SELECT
             gp."accountId",
-            a."telegramUsername",
-            a.address,
-            a."firstName",
-            a."lastName",
-            a."photoUrl" AS avatar,
             coalesce(CAST(gp."stateData" -> '${field}' AS NUMERIC), 0) AS point,
             gp."createdAt",
+            MIN(gp."createdAt") OVER (PARTITION BY gp."accountId") AS first_created_at,
             ROW_NUMBER() OVER (PARTITION BY gp."accountId" ORDER BY gp."updatedAt" DESC) AS rn
         FROM
             game_play gp
@@ -71,14 +57,14 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
           address,
           "firstName",
           "lastName",
-          avatar,
+          "photoUrl" AS avatar,
           false as mine,
           point::BIGINT as point,
           RANK() OVER (ORDER BY point DESC, "accountId" ASC)::INTEGER AS rank
       FROM
-          LastGamePlay
-      WHERE
-          rn = 1
+          last_game_play
+      JOIN account a on a.id = last_game_play."accountId"
+        ${conditionTotalQuery}
       ORDER BY rank ASC`;
 
     const result = await SequelizeServiceImpl.sequelize.query<LeaderBoardItem>(sql, {
