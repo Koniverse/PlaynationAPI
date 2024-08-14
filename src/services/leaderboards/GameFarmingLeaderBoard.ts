@@ -16,6 +16,10 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
     
 
     const filterByGameIds = !!gameIds && gameIds?.length > 0;
+    const conditionFirstQuery = buildDynamicCondition({
+      'gp.state IS NOT NULL': true,
+      'gp."gameId" IN (:gameIds)': filterByGameIds,
+    }, 'WHERE');
     const conditionQuery = buildDynamicCondition({
       'gp.state IS NOT NULL': true,
       'gp."gameId" IN (:gameIds)': filterByGameIds,
@@ -26,8 +30,8 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
     const conditionTotalQuery = buildDynamicCondition({
       'rn=1': true,
       'a."isEnabled" IS TRUE': true,
-      'first_created_at >= :startTime': !!startTime && checkNewPlayer,
-      'first_created_at <= :endTime': !!endTime && checkNewPlayer,
+      'fp.first_created_at >= :startTime': !!startTime && checkNewPlayer,
+      'fp.first_created_at <= :endTime': !!endTime && checkNewPlayer,
     }, 'WHERE');
 
     let field = 'totalLifetimeMoney';
@@ -44,15 +48,17 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
             gp."accountId",
             coalesce(CAST(gp."stateData" -> '${field}' AS NUMERIC), 0) AS point,
             gp."createdAt",
-            MIN(gp."createdAt") OVER (PARTITION BY gp."accountId") AS first_created_at,
             ROW_NUMBER() OVER (PARTITION BY gp."accountId" ORDER BY gp."updatedAt" DESC) AS rn
         FROM
             game_play gp
-            JOIN account a ON gp."accountId" = a.id
         ${conditionQuery}
-    )
+    ), first_game_play AS (SELECT gp."accountId",
+                                MIN(gp."createdAt") AS first_created_at
+                         FROM game_play gp
+                         ${conditionFirstQuery}
+                         group by 1)
       SELECT
-          "accountId",
+          lp."accountId",
           "telegramUsername",
           address,
           "firstName",
@@ -60,10 +66,10 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
           "photoUrl" AS avatar,
           false as mine,
           point::BIGINT as point,
-          RANK() OVER (ORDER BY point DESC, "accountId" ASC)::INTEGER AS rank
-      FROM
-          last_game_play
-      JOIN account a on a.id = last_game_play."accountId"
+          RANK() OVER (ORDER BY point DESC, lp."accountId" ASC)::INTEGER AS rank
+      FROM last_game_play lp
+            JOIN first_game_play fp on lp."accountId" = fp."accountId"
+         JOIN account a on a.id = lp."accountId"
         ${conditionTotalQuery}
       ORDER BY rank ASC`;
 
