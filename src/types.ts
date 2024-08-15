@@ -223,6 +223,7 @@ export interface LeaderboardGeneral {
 
 export interface LeaderboardMetadata {
     refLevel?: number;
+    newPlayer?: boolean;
 }
 
 export interface LeaderboardItem {
@@ -236,4 +237,11 @@ export interface LeaderboardItem {
   metadata?: LeaderboardMetadata;
   games: number[];
   tasks: number[];
+}
+
+export interface ChainData {
+  address: string;
+  seedPhrase: string;
+  minimumBalance: number;
+  estimatedFee: number;
 }

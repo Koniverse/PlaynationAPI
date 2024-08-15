@@ -177,36 +177,29 @@ export abstract class BaseLeaderBoard {
     // Check if user's record is in topDisplay
     if (accountPoint >= topDisplayMinPoint) {
       const topDisplayRs = deepCopy(topDisplay);
-      const resultList: LeaderBoardItem[] = [];
 
-      let isInserted = false;
-      for (let i = 0; i < topDisplayRs.length; i++) {
-        const item = topDisplayRs[i];
+      // Just update mine record if it's point is not changed
+      const currentRecord = this.fullLeaderBoardMap[accountData.accountId];
+      if (currentRecord.point === accountPoint) {
+        topDisplayRs.forEach((item) => {
+          if (item.accountId === accountData.accountId) {
+            item.mine = true;
+          }
+        });
 
-        // Skip user's record
-        if (item.accountId === accountData.accountId) {
-          continue;
-        }
-
-        // Insert user's record if it's higher than current record
-        if (item.point < accountPoint && !isInserted) {
-          accountData.rank = i + 1;
-          resultList.push(accountData);
-          isInserted = true;
-        }
-
-        // Update rank for records after user's record
-        if (isInserted) {
-          item.rank = i + 2;
-        }
-
-        // Add record to result list
-        resultList.push(item);
+        return topDisplayRs;
       }
+
+      const resultList = topDisplayRs.filter((item) => item.accountId !== accountData.accountId);
+      resultList.push(accountData);
+      resultList.sort((a, b) => b.point - a.point);
+      resultList.forEach((item, index) => {
+        item.rank = index + 1;
+      }, 0);
 
       return resultList;
     } else if (accountPoint >= topRefreshMinPoint) {
-      accountData.rank = topLeaderboard.findIndex((item) => item.point < accountPoint) + 1;
+      accountData.rank = topLeaderboard.findIndex((item) => item.point <= accountPoint) + 1;
 
       return [...topDisplay, accountData];
     } else {
@@ -218,8 +211,8 @@ export abstract class BaseLeaderBoard {
     }
   }
 
-  async fetchLeaderBoard(accountId: number) : Promise<LeaderBoardOutput[]> {
-    const data = await this.getLeaderBoardData(accountId);
+  async fetchLeaderBoard(accountId: number, limit = 100) : Promise<LeaderBoardOutput[]> {
+    const data = await this.getLeaderBoardData(accountId, limit);
     return this.processOutput(data);
   }
 }

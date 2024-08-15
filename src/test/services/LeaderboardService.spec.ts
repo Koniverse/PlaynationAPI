@@ -17,7 +17,13 @@ describe('LeaderBoard Test', () => {
     };
 
     console.time('leaderBoardService.firstLeaderBoard');
-    const r1 = await leaderBoardService.getLeaderBoardData(3,leaderBoardInfo);
+    const r1 = await leaderBoardService.getLeaderBoardData(120306,leaderBoardInfo);
+    r1.forEach((r) => {
+      // @ts-ignore
+      r.accId = r.accountInfo.id;
+    });
+    console.table(r1);
+
     console.timeEnd('leaderBoardService.firstLeaderBoard');
     console.time('leaderBoardService.nextMoreLeaderBoard');
     await leaderBoardService.getLeaderBoardData(12,leaderBoardInfo);
@@ -28,7 +34,6 @@ describe('LeaderBoard Test', () => {
     await leaderBoardService.getLeaderBoardData(25601,leaderBoardInfo);
     console.timeEnd('leaderBoardService.nextMoreLeaderBoard');
 
-    console.table(r1);
   });
   it('Check game Leaderboard', async function () {
     const leaderBoardInfo = {

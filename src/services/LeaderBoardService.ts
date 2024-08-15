@@ -25,6 +25,14 @@ export interface LeaderboardParams {
     context: LeaderboardContext;
     limit: number;
 }
+
+export interface LeaderboardOldParams {
+  gameId: number;
+  startDate: string;
+  endDate: string;
+  type: 'accumulatePoint' | 'game' | 'task' | 'referral' | 'all';
+  limit: number;
+}
 export interface LeaderboardRecord {
   rank: string; // SQL query returns rank as string
   accountId: number;

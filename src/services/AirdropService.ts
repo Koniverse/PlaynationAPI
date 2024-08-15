@@ -97,7 +97,6 @@ const enum AirdropCampaignProcess {
   END_CAMPAIGN = 'END_CAMPAIGN',
 }
 
-
 const enum SendTokenStatus {
   ERR_MISSING_TOKEN = 'ERR_MISSING_TOKEN',
   ERR_INVALID_WALLET_ADDRESS = 'ERR_INVALID_WALLET_ADDRESS',
@@ -672,6 +671,8 @@ export class AirdropService {
           case SendTokenStatus.ERR_MISSING_TOKEN:
           case SendTokenStatus.ERR_INCORRECT_NETWORK:
           case SendTokenStatus.ERR_INSUFFICIENT_GAS_FEES:
+            // Only rollback with known error
+            await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.PENDING });
             errorMessage = 'The system is currently overloaded, please try again later.';
             break;
           case SendTokenStatus.ERR_INVALID_WALLET_ADDRESS:
@@ -680,6 +681,8 @@ export class AirdropService {
           default:
             errorMessage = 'The system is currently overloaded, please try again later.';
           }
+
+          logger.err(sendTokenResponse.error);
 
           throw new Error(errorMessage);
         }
@@ -692,8 +695,6 @@ export class AirdropService {
         throw new Error('NPS point is automatically added to your account.');
       }
     } catch (error) {
-      console.error(error);
-      await airdropRecordLog.update({ status: AIRDROP_LOG_STATUS.PENDING });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/restrict-template-expressions
       throw new Error(`Claim failed: ${error.message}`);
     }

@@ -117,7 +117,7 @@ export class LeaderBoardServiceV2 {
 
     // set last used
     leaderBoardInfo.lastUsed = Date.now();
-    return await leaderBoardInfo.leaderBoard.fetchLeaderBoard(accountId);
+    return await leaderBoardInfo.leaderBoard.fetchLeaderBoard(accountId, input.limit ?? 100);
   }
 
   // Singleton

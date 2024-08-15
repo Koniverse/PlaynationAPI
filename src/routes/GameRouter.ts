@@ -10,6 +10,7 @@ import {
 } from '@src/services/GameService';
 import { requireLogin, requireSecret } from '@src/routes/helper';
 import { GameItemService } from '@src/services/GameItemService';
+import {LeaderboardOldParams, LeaderBoardService} from '@src/services/LeaderBoardService';
 
 const GameRouter = Router();
 type NewGameParams = newGamePlayParams & Query;
@@ -82,6 +83,24 @@ const routerMap = {
     const response = await GameItemService.instance.getInventoryLogs(userId, true);
     return res.status(200).json(response);
   },
+
+
+
+  getLeaderBoard: async (req: IReq<LeaderboardOldParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const { type, startDate, endDate, gameId, limit } = req.body;
+    const result = await LeaderBoardService.instance.getTotalLeaderboard(
+      userId,
+      startDate,
+      endDate,
+      [],
+      [],
+      limit,
+      'all:nps',
+      {},
+    );
+    return res.status(200).json(result);
+  },
 };
 
 GameRouter.post('/sync', requireSecret, routerMap.sync);
@@ -92,6 +111,7 @@ GameRouter.post('/new-game', requireLogin, routerMap.newGame);
 GameRouter.post('/submit', requireLogin, routerMap.submitGameplay);
 GameRouter.post('/get-last-state', requireLogin, routerMap.getLastState);
 GameRouter.post('/submit-state', requireLogin, routerMap.submitState);
+GameRouter.post('/leader-board', requireLogin, routerMap.getLeaderBoard);
 
 GameRouter.post('/use-item', requireLogin, routerMap.usedGameItem);
 GameRouter.get('/used-item-log', requireLogin, routerMap.getInventoryLogs);

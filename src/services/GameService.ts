@@ -136,6 +136,7 @@ export class GameService {
         await Game.create(itemData);
       }
     }
+
     await quickGetService.buildGameMap();
     return response;
   }
@@ -242,10 +243,15 @@ export class GameService {
 
     const {data, signature, timestamp} = stateData;
 
-    const isSignatureValid = await validatePayload(stateData.data, stateData.signature, EnvVars.Game.FarmingGameToken);
+    let isSignatureValid = await validatePayload(stateData.data, stateData.signature, EnvVars.Game.FarmingGameToken);
     // if (!isSignatureValid) {
     //   throw new Error('Invalid signature');
     // }
+
+    // Force fail if any game state is invalid
+    if (gamePlay.success === false) {
+      isSignatureValid = false;
+    }
 
     const newStateCount = (gamePlay.stateCount || 0) + 1;
 
@@ -276,7 +282,7 @@ export class GameService {
         gameId: game.id,
         state: {[Op.not]: null},
       },
-      order: [['id', 'DESC']],
+      order: [['updatedAt', 'DESC']],
     });
 
     if (lastGamePlay?.state && typeof lastGamePlay?.state !== 'string') {

@@ -13,7 +13,8 @@ const routerMap = {
     const accountId = req.user?.id || 0;
     const id = req.body.id;
     const context = req.body.context;
-    const data = await LeaderBoardServiceV2.instance.fetchData(accountId, id, context);
+    const limit = req.body.limit ?? 100;
+    const data = await LeaderBoardServiceV2.instance.fetchData(accountId, id, context, limit);
 
     return res.status(200).json(data);
   },
