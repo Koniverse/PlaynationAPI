@@ -16,14 +16,23 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
     
 
     const filterByGameIds = !!gameIds && gameIds?.length > 0;
+    const conditionFirstQuery = buildDynamicCondition({
+      'gp.state IS NOT NULL': true,
+      'gp."accountId" = :accountId': !!accountId,
+      'gp."gameId" IN (:gameIds)': filterByGameIds,
+    }, 'WHERE');
     const conditionQuery = buildDynamicCondition({
-      'a."isEnabled" IS TRUE': true,
       'gp.state IS NOT NULL': true,
       'gp."gameId" IN (:gameIds)': filterByGameIds,
       'gp."accountId" = :accountId': !!accountId,
       'gp."createdAt" >= :startTime': !!startTime,
       'gp."createdAt" <= :endTime': !!endTime,
-      'gp."accountId" not in (select * from PlayedList)': checkNewPlayer,
+    }, 'WHERE');
+    const conditionTotalQuery = buildDynamicCondition({
+      'rn=1': true,
+      'a."isEnabled" IS TRUE': true,
+      'fp.first_created_at >= :startTime': !!startTime && checkNewPlayer,
+      'fp.first_created_at <= :endTime': !!endTime && checkNewPlayer,
     }, 'WHERE');
 
     let field = 'totalLifetimeMoney';
@@ -32,53 +41,37 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
     } else if (type === LeaderboardType.GAME_FARMING_POINT) {
       field = 'coin';
     }
-    
-    let queryCheckNewPlayer = '';
-
-    if (checkNewPlayer) {
-      const conditionQueryNewPlayer = buildDynamicCondition({
-        'gp.state IS NOT NULL': true,
-        'gp."gameId" IN (:gameIds)': filterByGameIds,
-        'gp."createdAt" < :startTime': !!startTime,
-      }, 'WHERE');
-      queryCheckNewPlayer = ` PlayedList as (
-      select distinct gp."accountId" from game_play gp ${conditionQueryNewPlayer}
-    ),`;
-    }
 
     const sql = `
     WITH
-        ${queryCheckNewPlayer}
-        LastGamePlay AS (
+        last_game_play AS (
         SELECT
             gp."accountId",
-            a."telegramUsername",
-            a.address,
-            a."firstName",
-            a."lastName",
-            a."photoUrl" AS avatar,
             coalesce(CAST(gp."stateData" -> '${field}' AS NUMERIC), 0) AS point,
             gp."createdAt",
             ROW_NUMBER() OVER (PARTITION BY gp."accountId" ORDER BY gp."updatedAt" DESC) AS rn
         FROM
             game_play gp
-            JOIN account a ON gp."accountId" = a.id
         ${conditionQuery}
-    )
+    ), first_game_play AS (SELECT gp."accountId",
+                                MIN(gp."createdAt") AS first_created_at
+                         FROM game_play gp
+                         ${conditionFirstQuery}
+                         group by 1)
       SELECT
-          "accountId",
+          lp."accountId",
           "telegramUsername",
           address,
           "firstName",
           "lastName",
-          avatar,
+          "photoUrl" AS avatar,
           false as mine,
           point::BIGINT as point,
-          RANK() OVER (ORDER BY point DESC, "accountId" ASC)::INTEGER AS rank
-      FROM
-          LastGamePlay
-      WHERE
-          rn = 1
+          RANK() OVER (ORDER BY point DESC, lp."accountId" ASC)::INTEGER AS rank
+      FROM last_game_play lp
+            JOIN first_game_play fp on lp."accountId" = fp."accountId"
+         JOIN account a on a.id = lp."accountId"
+        ${conditionTotalQuery}
       ORDER BY rank ASC`;
 
     const result = await SequelizeServiceImpl.sequelize.query<LeaderBoardItem>(sql, {

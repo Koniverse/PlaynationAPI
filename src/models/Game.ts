@@ -27,6 +27,9 @@ export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<G
   declare pointConversionRate: CreationOptional<number>;
   declare rankDefinition: CreationOptional<string>;
   declare leaderboard_groups: CreationOptional<JSON>;
+
+  declare restrictedAccess: CreationOptional<JSON>;
+  declare restrictedAccessText: CreationOptional<string>;
 }
 
 Game.init({
@@ -80,10 +83,16 @@ Game.init({
     type: DataTypes.DATE,
     allowNull: true,
   },
-  
-      
   leaderboard_groups: {
     type: DataTypes.JSON,
+    allowNull: true,
+  },
+  restrictedAccess: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  restrictedAccessText: {
+    type: DataTypes.TEXT,
     allowNull: true,
   },
   pointConversionRate: {
