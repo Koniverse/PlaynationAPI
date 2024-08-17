@@ -10,6 +10,7 @@ import AirlyftRouter from '@src/routes/AirlyftRouter';
 import KeyValueRouter from '@src/routes/KeyValueRouter';
 import LeaderboardRouter from '@src/routes/LeaderboardRouter';
 import PublicRouter from '@src/routes/PublicRouter';
+import MetadataRouter from '@src/routes/MetadataRouter';
 
 const apiRouter = Router();
 
@@ -24,5 +25,6 @@ apiRouter.use('/airlyft', AirlyftRouter);
 apiRouter.use('/key-value', KeyValueRouter);
 apiRouter.use('/leaderboard', LeaderboardRouter);
 apiRouter.use('/public', PublicRouter);
+apiRouter.use('/metadata', MetadataRouter);
 
 export default apiRouter;

@@ -9,6 +9,10 @@ import {
   GamePlay,
   Task,
 } from '@src/models';
+import {RecordVersionInfo} from '@src/services/type';
+import {KeyValueStoreService} from '@src/services/KeyValueStoreService';
+
+const kvService = KeyValueStoreService.instance;
 
 export class QuickGetService {
   private gameMap: Record<string, Game> | undefined;
@@ -18,9 +22,23 @@ export class QuickGetService {
   async buildGameMap() {
     const data = await Game.findAll();
     const gameMap: Record<string, Game> = {};
+    const metadata: RecordVersionInfo[] = [];
+
     data.forEach((game) => {
       gameMap[game.id.toString()] = game;
+
+      if (game.metadata) {
+        metadata.push({
+          id: game.id,
+          slug: game.slug,
+          version: game.metadata.version,
+          minVersion: game.metadata.minVersion,
+          updateMessage: game.metadata.updateMessage,
+        });
+      }
     });
+
+    await kvService.syncGameMetadata(metadata);
 
     this.gameMap = gameMap;
     return gameMap;

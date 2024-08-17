@@ -46,3 +46,37 @@ export enum DuplicateCheckType {
   CAMPAIGN = 'campaign',
   CATEGORY = 'category',
 }
+
+export interface VersionInfo {
+  version: number
+  minVersion?: number,
+  updateMessage?: string
+}
+
+export interface RecordVersionInfo extends VersionInfo {
+  id: number
+  slug: string
+}
+
+export interface MaintenanceInfo {
+  startTime: number
+  endTime: number
+  title: string
+  message: string
+}
+
+export interface AppMetadata {
+  lastUpdated: number
+  maintenanceInfo?: MaintenanceInfo
+  versions: {
+    application: VersionInfo
+    game?: VersionInfo
+    leaderboard?: VersionInfo
+    task?: VersionInfo
+    achievement?: VersionInfo
+    airdrop?: VersionInfo
+  },
+  recordVersions?: {
+    game?: RecordVersionInfo[]
+  }
+}
