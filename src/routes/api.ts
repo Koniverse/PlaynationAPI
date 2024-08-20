@@ -10,6 +10,7 @@ import AirlyftRouter from '@src/routes/AirlyftRouter';
 import KeyValueRouter from '@src/routes/KeyValueRouter';
 import LeaderboardRouter from '@src/routes/LeaderboardRouter';
 import PublicRouter from '@src/routes/PublicRouter';
+import AchievementRouter from '@src/routes/AchievementRouter';
 
 const apiRouter = Router();
 
@@ -23,6 +24,7 @@ apiRouter.use('/airdrop', AirdropRouter);
 apiRouter.use('/airlyft', AirlyftRouter);
 apiRouter.use('/key-value', KeyValueRouter);
 apiRouter.use('/leaderboard', LeaderboardRouter);
+apiRouter.use('/achievement', AchievementRouter);
 apiRouter.use('/public', PublicRouter);
 
 export default apiRouter;
