@@ -1,15 +1,36 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
+import {Metric} from '@src/models/Achievement';
 
 export enum ConditionsCombination {
   AND = 'and',
   OR = 'or',
 }
 
+export enum ComparisonOperator {
+    GT = 'gt',
+    GTE = 'gte',
+    LT = 'lt',
+    LTE = 'lte',
+    EQ = 'eq',
+    RANK_GT = 'rank_gt',
+    RANK_GTE = 'rank_gte',
+    RANK_LT = 'rank_lt',
+    RANK_LTE = 'rank_lte',
+    RANK_EQ = 'rank_eq'
+}
+
+export interface Condition {
+    metric: Metric;
+    comparison: ComparisonOperator;
+    value: number;
+
+}
+
 export class AchievementMilestone extends Model<InferAttributes<AchievementMilestone>, InferCreationAttributes<AchievementMilestone>> {
   declare id: CreationOptional<number>; // id on db
   declare name: string;
-  declare conditions: CreationOptional<string>;
+  declare conditions: CreationOptional<Condition[]>;
   declare nps: number;
   declare achievementId: number;
   declare contentId: number;

@@ -1,7 +1,16 @@
-import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
+import {
+  CreationOptional,
+  DataTypes, HasManyAddAssociationMixin, HasManyAddAssociationsMixin,
+  HasOneCreateAssociationMixin,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
-import {AirlyftEventWebhook} from '@src/services/AirlyftService';
 import AchievementCategory from '@src/models/AchievementCategory';
+import {LeaderboardItem} from '@src/types';
+import AchievementMilestone from '@src/models/AchievementMilestone';
+export type Metric = LeaderboardItem & {metricId: string};
 
 
 
@@ -15,7 +24,7 @@ export class Achievement extends Model<InferAttributes<Achievement>, InferCreati
   declare achievementCategoryId: number;
   declare startTime: CreationOptional<Date>;
   declare endTime: CreationOptional<Date>;
-  declare metrics: CreationOptional<string>;
+  declare metrics: CreationOptional<Metric[]>; // metrics for achievement
 
   // createdAt can be undefined during creation
   declare createdAt: CreationOptional<Date>;

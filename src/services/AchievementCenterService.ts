@@ -1,119 +1,132 @@
-import { v4 as uuidv4 } from 'uuid';
-import EventEmitter from 'eventemitter3';
-import {LeaderboardItem} from '@src/types';
+import {v4} from 'uuid';
 import {LeaderBoardServiceV2} from '@src/services/LeaderBoardServiceV2';
 import {LeaderBoardQueryInputRaw} from '@src/services/leaderboards/BaseLeaderBoard';
-
-// Cấu hình cho các milestone
-export interface MilestoneConfig {
-  conditions_combination: 'and' | 'or'; // Cách kết hợp các điều kiện
-  conditions: Condition[]; // Danh sách các điều kiện
-  nps: number,
-  id: number,
-  name: string
-}
-type Metric = LeaderboardItem & {metricId: string};
+import {ComparisonOperator, Condition, ConditionsCombination, Metric} from '@src/models';
+import {createPromise, PromiseObject} from '@src/utils';
+import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
+import {AchievementService} from '@src/services/AchievementService';
 // Cấu hình cho mỗi điều kiện
-export interface Condition {
-  metric: Metric; // Thông tin leaderboard
-  comparison: 'gt' | 'gte' | 'lt'| 'eq'; // Điều kiện so sánh
-  value: number; // Giá trị để so sánh
+export type ComparativeValue = Condition & {valueCondition: number};
+
+enum QueueStatus {
+    RUNNING = 'running',
+    WAITING = 'waiting',
+
 }
 
-// Dữ liệu sự kiện Achievement
-export interface AchievementEventData {
-  id: string;
-  milestoneId: number;
-  achievementId: string;
-  result?: boolean;
-  error?: Error;
-}
+interface AchievementQueue {
+    accountId: number,
+    achievementId: number,
+    isProcessing: boolean,
+    handler: PromiseObject<any>
 
-// Map sự kiện cho emitter
-export interface AchievementServiceEventMap {
-  'achievement_unlocked': AchievementEventData;
-  'achievement_error': AchievementEventData;
 }
 
 export class AchievementCenterService {
-  private emitter = new EventEmitter<AchievementServiceEventMap>();
-  private milestoneConfigs: Map<number, MilestoneConfig> = new Map(); // milestoneId -> MilestoneConfig
-  private achievementQueue: Map<number, Set<number>> = new Map(); // milestoneId -> Set<userId>
-  private queueStatus: 'running' | 'waiting' = 'waiting';
-
-
-  public async addUserAchievement(userId: number, milestone: MilestoneConfig): Promise<void> {
-    const userQueue = this.achievementQueue.get(milestone.id) || new Set();
-    userQueue.add(userId);
-    this.achievementQueue.set(milestone.id, userQueue);
-    this.milestoneConfigs.set(milestone.id, milestone);
-
+  private queueStatus: QueueStatus = QueueStatus.WAITING;
+  private requestMap: Record<string, AchievementQueue> = {};
+  constructor(private sequelizeService: SequelizeService) {}
+  public async checkAccountAchievement(accountId: number, achievementId: number): Promise<void> {
+    const handler = createPromise();
+    const id = v4();
+    this.requestMap[id] = {accountId, achievementId, isProcessing: false, handler};
     setTimeout(() => {
       this.run().catch(console.error);
     }, 1000);
   }
 
   private async run(): Promise<void> {
-    if (this.queueStatus === 'running') {
+    if (this.queueStatus === QueueStatus.RUNNING) {
       return;
     }
 
-    this.queueStatus = 'running';
-
-    const milestoneIds = Array.from(this.achievementQueue.keys());
-    const promises = milestoneIds.map(milestoneId => this.processMilestone(milestoneId));
-
-    await Promise.all(promises);
-    this.queueStatus = 'waiting';
-  }
-
-  private async processMilestone(milestoneId: number): Promise<void> {
-    const userIds = this.achievementQueue.get(milestoneId) || new Set();
-    const config = this.milestoneConfigs.get(milestoneId);
-    if (!config) return;
-
-    const leaderboardValues = await this.getLeaderboardValues(config.conditions.map(cond => cond.metric));
-
-    for (const userId of userIds) {
-      // Todo: Get user data
-      const userConditions = config.conditions.map(cond => ({
-        ...cond,
-      }));
-
-      const isUnlocked = await this.checkConditions(userConditions, config.conditions_combination);
-
-      if (isUnlocked) {
-        const eventData: AchievementEventData = {
-          id: uuidv4(),
-          milestoneId,
-          achievementId: uuidv4(),
-          result: isUnlocked,
-        };
-        this.emitter.emit('achievement_unlocked', eventData);
-        await this.logAchievement(userId, milestoneId, 0, 0);
+    this.queueStatus = QueueStatus.RUNNING;
+    const entries = Object.entries(this.requestMap);
+    // Map request to achievement
+    const achievementMap: Record<number, AchievementQueue[]> = {};
+    for (const [id, queue] of entries) {
+      if (!queue.isProcessing) {
+        const { achievementId } = queue;
+        queue.isProcessing = true;
+        if (achievementMap[achievementId]) {
+          achievementMap[achievementId].push(queue);
+        } else {
+          achievementMap[achievementId] = [queue];
+        }
       }
     }
+    await this.processAchievement(achievementMap);
+  }
 
-    this.achievementQueue.delete(milestoneId);
+  private async processAchievement(achievementMap: Record<number, AchievementQueue[]>): Promise<void> {
+
+    // Process achievement
+    for (const [achievementId, dataList] of Object.entries(achievementMap)) {
+      const achievement = await AchievementService.instance.findAchievement(Number(achievementId));
+      if (!achievement) {
+        continue;
+      }
+      const metrics = achievement.metrics;
+      if (!metrics) {
+        continue;
+      }
+      const accountMetricData: Record<string, number> = {};
+
+      for (const metric of metrics) {
+        // Todo: add leaderboard function to achievement service map list accountIds
+        const data = await LeaderBoardServiceV2.instance.getLeaderBoardData(0, metric as LeaderBoardQueryInputRaw);
+        for (const itemData of dataList) {
+          const account = data.find(item => item.accountInfo.id === itemData.accountId);
+          if (!account) {
+            continue;
+          }
+          accountMetricData[`${metric.id}_${itemData.accountId}`] = account.point;
+
+        }
+      }
+      for (const itemData of dataList) {
+      // Todo: Get user data
+        // get milestone to achievement cache
+        for (const milestone of achievement.milestones) {
+          const userConditions = milestone.conditions.map(cond => {
+            return {...cond, valueCondition: accountMetricData[`${cond.metric.id}_${itemData.accountId}`]};
+          });
+
+          const isCheck = this.checkConditions(userConditions, milestone.conditions_combination);
+          if  (isCheck) {
+            await this.logAchievement(itemData.accountId, milestone.id, Number(achievementId), milestone.nps);
+          }
+          const handler = itemData.handler;
+          handler.resolve(isCheck);
+        }
+      }
+    }
+    // delete requestMap after process
+    for (const [id, queue] of Object.entries(this.requestMap)) {
+      if (queue.isProcessing) {
+        delete this.requestMap[id];
+      }
+    }
+    this.queueStatus = QueueStatus.WAITING;
   }
 
   // Todo: add comparison
 
-  private async checkConditions(conditions: Condition[], combination: 'and' | 'or'): Promise<boolean> {
+  private checkConditions(conditions: ComparativeValue[], combination: ConditionsCombination): boolean {
     const checks = conditions.map(cond => {
       switch (cond.comparison) {
-      case 'gt':
-        return cond.value !== undefined && cond.value > cond.value;
-      case 'lt':
-        return cond.value !== undefined && cond.value < cond.value;
-      case 'eq':
-        return cond.value !== undefined && cond.value === cond.value;
+      case ComparisonOperator.GT:
+        return cond.value !== undefined && cond.valueCondition > cond.value;
+      case ComparisonOperator.LT:
+        return cond.value !== undefined && cond.valueCondition < cond.value;
+      case ComparisonOperator.EQ:
+        return cond.value !== undefined && cond.valueCondition === cond.value;
       default:
         return false;
       }
     });
 
-    return combination === 'and' ? checks.every(check => check) : checks.some(check => check);
+    return combination === ConditionsCombination.AND ? checks.every(check => check) : checks.some(check => check);
   }
 
   // Todo: save data in achievement_log
@@ -129,26 +142,12 @@ export class AchievementCenterService {
     // Thực hiện lưu logData vào cơ sở dữ liệu hoặc hệ thống lưu trữ khác
   }
 
-  // Todo:  get info leaderboard in array metrics
-  private async getLeaderboardValues(leaderboardIds: Metric[]): Promise<Record<string, Record<string, number>>> {
-    const values: Record<string, any> = {};
-
-    for (const item of leaderboardIds) {
-      values[item.metricId] = await LeaderBoardServiceV2.instance.getLeaderBoardData(0, item as LeaderBoardQueryInputRaw);
+  // Singleton
+  private static _instance: AchievementCenterService;
+  public static get instance() {
+    if (!AchievementCenterService._instance) {
+      AchievementCenterService._instance = new AchievementCenterService(SequelizeServiceImpl);
     }
-
-    return values;
-  }
-
-  public on(event: keyof AchievementServiceEventMap, callback: (eData: AchievementEventData) => void) {
-    this.emitter.on(event, callback);
-  }
-
-  public off(event: keyof AchievementServiceEventMap, callback: (eData: AchievementEventData) => void) {
-    this.emitter.off(event, callback);
-  }
-
-  public setMilestoneConfig(milestoneId: number, config: MilestoneConfig): void {
-    this.milestoneConfigs.set(milestoneId, config);
+    return AchievementCenterService._instance;
   }
 }
