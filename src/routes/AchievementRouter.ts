@@ -22,7 +22,7 @@ const routerMap = {
 };
 
 AchievementRouter.post('/sync', requireSecret, routerMap.sync);
-AchievementRouter.get('/fetch', requireLogin, routerMap.fetch);
+AchievementRouter.get('/fetch',requireLogin, routerMap.fetch);
 AchievementRouter.post('/claim', requireLogin, routerMap.claim);
 
 export default AchievementRouter;

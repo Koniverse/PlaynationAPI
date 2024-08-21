@@ -1,10 +1,16 @@
 import {v4} from 'uuid';
 import {LeaderBoardServiceV2} from '@src/services/LeaderBoardServiceV2';
-import {LeaderBoardQueryInputRaw} from '@src/services/leaderboards/BaseLeaderBoard';
-import {ComparisonOperator, Condition, ConditionsCombination, Metric} from '@src/models';
+import {
+  LeaderboardContext,
+  LeaderboardType,
+} from '@src/services/leaderboards/BaseLeaderBoard';
+import {AchievementLog, ComparisonOperator, Condition, ConditionsCombination, Metric} from '@src/models';
 import {createPromise, PromiseObject} from '@src/utils';
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import {AchievementService} from '@src/services/AchievementService';
+import * as console from 'node:console';
+import {LeaderboardItem} from '@src/types';
+import {calculateStartAndEnd} from '@src/utils/date';
 // Cấu hình cho mỗi điều kiện
 export type ComparativeValue = Condition & {valueCondition: number};
 
@@ -26,13 +32,14 @@ export class AchievementCenterService {
   private queueStatus: QueueStatus = QueueStatus.WAITING;
   private requestMap: Record<string, AchievementQueue> = {};
   constructor(private sequelizeService: SequelizeService) {}
-  public async checkAccountAchievement(accountId: number, achievementId: number): Promise<void> {
+  public async checkAccountAchievement(accountId: number, achievementId: number) {
     const handler = createPromise();
     const id = v4();
     this.requestMap[id] = {accountId, achievementId, isProcessing: false, handler};
     setTimeout(() => {
       this.run().catch(console.error);
     }, 1000);
+    return handler.promise;
   }
 
   private async run(): Promise<void> {
@@ -74,22 +81,24 @@ export class AchievementCenterService {
 
       for (const metric of metrics) {
         // Todo: add leaderboard function to achievement service map list accountIds
-        const data = await LeaderBoardServiceV2.instance.getLeaderBoardData(0, metric as LeaderBoardQueryInputRaw);
+        // Todo: change limit accountId length
+        const data = await this.getLeaderBoard(0, metric as LeaderboardItem, {}, 100000);
         for (const itemData of dataList) {
           const account = data.find(item => item.accountInfo.id === itemData.accountId);
           if (!account) {
             continue;
           }
-          accountMetricData[`${metric.id}_${itemData.accountId}`] = account.point;
+          accountMetricData[`${metric.metricId}_${itemData.accountId}`] = account.point;
 
         }
       }
+      console.error('Account metric data:', accountMetricData);
       for (const itemData of dataList) {
       // Todo: Get user data
         // get milestone to achievement cache
         for (const milestone of achievement.milestones) {
           const userConditions = milestone.conditions.map(cond => {
-            return {...cond, valueCondition: accountMetricData[`${cond.metric.id}_${itemData.accountId}`]};
+            return {...cond, valueCondition: accountMetricData[`${cond.metric}_${itemData.accountId}`]};
           });
 
           const isCheck = this.checkConditions(userConditions, milestone.conditions_combination);
@@ -117,8 +126,12 @@ export class AchievementCenterService {
       switch (cond.comparison) {
       case ComparisonOperator.GT:
         return cond.value !== undefined && cond.valueCondition > cond.value;
+      case ComparisonOperator.GTE:
+        return cond.value !== undefined && cond.valueCondition >= cond.value;
       case ComparisonOperator.LT:
         return cond.value !== undefined && cond.valueCondition < cond.value;
+      case ComparisonOperator.LTE:
+        return cond.value !== undefined && cond.valueCondition <= cond.value;
       case ComparisonOperator.EQ:
         return cond.value !== undefined && cond.valueCondition === cond.value;
       default:
@@ -129,17 +142,50 @@ export class AchievementCenterService {
     return combination === ConditionsCombination.AND ? checks.every(check => check) : checks.some(check => check);
   }
 
-  // Todo: save data in achievement_log
-  async logAchievement(userId: number, milestoneId: number, achievementId: number, point: number): Promise<void> {
+  async logAchievement(accountId: number, achievementMilestoneId: number, achievementId: number, pointReward: number): Promise<void> {
     const logData = {
-      userId,
-      milestoneId,
+      accountId,
+      achievementMilestoneId,
       achievementId,
-      timestamp: new Date(),
-      point,
+      pointReward,
     };
-    console.log('Logging achievement:', logData);
-    // Thực hiện lưu logData vào cơ sở dữ liệu hoặc hệ thống lưu trữ khác
+    const log = await AchievementLog.findOne({where: {accountId, achievementMilestoneId, achievementId}});
+    if (!log) {
+      await AchievementLog.create(logData);
+    }
+  }
+  
+  
+
+  async getLeaderBoard(accountId: number, leaderboard: LeaderboardItem, context: LeaderboardContext = {}, limit = 100){
+    let startTime = leaderboard.startTime as unknown as string;
+    let endTime = leaderboard.endTime as unknown as string;
+
+    let gameIds = leaderboard.games;
+    let taskIds = leaderboard.tasks;
+    if (context.games){
+      gameIds = context.games;
+    }
+    if (context.tasks){
+      taskIds = context.tasks;
+    }
+    const metadata = leaderboard.metadata;
+    const type = leaderboard.type;
+    if (leaderboard.specialTime){
+      const timeData = calculateStartAndEnd(leaderboard.specialTime);
+      startTime = timeData.start  as unknown as string;
+      endTime = timeData.end as unknown as string;
+    }
+
+    return await LeaderBoardServiceV2.instance.getLeaderBoardData(accountId, {
+      type: type as LeaderboardType ,
+      startTime,
+      endTime,
+      gameIds,
+      taskIds,
+      limit,
+      metadata,
+    });
   }
 
   // Singleton

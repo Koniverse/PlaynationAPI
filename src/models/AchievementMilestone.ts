@@ -1,6 +1,5 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
-import {Metric} from '@src/models/Achievement';
 
 export enum ConditionsCombination {
   AND = 'and',
@@ -21,7 +20,7 @@ export enum ComparisonOperator {
 }
 
 export interface Condition {
-    metric: Metric;
+    metric: string;
     comparison: ComparisonOperator;
     value: number;
 

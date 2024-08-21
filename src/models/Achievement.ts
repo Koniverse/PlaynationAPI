@@ -1,7 +1,6 @@
 import {
   CreationOptional,
-  DataTypes, HasManyAddAssociationMixin, HasManyAddAssociationsMixin,
-  HasOneCreateAssociationMixin,
+  DataTypes,
   InferAttributes,
   InferCreationAttributes,
   Model,
@@ -9,7 +8,6 @@ import {
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import AchievementCategory from '@src/models/AchievementCategory';
 import {LeaderboardItem} from '@src/types';
-import AchievementMilestone from '@src/models/AchievementMilestone';
 export type Metric = LeaderboardItem & {metricId: string};
 
 
