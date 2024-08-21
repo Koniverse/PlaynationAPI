@@ -83,7 +83,6 @@ export class LeaderBoardServiceV2 {
 
 
   async getLeaderBoardData(accountId: number, input: LeaderBoardQueryInputRaw) {
-    console.log('getLeaderBoardData', input)
     const key = BaseLeaderBoard.getKey(input);
 
     let leaderBoardInfo = this.leaderboardMap[key];

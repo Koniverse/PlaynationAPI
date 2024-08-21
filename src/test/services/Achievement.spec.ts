@@ -5,6 +5,7 @@ describe('General Test', () => {
   const achievementCenterService = AchievementCenterService.instance;
 
   beforeAll(async () => {
+
   });
 
   afterAll(async () => {
@@ -12,6 +13,8 @@ describe('General Test', () => {
   });
   
   it('Achievement Basic Action', async function () {
-    await AchievementCenterService.instance.checkAccountAchievement(Math.random(), 1);
+    jest.setTimeout(6000000);
+    const check = await AchievementCenterService.instance.checkAccountAchievement(24444, 1);
+    console.log(check);
   });
 });

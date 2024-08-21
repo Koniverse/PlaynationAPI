@@ -9,8 +9,7 @@ const achievementService = AchievementService.instance;
 
 const routerMap = {
   sync: async (req: IReq<AchievementDataContentCms>, res: IRes) => {
-    // @ts-ignore
-    const response = await achievementService.syncData(req.body.data as unknown as AchievementDataContentCms);
+    const response = await achievementService.syncData(req.body);
     return res.status(200).json(response);
   },
   fetch: async (req: IReq<Query>, res: IRes) => {
@@ -22,7 +21,7 @@ const routerMap = {
 };
 
 AchievementRouter.post('/sync', requireSecret, routerMap.sync);
-AchievementRouter.get('/fetch',requireLogin, routerMap.fetch);
+AchievementRouter.get('/fetch', requireLogin, routerMap.fetch);
 AchievementRouter.post('/claim', requireLogin, routerMap.claim);
 
 export default AchievementRouter;

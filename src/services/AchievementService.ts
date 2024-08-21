@@ -1,4 +1,4 @@
-import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
+import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import {Achievement, AchievementCategory, AchievementMilestone, Condition, Game, Metric, Task} from '@src/models';
 
 export interface MilestonesContentCms {
@@ -28,33 +28,32 @@ export interface AchievementCategoryContentCms {
   icon: string;
 }
 export interface AchievementDataContentCms {
-  achievementCategory: AchievementCategoryContentCms[];
-  achievement: AchievementContentCms[];
+  data: {
+    achievementCategory: AchievementCategoryContentCms[];
+    achievement: AchievementContentCms[];
+  }
 }
 
 export type AchievementData =  Achievement & {milestones: AchievementMilestone[]};
 
 export class AchievementService {
-  private dataMap: Record<string, AchievementData> | undefined;
+  private achievementMap: Record<string, AchievementData> | undefined;
   private milestoneMap: Record<string, AchievementMilestone> | undefined;
 
   constructor(private sequelizeService: SequelizeService) {}
 
-
-
-
   async buildMap() {
     const data = (await Achievement.findAll()) as AchievementData[];
-    const dataMap: Record<string, AchievementData> = {};
+    const achievementMap: Record<string, AchievementData> = {};
     for (const item of data) {
-      const milestones = await AchievementMilestone.findAll({where: {achievementId: item.id}});
-      item.milestones = milestones;
-      dataMap[item.id.toString()] = item;
+      item.milestones = await AchievementMilestone.findAll({where: {achievementId: item.id}});
+      achievementMap[item.id.toString()] = item;
     }
 
-    this.dataMap = dataMap;
-    return dataMap;
+    this.achievementMap = achievementMap;
+    return achievementMap;
   }
+
   async buildMilestoneMap() {
     const data = await AchievementMilestone.findAll();
     const dataMap: Record<string, AchievementMilestone> = {};
@@ -66,13 +65,12 @@ export class AchievementService {
     return dataMap;
   }
 
-  async syncData(data: AchievementDataContentCms) {
+  async syncData(dataContentCms: AchievementDataContentCms) {
     const response = {
       success: true,
     };
-    console.log(data);
-    const achievementCategory = data.achievementCategory;
-    const achievement = data.achievement;
+    const achievementCategory = dataContentCms.data.achievementCategory;
+    const achievement = dataContentCms.data.achievement;
     for (const item of achievementCategory) {
       const itemData = { ...item } as unknown as AchievementCategory;
       const existed = await AchievementCategory.findOne({ where: { contentId: item.id } });
@@ -89,12 +87,9 @@ export class AchievementService {
       const milestones = item.milestones;
       const metrics = item.metrics;
       let existed = await Achievement.findOne({ where: { contentId: item.id } });
-      for (let metric of metrics) {
-        console.log(metric);
-        console.log(metric.games, metric.tasks);
+      for (const metric of metrics) {
         const contentGameId = metric.games;
         const contentTaskId = metric.tasks;
-        console.log(contentGameId, contentTaskId)
         const gameList = await Game.findAll({where: {contentId: contentGameId}});
         metric.games = [];
         if(gameList) {
@@ -106,7 +101,7 @@ export class AchievementService {
           metric.tasks = taskList.map(task => task.id);
         }
       }
-      // Todo: map games and tasks in metric
+
       if (existed) {
         await existed.update(itemData);
       } else {
@@ -130,28 +125,34 @@ export class AchievementService {
     await Promise.all([this.buildMilestoneMap(), this.buildMap()]);
     return response;
   }
-  async findAchievement(id: number) {
-    const dataMap = !!this.dataMap ? this.dataMap : await this.buildMap();
 
-    return dataMap[id.toString()];
+  async findAchievement(id: number) {
+    const achievementMap = !!this.achievementMap ? this.achievementMap : await this.buildMap();
+
+    return achievementMap[id.toString()];
   }
+
   async findMilestone(id: number) {
     const dataMap = !!this.milestoneMap ? this.milestoneMap : await this.buildMilestoneMap();
 
     return dataMap[id.toString()];
   }
+
   async getMilestoneList() {
     return !!this.milestoneMap ? this.milestoneMap : await this.buildMilestoneMap();
   }
+
   async trigger(){
 
   }
+
   async claimAchievement(milestoneId: number, userId: number){
 
   }
   async getAchievementList(){
 
   }
+
   // Singleton
   private static _instance: AchievementService;
   public static get instance() {
