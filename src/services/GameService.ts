@@ -1,19 +1,22 @@
-import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
+import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import {
   Account,
+  AchievementType,
   Game,
   GameData,
   GameInventoryItem,
   GameInventoryItemStatus,
-  GamePlay, GameType,
+  GamePlay,
+  GameType,
 } from '@src/models';
-import { v4 } from 'uuid';
-import { AccountService } from '@src/services/AccountService';
-import { QuickGetService } from '@src/services/QuickGetService';
+import {v4} from 'uuid';
+import {AccountService} from '@src/services/AccountService';
+import {QuickGetService} from '@src/services/QuickGetService';
 import {tryToParseJSON, tryToStringify, validatePayload} from '@src/utils';
 import EnvVars from '@src/constants/EnvVars';
 import {Op, QueryTypes} from 'sequelize';
 import {GameState} from '@playnation/game-sdk';
+import {AchievementService} from '@src/services/AchievementService';
 
 export interface newGamePlayParams {
   gameId: number;
@@ -348,6 +351,7 @@ export class GameService {
 
     if (success) {
       await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, point, pointRate);
+      AchievementService.instance.triggerAchievement(gamePlay.accountId, AchievementType.GAME).catch(console.error);
     }
 
     return gamePlay;

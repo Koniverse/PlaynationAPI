@@ -10,6 +10,13 @@ import AchievementCategory from '@src/models/AchievementCategory';
 import {LeaderboardItem} from '@src/types';
 export type Metric = LeaderboardItem & {metricId: string};
 
+export enum AchievementType {
+  LOGIN = 'login',
+  TASK = 'task',
+  GAME = 'game',
+  REFERRAL = 'referral',
+}
+
 
 
 export class Achievement extends Model<InferAttributes<Achievement>, InferCreationAttributes<Achievement>> {
@@ -23,6 +30,7 @@ export class Achievement extends Model<InferAttributes<Achievement>, InferCreati
   declare startTime: CreationOptional<Date>;
   declare endTime: CreationOptional<Date>;
   declare metrics: CreationOptional<Metric[]>; // metrics for achievement
+  declare type: CreationOptional<AchievementType>;
 
   // createdAt can be undefined during creation
   declare createdAt: CreationOptional<Date>;
@@ -75,7 +83,10 @@ Achievement.init({
     type: DataTypes.JSONB,
     allowNull: true,
   },
-    
+  type: {
+    type: DataTypes.ENUM(AchievementType.GAME, AchievementType.LOGIN, AchievementType.REFERRAL, AchievementType.TASK),
+    allowNull: true,
+  },
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
 

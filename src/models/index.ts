@@ -71,7 +71,7 @@ SequelizeServiceImpl.addSync(AirlyftAccount.sync.bind(AirlyftAccount));
 SequelizeServiceImpl.addSync(KeyValueStore.sync.bind(KeyValueStore));
 SequelizeServiceImpl.addSync(AchievementCategory.sync.bind(AchievementCategory));
 SequelizeServiceImpl.addSync(Achievement.sync.bind(Achievement));
-SequelizeServiceImpl.addSync(AchievementMilestone.sync.bind(AchievementMilestone, {alter: true}));
+SequelizeServiceImpl.addSync(AchievementMilestone.sync.bind(AchievementMilestone));
 SequelizeServiceImpl.addSync(AchievementLog.sync.bind(AchievementLog));
 
 export * from '@src/models/AccountAttribute';

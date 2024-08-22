@@ -2,7 +2,7 @@ import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {requireLogin, requireSecret} from '@src/routes/helper';
-import {AchievementDataContentCms, AchievementService} from '@src/services/AchievementService';
+import {AchievementClaimParams, AchievementDataContentCms, AchievementService} from '@src/services/AchievementService';
 
 const AchievementRouter = Router();
 const achievementService = AchievementService.instance;
@@ -13,10 +13,14 @@ const routerMap = {
     return res.status(200).json(response);
   },
   fetch: async (req: IReq<Query>, res: IRes) => {
-    return res.status(200).json({success: true});
+    const userId = req.user?.id || 0;
+    const response = await achievementService.getAchievementList(userId);
+    return res.status(200).json(response);
   },
-  claim: async (req: IReq<Query>, res: IRes) => {
-    return res.status(200).json({success: true});
+  claim: async (req: IReq<AchievementClaimParams>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const response = await achievementService.claimAchievement(userId, req.body.milestoneId);
+    return res.status(200).json(response);
   },
 };
 

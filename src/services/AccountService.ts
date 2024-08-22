@@ -6,11 +6,12 @@ import { checkWalletType } from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
-import { GameData, GiveAwayPoint } from '@src/models';
+import {AchievementType, GameData, GiveAwayPoint} from '@src/models';
 import { TelegramService } from '@src/services/TelegramService';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 import { Op } from 'sequelize';
 import logger from 'jet-logger';
+import {AchievementService} from '@src/services/AchievementService';
 
 // CMS input
 export interface GiveawayPointParams {
@@ -257,6 +258,10 @@ export class AccountService {
             invitePoint: invitePointRecipient,
             receiverInviteRatio: 0,
           });
+          
+          AchievementService.instance.triggerAchievement(account.id, AchievementType.REFERRAL).catch(console.error);
+          AchievementService.instance.triggerAchievement(indirectAccount, AchievementType.REFERRAL).catch(console.error);
+          logger.info('Call trigger Achievement');
 
           await this.addAccountPoint(account.id, invitePoint);
           if (indirectAccount > 0) {
