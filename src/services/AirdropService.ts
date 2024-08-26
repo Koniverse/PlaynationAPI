@@ -524,6 +524,15 @@ export class AirdropService {
       }
     }
 
+    // Validate time
+    const now = new Date().getTime();
+    const startClaimTime = new Date(campaign.start_claim).getTime();
+    const endClaimTime = new Date(campaign.end_claim).getTime();
+
+    if (now < startClaimTime || now > endClaimTime) {
+      throw new Error('You need to claim in the raffle time');
+    }
+
     // Validate remaining point
     if (price > 0) {
       const accountAtt = await accountService.getAccountAttribute(account_id);
@@ -534,9 +543,8 @@ export class AirdropService {
       await accountService.addAccountPoint(account_id, -price);
     }
 
-    // Todo: Should update by the campaign
-    // expiry date = current date + 30 day
-    const expiryDate = new Date();
+    // End claim time + 30 days
+    const expiryDate = new Date(campaign.end_claim);
     expiryDate.setDate(expiryDate.getDate() + 30);
 
     try {
