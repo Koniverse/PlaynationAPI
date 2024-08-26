@@ -9,21 +9,22 @@ import {buildDynamicCondition} from '@src/utils';
 
 export class AllNpsLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const {gameIds, taskIds, accountId, startTime, endTime} = input;
+    const {gameIds, taskIds, accountIds, startTime, endTime} = input;
     const timeStateMap: Record<string, boolean> = {
       '"createdAt" >= :startTime': !!startTime,
       '"createdAt" <= :endTime': !!endTime,
     };
+    const filterByAccountIds = !!accountIds && accountIds?.length > 0;
 
     const timeCondition = buildDynamicCondition(timeStateMap, 'WHERE');
 
     const directRefCondition = buildDynamicCondition({
-      '"sourceAccountId" = :accountId': !!accountId,
+      '"sourceAccountId" IN (:accountIds)': filterByAccountIds,
       ...timeStateMap,
     }, 'WHERE');
 
     const indirectRefCondition = buildDynamicCondition({
-      '"indirectAccount" = :accountId': !!accountId,
+      '"indirectAccount" IN (:accountIds)': filterByAccountIds,
       ...timeStateMap,
     }, 'WHERE');
 
@@ -31,7 +32,7 @@ export class AllNpsLeaderBoard extends BaseLeaderBoard {
     const gamePlayCondition = buildDynamicCondition({
       'success IS TRUE': true,
       '"gameId" in (:gameIds)': filerByGameIds,
-      '"accountId" = :accountId': !!accountId,
+      '"accountId" IN (:accountIds)': filterByAccountIds,
       ...timeStateMap,
     }, 'WHERE');
 
@@ -40,7 +41,7 @@ export class AllNpsLeaderBoard extends BaseLeaderBoard {
       '((th."extrinsicHash" IS NOT NULL AND th.status != \'failed\') OR th."extrinsicHash" IS NULL)': true,
       't."gameId" in (:gameIds)': filerByGameIds,
       'th."taskId" in (:taskIds)': filterByTaskIds,
-      'th."accountId" = :accountId': !!accountId,
+      'th."accountId" IN (:accountIds)': filterByAccountIds,
       'th."createdAt" >= :startTime': !!startTime,
       'th."createdAt" <= :endTime': !!endTime,
     }, 'WHERE');
@@ -52,7 +53,7 @@ export class AllNpsLeaderBoard extends BaseLeaderBoard {
     }, 'WHERE');
 
     const accountCondition = buildDynamicCondition({
-      'a.id = :accountId': !!accountId,
+      'a.id IN (:accountIds)': filterByAccountIds,
     }, 'WHERE');
 
     const sql = `
@@ -157,7 +158,7 @@ export class AllNpsLeaderBoard extends BaseLeaderBoard {
       replacements: {
         gameIds: gameIds,
         taskIds: taskIds,
-        accountId,
+        accountIds,
         startTime,
         endTime,
       },

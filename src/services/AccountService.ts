@@ -6,7 +6,7 @@ import { checkWalletType } from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
-import {AchievementType, GameData, GiveAwayPoint} from '@src/models';
+import {AccountLoginLog, AchievementType, GameData, GiveAwayPoint} from '@src/models';
 import { TelegramService } from '@src/services/TelegramService';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 import { Op } from 'sequelize';
@@ -193,9 +193,35 @@ export class AccountService {
         sessionTime: new Date(),
       });
     }
+    this.accountDailyLogin(account.id).catch(console.error);
 
     // Update wallet addresses
     return account;
+  }
+  
+  async accountDailyLogin(accountId: number){
+    // Save info account login daily
+    const account = await this.findById(accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    const now = new Date();
+    const today = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const  dailyLogin = await AccountLoginLog.findOne({
+      where: {
+        accountId,
+        loginDate: today,
+      },
+    });
+    if (!dailyLogin) {
+      await AccountLoginLog.create({
+        accountId,
+        loginDate: today,
+      });
+      AchievementService.instance.triggerAchievement(account.id, AchievementType.LOGIN).catch(console.error);
+      logger.info('Call trigger Achievement login');
+    }
+    
   }
 
   checkAccountAttributeRank(accumulatePoint: number) {

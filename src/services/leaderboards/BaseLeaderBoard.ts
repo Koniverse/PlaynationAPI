@@ -20,7 +20,7 @@ export enum LeaderboardType {
   REFERRAL_INVITE_TO_PLAY_QUANTITY = 'referral:inviteToPlay:quantity',
   TASK_NPS = 'task:nps',
   TASK_QUANTITY = 'task:quantity',
-  SUMMARY_NPS = 'all:nps',
+  ACCOUNT_DAILY_QUANTITY = 'account:daily:quantity',
 }
 
 export interface LeaderBoardQueryInputRaw {
@@ -30,7 +30,7 @@ export interface LeaderBoardQueryInputRaw {
   gameIds?: number[];
   taskIds?: number[];
   limit?: number;
-  accountId?: number;
+  accountIds?: number[];
   metadata?: LeaderboardMetadata;
 }
 
@@ -110,8 +110,8 @@ export abstract class BaseLeaderBoard {
     return (await data).slice(0, top);
   }
 
-  async getAccountData(accountId: number): Promise<LeaderBoardItem | undefined> {
-    return (await this.queryData({...this.input, limit: 1, accountId}))[0];
+  async getAccountData(accountIds: number[]): Promise<LeaderBoardItem | undefined> {
+    return (await this.queryData({...this.input, limit: 1, accountIds}))[0];
   }
 
   async getFullLeaderboard() {
@@ -156,7 +156,7 @@ export abstract class BaseLeaderBoard {
   /**
    * Get leaderboard data for current user
    * */
-  async getLeaderBoardData(accountId: number, limit=100) : Promise<LeaderBoardItem[]> {
+  async getLeaderBoardData(accountId: number[], limit=100) : Promise<LeaderBoardItem[]> {
     // Get current user's leaderboard record
     const accountData = await this.getAccountData(accountId);
     const topLeaderboard = await this.getTopLeaderboard(limit);
@@ -211,8 +211,8 @@ export abstract class BaseLeaderBoard {
     }
   }
 
-  async fetchLeaderBoard(accountId: number, limit = 100) : Promise<LeaderBoardOutput[]> {
-    const data = await this.getLeaderBoardData(accountId, limit);
+  async fetchLeaderBoard(accountIds: number[], limit = 100) : Promise<LeaderBoardOutput[]> {
+    const data = await this.getLeaderBoardData(accountIds, limit);
     return this.processOutput(data);
   }
 }

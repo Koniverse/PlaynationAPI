@@ -10,14 +10,15 @@ import {buildDynamicCondition} from '@src/utils';
 
 export class GameCasualLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const {type, gameIds, taskIds, accountId, startTime, endTime} = input;
+    const {type, gameIds, taskIds, accountIds, startTime, endTime} = input;
 
     const filterByGameIds = !!gameIds && gameIds?.length > 0;
+    const filterByAccountIds = !!accountIds && accountIds?.length > 0;
     const conditionQuery = buildDynamicCondition({
       'a."isEnabled" IS TRUE': true,
       'gp.success IS TRUE': true,
       'gp."gameId" IN (:gameIds)': filterByGameIds,
-      'gp."accountId" = :accountId': !!accountId,
+      'gp."accountId" IN (:accountIds)': filterByAccountIds,
       'gp."createdAt" >= :startTime': !!startTime,
       'gp."createdAt" <= :endTime': !!endTime,
     }, 'WHERE');
@@ -50,7 +51,7 @@ ORDER BY rank asc`;
       type: QueryTypes.SELECT,
       replacements: {
         gameIds: gameIds,
-        accountId,
+        accountIds,
         startTime,
         endTime,
       },

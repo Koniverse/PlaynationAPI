@@ -14,6 +14,8 @@ import {calculateStartAndEnd} from '@src/utils/date';
 // Config values comparison
 export type ComparativeValue = Condition & {valueCondition: {point: number, rank: number}};
 
+type MetricFilter = Metric & {filterType: 'rank' | 'point'};
+
 enum QueueStatus {
     RUNNING = 'running',
     WAITING = 'waiting',
@@ -68,7 +70,7 @@ export class AchievementCenterService {
     for (const metric of metrics) {
       // Todo: add leaderboard function to achievement service map list accountIds
       // Todo: change limit accountId length
-      const data = await this.getLeaderBoard(0, metric as LeaderboardItem, {}, 100000);
+      const data = await this.getLeaderBoard(accountIds, metric as LeaderboardItem, {}, 1000000);
       for (const accountId of accountIds) {
         const account = data.find(item => item.accountInfo.id === accountId);
         if (!account) {
@@ -83,6 +85,34 @@ export class AchievementCenterService {
     }
     return accountMetricData;
   }
+  
+  async getAchievementMetrics(achievementId: number) {
+    const achievement = await AchievementService.instance.findAchievement(Number(achievementId));
+    if (!achievement) {
+      return;
+    }
+      
+    const metrics = achievement.metrics as MetricFilter[];
+    if (!metrics) {
+      return;
+    }
+
+    const milestones = achievement.milestones;
+    for (const milestone of milestones) {
+      for (const condition of milestone.conditions) {
+        const metric = metrics.find(item => item.metricId === condition.metric);
+        if (!metric) {
+          continue;
+        }
+        if (condition.comparison.includes('rank')) {
+          metric.filterType = 'rank';
+        }else  {
+          metric.filterType = 'point';
+        }
+      }
+    }
+    return metrics;
+  }
 
   private async processAchievement(achievementMap: Record<number, AchievementQueue[]>): Promise<void> {
     // Process achievement
@@ -91,10 +121,11 @@ export class AchievementCenterService {
       if (!achievement) {
         continue;
       }
-      const metrics = achievement.metrics;
+      const metrics = await this.getAchievementMetrics(achievement.id);
       if (!metrics) {
         continue;
       }
+      console.log('metrics', metrics    )
 
       const accountIds = dataList.map(item => item.accountId);
       const accountMetricData = await this.getAccountMetricData(accountIds, metrics);
@@ -172,7 +203,7 @@ export class AchievementCenterService {
     await AchievementLog.create(logData);
   }
 
-  async getLeaderBoard(accountId: number, leaderboard: LeaderboardItem, context: LeaderboardContext = {}, limit = 100){
+  async getLeaderBoard(accountId: number[], leaderboard: LeaderboardItem, context: LeaderboardContext = {}, limit = 100){
     let startTime = leaderboard.startTime as unknown as string;
     let endTime = leaderboard.endTime as unknown as string;
 

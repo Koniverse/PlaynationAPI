@@ -2,47 +2,37 @@ import {
   BaseLeaderBoard,
   LeaderBoardItem,
   LeaderBoardQueryInputRaw,
-  LeaderboardType,
 } from '@src/services/leaderboards/BaseLeaderBoard';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {QueryTypes} from 'sequelize';
 import {buildDynamicCondition} from '@src/utils';
 
-export class TaskLeaderBoard extends BaseLeaderBoard {
+export class AccountDailyLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const {type, gameIds, taskIds, accountIds, startTime, endTime} = input;
+    const {gameIds, taskIds, accountIds, startTime, endTime} = input;
     const filterByAccountIds = !!accountIds && accountIds?.length > 0;
 
     const conditionQuery = buildDynamicCondition({
-      '((t."extrinsicHash" IS NOT NULL AND t.status != \'failed\') or t."extrinsicHash" is null)': true,
-      'ta."gameId" IN (:gameIds)': !!gameIds && gameIds.length > 0,
-      't."taskId" IN (:taskIds)': !!taskIds && taskIds.length > 0,
-      't."accountId" IN (:accountIds)': filterByAccountIds,
-      't."createdAt" >= :startTime': !!startTime,
-      't."createdAt" <= :endTime': !!endTime,
+      'ad."accountId" IN (:accountIds)': filterByAccountIds,
+      'ad."createdAt" >= :startTime': !!startTime,
+      'ad."createdAt" <= :endTime': !!endTime,
     }, 'WHERE');
-
-    let pointQuery = 'SUM(coalesce(t."pointReward", 0))';
-    if (type === LeaderboardType.TASK_QUANTITY) {
-      pointQuery = 'count(distinct t.id)';
-    }
 
 
     const sql = `
-        SELECT t."accountId",
+        SELECT al."accountId",
                a."telegramUsername",
                a."firstName",
                a.address,
                a."lastName",
                a."photoUrl"                                               as avatar,
                false                                                      as mine,
-               ${pointQuery}                                              AS point,
-               MIN(t."createdAt")                                         as "createdAt",
+               count(distinct al.id)                                      AS point,
+               MIN(al."createdAt")                                        as "createdAt",
                RANK()
-               OVER (ORDER BY ${pointQuery} DESC, MIN(t."createdAt") asc) as rank
-        FROM task_history t
-                 JOIN account a ON t."accountId" = a.id
-                 JOIN task ta on t."taskId" = ta.id
+               OVER (ORDER BY count(distinct ad.id) DESC, MIN(al."createdAt") asc) as rank
+        FROM account_login_log al
+                 JOIN account a ON al."accountId" = a.id
             ${conditionQuery}
         GROUP BY 1, 2, 3, 4, 5, 6, 7
         ORDER BY rank asc

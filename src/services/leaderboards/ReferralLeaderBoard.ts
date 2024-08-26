@@ -9,7 +9,7 @@ import {buildDynamicCondition} from '@src/utils';
 
 export class ReferralLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const {type, gameIds, taskIds, accountId, startTime, endTime, metadata} = input;
+    const {type, gameIds, taskIds, accountIds, startTime, endTime, metadata} = input;
     const refLevel = metadata?.refLevel || 0;
     console.log('refLevel', refLevel);
 
@@ -17,11 +17,12 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
       '"createdAt" >= :startTime': !!startTime,
       '"createdAt" <= :endTime': !!endTime,
     };
+    const filterByAccountIds = !!accountIds && accountIds?.length > 0;
 
     const filterByGameIds = !!gameIds && gameIds?.length > 0;
     const gameCondition = buildDynamicCondition({
       '"gameId" IN (:gameIds)': filterByGameIds,
-      '"accountId" = :accountId': !!accountId,
+      '"accountId" IN (:accountIds)': filterByAccountIds,
       ...timeStatement,
     }, 'WHERE');
 
@@ -44,13 +45,13 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
     const sourceAccountCondition = buildDynamicCondition({
       ...inviteToPlayStatement,
       ...timeStatement,
-      '"sourceAccountId" = :accountId': !!accountId,
+      '"sourceAccountId" IN (:accountIds)': filterByAccountIds,
     }, 'WHERE');
 
     const indirectAccountCondition = buildDynamicCondition({
       ...inviteToPlayStatement,
       ...timeStatement,
-      '"indirectAccount" = :accountId': !!accountId,
+      '"indirectAccount" IN (:accountIds)': filterByAccountIds,
     }, 'WHERE');
 
     let sqlUpgradeRankSourceAccount = `
@@ -133,7 +134,7 @@ export class ReferralLeaderBoard extends BaseLeaderBoard {
       type: QueryTypes.SELECT,
       replacements: {
         gameIds: gameIds,
-        accountId,
+        accountIds,
         startTime,
         endTime,
       },

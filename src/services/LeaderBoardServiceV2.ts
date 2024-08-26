@@ -13,6 +13,7 @@ import {GameFarmingLeaderBoard} from '@src/services/leaderboards/GameFarmingLead
 import {ReferralLeaderBoard} from '@src/services/leaderboards/ReferralLeaderBoard';
 import {TaskLeaderBoard} from '@src/services/leaderboards/TaskLeaderBoard';
 import {AllNpsLeaderBoard} from '@src/services/leaderboards/AllNpsLeaderBoard';
+import {AccountDailyLeaderBoard} from '@src/services/leaderboards/AccountDailyLeaderBoard';
 
 
 export class LeaderBoardServiceV2 {
@@ -82,7 +83,7 @@ export class LeaderBoardServiceV2 {
   }
 
 
-  async getLeaderBoardData(accountId: number, input: LeaderBoardQueryInputRaw) {
+  async getLeaderBoardData(accountId: number | number[], input: LeaderBoardQueryInputRaw) {
     const key = BaseLeaderBoard.getKey(input);
 
     let leaderBoardInfo = this.leaderboardMap[key];
@@ -99,6 +100,8 @@ export class LeaderBoardServiceV2 {
         leaderBoard = new TaskLeaderBoard(input);
       } else if (input.type === LeaderboardType.ALL_NPS) {
         leaderBoard = new AllNpsLeaderBoard(input);
+      } else if (input.type === LeaderboardType.ACCOUNT_DAILY_QUANTITY) {
+        leaderBoard = new AccountDailyLeaderBoard(input);
       }
 
       if (leaderBoard) {
@@ -117,7 +120,56 @@ export class LeaderBoardServiceV2 {
 
     // set last used
     leaderBoardInfo.lastUsed = Date.now();
-    return await leaderBoardInfo.leaderBoard.fetchLeaderBoard(accountId, input.limit ?? 100);
+    let accountIds = accountId;
+    if (!Array.isArray(accountId)){
+      accountIds = [accountId];
+    }
+    return await leaderBoardInfo.leaderBoard.fetchLeaderBoard(accountIds as number[], input.limit ?? 100);
+  }
+
+
+  async getLeaderBoardAccountData(accountId: number | number[], input: LeaderBoardQueryInputRaw) {
+    const key = BaseLeaderBoard.getKey(input);
+
+    let leaderBoardInfo = this.leaderboardMap[key];
+    if (!leaderBoardInfo) {
+      logger.info(`Create new leader board with key: ${key}`);
+      let leaderBoard: BaseLeaderBoard | undefined;
+      if (input.type.startsWith('game:casual')) {
+        leaderBoard = new GameCasualLeaderBoard(input);
+      } else if (input.type.startsWith('game:farming')) {
+        leaderBoard = new GameFarmingLeaderBoard(input);
+      } else if (input.type.startsWith('referral')) {
+        leaderBoard = new ReferralLeaderBoard(input);
+      } else if (input.type.startsWith('task')) {
+        leaderBoard = new TaskLeaderBoard(input);
+      } else if (input.type === LeaderboardType.ALL_NPS) {
+        leaderBoard = new AllNpsLeaderBoard(input);
+      } else if (input.type === LeaderboardType.ACCOUNT_DAILY_QUANTITY) {
+        leaderBoard = new AccountDailyLeaderBoard(input);
+      }
+
+      if (leaderBoard) {
+        leaderBoardInfo = {
+          lastUsed: Date.now(),
+          leaderBoard: leaderBoard,
+        };
+
+        this.leaderboardMap[key] = leaderBoardInfo;
+      }
+    }
+
+    if (!leaderBoardInfo) {
+      return [];
+    }
+
+    // set last used
+    leaderBoardInfo.lastUsed = Date.now();
+    let accountIds = accountId;
+    if (!Array.isArray(accountId)){
+      accountIds = [accountId];
+    }
+    return await leaderBoardInfo.leaderBoard.getAccountData(accountIds as number[]);
   }
 
   // Singleton

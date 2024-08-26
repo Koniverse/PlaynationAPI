@@ -677,7 +677,7 @@ export class LeaderBoardService {
 
     // set last used
     leaderBoardInfo.lastUsed = Date.now();
-    return await leaderBoardInfo.leaderBoard.fetchLeaderBoard(accountId);
+    return await leaderBoardInfo.leaderBoard.fetchLeaderBoard([accountId]);
   }
 
   async getTotalLeaderboard(
