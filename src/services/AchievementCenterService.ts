@@ -14,7 +14,12 @@ import {calculateStartAndEnd} from '@src/utils/date';
 // Config values comparison
 export type ComparativeValue = Condition & {valueCondition: {point: number, rank: number}};
 
-type MetricFilter = Metric & {filterType: 'rank' | 'point'};
+enum MetricFilterType {
+    RANK = 'rank',
+    POINT = 'point',
+}
+
+type MetricFilter = Metric & {filterType: MetricFilterType};
 
 enum QueueStatus {
     RUNNING = 'running',
@@ -65,12 +70,12 @@ export class AchievementCenterService {
     await this.processAchievement(achievementMap);
   }
   
-  private async getAccountMetricData(accountIds: number[], metrics: Metric[]){
+  private async getAccountMetricData(accountIds: number[], metrics: MetricFilter[]){
     const accountMetricData: Record<string, {point: number, rank: number}> = {};
     for (const metric of metrics) {
       // Todo: add leaderboard function to achievement service map list accountIds
       // Todo: change limit accountId length
-      const data = await this.getLeaderBoard(accountIds, metric as LeaderboardItem, {}, 1000000);
+      const data = await this.getLeaderBoard(accountIds, metric as LeaderboardItem,metric.filterType, {}, 1000000);
       for (const accountId of accountIds) {
         const account = data.find(item => item.accountInfo.id === accountId);
         if (!account) {
@@ -104,10 +109,10 @@ export class AchievementCenterService {
         if (!metric) {
           continue;
         }
+
+        metric.filterType = MetricFilterType.POINT;
         if (condition.comparison.includes('rank')) {
-          metric.filterType = 'rank';
-        }else  {
-          metric.filterType = 'point';
+          metric.filterType = MetricFilterType.RANK;
         }
       }
     }
@@ -125,7 +130,6 @@ export class AchievementCenterService {
       if (!metrics) {
         continue;
       }
-      console.log('metrics', metrics    )
 
       const accountIds = dataList.map(item => item.accountId);
       const accountMetricData = await this.getAccountMetricData(accountIds, metrics);
@@ -146,7 +150,7 @@ export class AchievementCenterService {
           });
 
           const isCheck = this.checkConditions(userConditions, milestone.conditions_combination);
-          if  (isCheck) {
+          if (isCheck) {
             await this.logAchievement(itemData.accountId, milestone.id, Number(achievementId), milestone.nps);
           }
           handler.resolve(isCheck);
@@ -203,7 +207,7 @@ export class AchievementCenterService {
     await AchievementLog.create(logData);
   }
 
-  async getLeaderBoard(accountId: number[], leaderboard: LeaderboardItem, context: LeaderboardContext = {}, limit = 100){
+  async getLeaderBoard(accountIds: number[], leaderboard: LeaderboardItem, filterType: MetricFilterType, context: LeaderboardContext = {}, limit = 100){
     let startTime = leaderboard.startTime as unknown as string;
     let endTime = leaderboard.endTime as unknown as string;
 
@@ -222,8 +226,7 @@ export class AchievementCenterService {
       startTime = timeData.start  as unknown as string;
       endTime = timeData.end as unknown as string;
     }
-
-    return await LeaderBoardServiceV2.instance.getLeaderBoardData(accountId, {
+    const inputs = {
       type: type as LeaderboardType ,
       startTime,
       endTime,
@@ -231,7 +234,14 @@ export class AchievementCenterService {
       taskIds,
       limit,
       metadata,
-    });
+    };
+
+    if (filterType === MetricFilterType.POINT) {
+      inputs.limit = accountIds.length;
+      return await LeaderBoardServiceV2.instance.getAccountData(accountIds, inputs);
+    }
+
+    return await LeaderBoardServiceV2.instance.getLeaderBoardData(accountIds, inputs);
   }
 
   // Singleton

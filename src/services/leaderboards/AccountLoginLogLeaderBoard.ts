@@ -7,15 +7,15 @@ import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {QueryTypes} from 'sequelize';
 import {buildDynamicCondition} from '@src/utils';
 
-export class AccountDailyLeaderBoard extends BaseLeaderBoard {
+export class AccountLoginLogLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
     const {gameIds, taskIds, accountIds, startTime, endTime} = input;
     const filterByAccountIds = !!accountIds && accountIds?.length > 0;
 
     const conditionQuery = buildDynamicCondition({
-      'ad."accountId" IN (:accountIds)': filterByAccountIds,
-      'ad."createdAt" >= :startTime': !!startTime,
-      'ad."createdAt" <= :endTime': !!endTime,
+      'al."accountId" IN (:accountIds)': filterByAccountIds,
+      'al."createdAt" >= :startTime': !!startTime,
+      'al."createdAt" <= :endTime': !!endTime,
     }, 'WHERE');
 
 
@@ -30,7 +30,7 @@ export class AccountDailyLeaderBoard extends BaseLeaderBoard {
                count(distinct al.id)                                      AS point,
                MIN(al."createdAt")                                        as "createdAt",
                RANK()
-               OVER (ORDER BY count(distinct ad.id) DESC, MIN(al."createdAt") asc) as rank
+               OVER (ORDER BY count(distinct al.id) DESC, MIN(al."createdAt") asc) as rank
         FROM account_login_log al
                  JOIN account a ON al."accountId" = a.id
             ${conditionQuery}

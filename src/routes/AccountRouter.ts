@@ -27,7 +27,10 @@ const routerMap = {
   sync: async (req: IReq<SyncAccountQuery>, res: IRes) => {
     try {
       const { referralCode, ...data } = req.body;
-      const account = await AccountService.instance.syncAccountData(data, referralCode);
+      const headers = req.headers;
+      const userIP = (headers['cf-connecting-ip'] || '0.0.0.0') as string;
+      const country = (headers['cf-ipcountry'] || 'NA_') as string;
+      const account = await AccountService.instance.syncAccountData(data, referralCode, userIP, country);
       const accountDetails = await accountService.fetchAccountWithDetails(account.id);
 
       const token = jwt.sign(

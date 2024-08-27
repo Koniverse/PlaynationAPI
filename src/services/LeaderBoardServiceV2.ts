@@ -13,7 +13,7 @@ import {GameFarmingLeaderBoard} from '@src/services/leaderboards/GameFarmingLead
 import {ReferralLeaderBoard} from '@src/services/leaderboards/ReferralLeaderBoard';
 import {TaskLeaderBoard} from '@src/services/leaderboards/TaskLeaderBoard';
 import {AllNpsLeaderBoard} from '@src/services/leaderboards/AllNpsLeaderBoard';
-import {AccountDailyLeaderBoard} from '@src/services/leaderboards/AccountDailyLeaderBoard';
+import {AccountLoginLogLeaderBoard} from '@src/services/leaderboards/AccountLoginLogLeaderBoard';
 
 
 export class LeaderBoardServiceV2 {
@@ -101,7 +101,7 @@ export class LeaderBoardServiceV2 {
       } else if (input.type === LeaderboardType.ALL_NPS) {
         leaderBoard = new AllNpsLeaderBoard(input);
       } else if (input.type === LeaderboardType.ACCOUNT_DAILY_QUANTITY) {
-        leaderBoard = new AccountDailyLeaderBoard(input);
+        leaderBoard = new AccountLoginLogLeaderBoard(input);
       }
 
       if (leaderBoard) {
@@ -128,7 +128,7 @@ export class LeaderBoardServiceV2 {
   }
 
 
-  async getLeaderBoardAccountData(accountId: number | number[], input: LeaderBoardQueryInputRaw) {
+  async getAccountData(accountIds: number[], input: LeaderBoardQueryInputRaw) {
     const key = BaseLeaderBoard.getKey(input);
 
     let leaderBoardInfo = this.leaderboardMap[key];
@@ -146,7 +146,7 @@ export class LeaderBoardServiceV2 {
       } else if (input.type === LeaderboardType.ALL_NPS) {
         leaderBoard = new AllNpsLeaderBoard(input);
       } else if (input.type === LeaderboardType.ACCOUNT_DAILY_QUANTITY) {
-        leaderBoard = new AccountDailyLeaderBoard(input);
+        leaderBoard = new AccountLoginLogLeaderBoard(input);
       }
 
       if (leaderBoard) {
@@ -163,13 +163,7 @@ export class LeaderBoardServiceV2 {
       return [];
     }
 
-    // set last used
-    leaderBoardInfo.lastUsed = Date.now();
-    let accountIds = accountId;
-    if (!Array.isArray(accountId)){
-      accountIds = [accountId];
-    }
-    return await leaderBoardInfo.leaderBoard.getAccountData(accountIds as number[]);
+    return await leaderBoardInfo.leaderBoard.fetchAccountData(accountIds);
   }
 
   // Singleton

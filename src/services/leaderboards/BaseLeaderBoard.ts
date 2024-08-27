@@ -114,6 +114,10 @@ export abstract class BaseLeaderBoard {
     return (await this.queryData({...this.input, limit: 1, accountIds}))[0];
   }
 
+  async getAccountDataList(accountIds: number[]): Promise<LeaderBoardItem[]> {
+    return await this.queryData({...this.input, limit: 1, accountIds});
+  }
+
   async getFullLeaderboard() {
     if (!this.fullLeaderBoardCacheHandler) {
       const handler = createPromise<LeaderBoardItem[]>();
@@ -213,6 +217,11 @@ export abstract class BaseLeaderBoard {
 
   async fetchLeaderBoard(accountIds: number[], limit = 100) : Promise<LeaderBoardOutput[]> {
     const data = await this.getLeaderBoardData(accountIds, limit);
+    return this.processOutput(data);
+  }
+
+  async fetchAccountData(accountIds: number[]) : Promise<LeaderBoardOutput[]> {
+    const data = await this.getAccountDataList(accountIds);
     return this.processOutput(data);
   }
 }

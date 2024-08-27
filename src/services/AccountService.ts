@@ -141,7 +141,7 @@ export class AccountService {
   }
 
   // Sync account data with Telegram data
-  public async syncAccountData(info: AccountParams, code?: string, validateSign = true) {
+  public async syncAccountData(info: AccountParams, code?: string, accountIp='', country='', validateSign = true) {
     const { signature, telegramId, telegramUsername, address } = info;
 
     info.type = checkWalletType(address);
@@ -193,13 +193,13 @@ export class AccountService {
         sessionTime: new Date(),
       });
     }
-    this.accountDailyLogin(account.id).catch(console.error);
+    this.accountDailyLogin(account.id, accountIp, country).catch(console.error);
 
     // Update wallet addresses
     return account;
   }
   
-  async accountDailyLogin(accountId: number){
+  async accountDailyLogin(accountId: number, ip: string, country: string){
     // Save info account login daily
     const account = await this.findById(accountId);
     if (!account) {
@@ -217,6 +217,8 @@ export class AccountService {
       await AccountLoginLog.create({
         accountId,
         loginDate: today,
+        ip,
+        country
       });
       AchievementService.instance.triggerAchievement(account.id, AchievementType.LOGIN).catch(console.error);
       logger.info('Call trigger Achievement login');
