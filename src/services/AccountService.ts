@@ -213,6 +213,7 @@ export class AccountService {
         loginDate: today,
       },
     });
+
     if (!dailyLogin) {
       await AccountLoginLog.create({
         accountId,
@@ -220,7 +221,7 @@ export class AccountService {
         ip,
         country
       });
-      AchievementService.instance.triggerAchievement(account.id, AchievementType.LOGIN).catch(console.error);
+      AchievementService.instance.triggerAchievement(account.id, AchievementType.LOGIN).catch(logger.err);
       logger.info('Call trigger Achievement login');
     }
     

@@ -8,9 +8,9 @@ import {AchievementLog, ComparisonOperator, Condition, ConditionsCombination, Me
 import {createPromise, PromiseObject} from '@src/utils';
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import {AchievementService} from '@src/services/AchievementService';
-import * as console from 'node:console';
 import {LeaderboardItem} from '@src/types';
 import {calculateStartAndEnd} from '@src/utils/date';
+import logger from 'jet-logger';
 // Config values comparison
 export type ComparativeValue = Condition & {valueCondition: {point: number, rank: number}};
 
@@ -37,12 +37,13 @@ export class AchievementCenterService {
   private queueStatus: QueueStatus = QueueStatus.WAITING;
   private requestMap: Record<string, AchievementQueue> = {};
   constructor(private sequelizeService: SequelizeService) {}
+
   public async checkAccountAchievement(accountId: number, achievementId: number) {
     const handler = createPromise();
     const id = v4();
     this.requestMap[id] = {accountId, achievementId, isProcessing: false, handler};
     setTimeout(() => {
-      this.run().catch(console.error);
+      this.run().catch(logger.err);
     }, 1000);
     return handler.promise;
   }

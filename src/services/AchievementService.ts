@@ -88,6 +88,8 @@ export interface AchievementClaimParams {
 
 export type AchievementData =  Achievement & {milestones: AchievementMilestone[]};
 
+const achievementCenterService = AchievementCenterService.instance;
+
 export class AchievementService {
   private achievementMap: Record<string, AchievementData> | undefined;
   private milestoneMap: Record<string, AchievementMilestone> | undefined;
@@ -210,7 +212,7 @@ export class AchievementService {
 
     if (achievementList.length > 0){
       for (const achievement of achievementList) {
-        AchievementCenterService.instance.checkAccountAchievement(accountId, achievement.id).catch(console.error);
+        achievementCenterService.checkAccountAchievement(accountId, achievement.id).catch(console.error);
       }
     }
   }
@@ -250,6 +252,7 @@ export class AchievementService {
       success: true,
     };
   }
+
   async getAchievementList(accountId: number){
     const account = await AccountService.instance.findById(accountId);
     if (account) {
@@ -315,7 +318,6 @@ export class AchievementService {
       return Object.values(resultMap);
     }
     return [];
-
   }
 
   // Singleton
