@@ -12,7 +12,6 @@ import jwt from 'jsonwebtoken';
 import envVars from '@src/constants/EnvVars';
 import { requireLogin, requireSecret } from '@src/routes/helper';
 import { GameService } from '@src/services/GameService';
-import * as console from 'node:console';
 
 type SyncAccountQuery = AccountParams & Query;
 
@@ -30,7 +29,8 @@ const routerMap = {
       const headers = req.headers;
       const userIP = (headers['cf-connecting-ip'] || '0.0.0.0') as string;
       const country = (headers['cf-ipcountry'] || 'NA_') as string;
-      const account = await AccountService.instance.syncAccountData(data, referralCode, userIP, country);
+      const userAgent = req.headers['user-agent'] || '';
+      const account = await AccountService.instance.syncAccountData(data, referralCode, userIP, country, userAgent);
       const accountDetails = await accountService.fetchAccountWithDetails(account.id);
 
       const token = jwt.sign(

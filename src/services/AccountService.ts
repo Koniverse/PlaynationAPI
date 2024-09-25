@@ -6,12 +6,13 @@ import { checkWalletType } from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
 import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
-import {AccountLoginLog, AchievementType, GameData, GiveAwayPoint} from '@src/models';
+import {AccountLoginLog, AchievementType, BrowserInfo, GameData, GiveAwayPoint} from '@src/models';
 import { TelegramService } from '@src/services/TelegramService';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 import { Op } from 'sequelize';
 import logger from 'jet-logger';
 import {AchievementService} from '@src/services/AchievementService';
+import Bowser from 'bowser';
 
 // CMS input
 export interface GiveawayPointParams {
@@ -141,7 +142,7 @@ export class AccountService {
   }
 
   // Sync account data with Telegram data
-  public async syncAccountData(info: AccountParams, code?: string, accountIp='', country='', validateSign = true) {
+  public async syncAccountData(info: AccountParams, code?: string, accountIp='', country='', userAgent='', validateSign = true) {
     const { signature, telegramId, telegramUsername, address } = info;
 
     info.type = checkWalletType(address);
@@ -193,13 +194,13 @@ export class AccountService {
         sessionTime: new Date(),
       });
     }
-    this.accountDailyLogin(account.id, accountIp, country).catch(console.error);
+    this.accountDailyLogin(account.id, accountIp, country, userAgent).catch(console.error);
 
     // Update wallet addresses
     return account;
   }
   
-  async accountDailyLogin(accountId: number, ip: string, country: string){
+  async accountDailyLogin(accountId: number, ip: string, country: string, userAgent: string) {
     // Save info account login daily
     const account = await this.findById(accountId);
     if (!account) {
@@ -219,7 +220,8 @@ export class AccountService {
         accountId,
         loginDate: today,
         ip,
-        country
+        country,
+        browserInfo: Bowser.parse(userAgent) as BrowserInfo,
       });
       AchievementService.instance.triggerAchievement(account.id, AchievementType.LOGIN).catch(logger.err);
       logger.info('Call trigger Achievement login');

@@ -25,7 +25,7 @@ import Achievement from '@src/models/Achievement';
 import AchievementCategory from '@src/models/AchievementCategory';
 import AchievementMilestone from '@src/models/AchievementMilestone';
 import AchievementLog from '@src/models/AchievementLog';
-import AccountLoginLog from "@src/models/AccountLoginLog";
+import AccountLoginLog from '@src/models/AccountLoginLog';
 
 AccountAttribute.belongsTo(Account, { foreignKey: 'accountId' });
 Account.hasOne(AccountAttribute, { foreignKey: 'accountId' });

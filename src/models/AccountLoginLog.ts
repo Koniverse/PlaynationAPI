@@ -1,6 +1,28 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Account from '@src/models/Account';
+export interface BrowserInfo {
+  browser: Browser;
+  os: Os;
+  platform: Platform;
+  engine: Engine;
+}
+interface Engine {
+  name: string;
+}
+interface Platform {
+  type: string;
+  vendor: string;
+}
+interface Os {
+  name: string;
+  version: string;
+  versionName: string;
+}
+interface Browser {
+  name: string;
+  version: string;
+}
 export class AccountLoginLog extends Model<InferAttributes<AccountLoginLog>, InferCreationAttributes<AccountLoginLog>> {
   declare id: CreationOptional<number>; // id on db
   declare accountId: number;
@@ -9,6 +31,7 @@ export class AccountLoginLog extends Model<InferAttributes<AccountLoginLog>, Inf
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
   declare loginDate: CreationOptional<Date>;
+  declare browserInfo: CreationOptional<BrowserInfo>;
 }
 
 AccountLoginLog.init({
@@ -30,6 +53,10 @@ AccountLoginLog.init({
   },
   country: {
     type: DataTypes.STRING,
+    allowNull: true,
+  },
+  browserInfo: {
+    type: DataTypes.JSONB,
     allowNull: true,
   },
   createdAt: DataTypes.DATE,
