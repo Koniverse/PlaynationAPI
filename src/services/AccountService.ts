@@ -194,13 +194,13 @@ export class AccountService {
         sessionTime: new Date(),
       });
     }
-    this.accountDailyLogin(account.id, accountIp, country, userAgent).catch(console.error);
+    this.addLoginLog(account.id, accountIp, country, userAgent).catch(logger.err);
 
     // Update wallet addresses
     return account;
   }
   
-  async accountDailyLogin(accountId: number, ip: string, country: string, userAgent: string) {
+  async addLoginLog(accountId: number, ip: string, country: string, userAgent: string) {
     // Save info account login daily
     const account = await this.findById(accountId);
     if (!account) {

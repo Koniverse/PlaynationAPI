@@ -133,7 +133,8 @@ describe('Achievement Test', () => {
     }
 
     // Listing game
-    const currentUser = await accountService.syncAccountData(info, '', '', '', false);
+    const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)';
+    const currentUser = await accountService.syncAccountData(info, '', '', '', userAgent, false);
 
     // Wait for achievement to be processed
     await wait(2000);
@@ -166,8 +167,8 @@ describe('Achievement Test', () => {
       });
     }
 
-    // Listing game
-    const currentUser = await accountService.syncAccountData(info, '', '', '', false);
+    const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)';
+    const currentUser = await accountService.syncAccountData(info, '','', '', userAgent, false);
 
     // Wait for achievement to be processed
     await wait(2000);
