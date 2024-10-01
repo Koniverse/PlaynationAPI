@@ -135,11 +135,16 @@ export class AirdropService {
     try {
       for (const item of data) {
         const itemData = { ...item } as unknown as AirdropCampaign;
-        const existed = await AirdropCampaign.findOne({ where: { content_id: item.id } });
+        const existed = await AirdropCampaign.findOne({ where: {
+          [Op.or]: [
+            { document_id: item.documentId },
+            { content_id: item.id },
+          ],
+        } as never });
+        itemData.content_id = item.id;
         if (existed) {
           await existed.update(itemData);
         } else {
-          itemData.content_id = item.id;
           await AirdropCampaign.create(itemData);
         }
       }
@@ -159,19 +164,26 @@ export class AirdropService {
           boxPrice: item.boxPrice,
           boxLimit: item.boxLimit,
           userList: JSON.stringify(item.userList),
-          campaign_id: item.campaign_id.id,
           type: item.type,
           start: item.start,
           end: item.end,
         } as unknown as AirdropEligibility;
 
-        const existed = await AirdropEligibility.findOne({
-          where: { content_id: item.id },
-        });
+        const existed = await AirdropEligibility.findOne({ where: {
+          [Op.or]: [
+            { document_id: item.documentId },
+            { content_id: item.id },
+          ],
+        } as never });
+        const existedCampaign = await AirdropCampaign.findOne({ where: { document_id: item.campaign_id } } as never);
+        if (!existedCampaign) {
+          continue;
+        }
+        itemData.campaign_id = existedCampaign.id;
+        itemData.content_id = item.id;
         if (existed) {
           await existed.update(itemData);
         } else {
-          itemData.content_id = item.id;
           await AirdropEligibility.create(itemData);
         }
       }
@@ -524,6 +536,15 @@ export class AirdropService {
       }
     }
 
+    // Validate time
+    const now = new Date().getTime();
+    const startClaimTime = new Date(campaign.start_claim).getTime();
+    const endClaimTime = new Date(campaign.end_claim).getTime();
+
+    if (now < startClaimTime || now > endClaimTime) {
+      throw new Error('You need to claim in the raffle time');
+    }
+
     // Validate remaining point
     if (price > 0) {
       const accountAtt = await accountService.getAccountAttribute(account_id);
@@ -534,9 +555,8 @@ export class AirdropService {
       await accountService.addAccountPoint(account_id, -price);
     }
 
-    // Todo: Should update by the campaign
-    // expiry date = current date + 30 day
-    const expiryDate = new Date();
+    // End claim time + 30 days
+    const expiryDate = new Date(campaign.end_claim);
     expiryDate.setDate(expiryDate.getDate() + 30);
 
     try {

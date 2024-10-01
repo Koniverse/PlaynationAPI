@@ -8,6 +8,7 @@ export class GiveAwayPoint extends Model<InferAttributes<GiveAwayPoint>, InferCr
   declare accountId: number;
   declare point: number;
   declare note: CreationOptional<string>;
+  declare documentId: CreationOptional<string>;
 }
 
 GiveAwayPoint.init({
@@ -32,6 +33,10 @@ GiveAwayPoint.init({
   },
   note: {
     type: DataTypes.TEXT,
+  },
+  documentId: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
 }, {
   indexes: [],

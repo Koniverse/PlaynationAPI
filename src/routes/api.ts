@@ -11,6 +11,7 @@ import KeyValueRouter from '@src/routes/KeyValueRouter';
 import LeaderboardRouter from '@src/routes/LeaderboardRouter';
 import PublicRouter from '@src/routes/PublicRouter';
 import AchievementRouter from '@src/routes/AchievementRouter';
+import MetadataRouter from '@src/routes/MetadataRouter';
 
 const apiRouter = Router();
 
@@ -26,5 +27,6 @@ apiRouter.use('/key-value', KeyValueRouter);
 apiRouter.use('/leaderboard', LeaderboardRouter);
 apiRouter.use('/achievement', AchievementRouter);
 apiRouter.use('/public', PublicRouter);
+apiRouter.use('/metadata', MetadataRouter);
 
 export default apiRouter;

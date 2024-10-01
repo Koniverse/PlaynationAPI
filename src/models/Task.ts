@@ -26,6 +26,7 @@ export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<T
   declare airlyftId: CreationOptional<string>;
   declare airlyftEventId: CreationOptional<string>;
   declare airlyftWidgetId: CreationOptional<string>;
+  declare documentId: CreationOptional<string>;
 }
 
 Task.init({
@@ -113,6 +114,10 @@ Task.init({
     allowNull: true,
   },
   airlyftWidgetId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  documentId: {
     type: DataTypes.STRING,
     allowNull: true,
   },

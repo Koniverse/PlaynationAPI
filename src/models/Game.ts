@@ -1,9 +1,10 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
+import {VersionInfo} from '@src/services/type';
 
 export enum GameType {
-  CASUAL = 'casual',
-  FARMING = 'farming',
+    CASUAL = 'casual',
+    FARMING = 'farming',
 }
 
 export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<Game>> {
@@ -30,6 +31,8 @@ export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<G
 
   declare restrictedAccess: CreationOptional<JSON>;
   declare restrictedAccessText: CreationOptional<string>;
+  declare metadata: CreationOptional<VersionInfo>;
+  declare documentId: CreationOptional<string>;
 }
 
 Game.init({
@@ -101,6 +104,13 @@ Game.init({
   },
   active: {
     type: DataTypes.BOOLEAN,
+  },
+  metadata: {
+    type: DataTypes.JSONB,
+  },
+  documentId: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
 }, {
   indexes: [{unique: true, fields: ['slug']}, {unique: true, fields: ['contentId']}],

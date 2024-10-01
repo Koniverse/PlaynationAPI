@@ -21,6 +21,7 @@ export interface TaskContentCms {
     id: number,
     tokenPrice: number,
     slug: string,
+    documentId: string,
     name: string,
     description: string,
     url: string,
@@ -71,7 +72,12 @@ export class TaskService {
     for (const item of data) {
       console.log(item);
       const itemData = {...item} as unknown as Task;
-      const existed = await Task.findOne({where: {contentId: item.id}});
+      const existed = await Task.findOne({ where: {
+        [Op.or]: [
+          { documentId: item.documentId },
+          { contentId: item.id },
+        ],
+      } as never });
       // @ts-ignore
       itemData.share_leaderboard = null;
       if (item.share_leaderboard) {
@@ -81,7 +87,7 @@ export class TaskService {
 
       // Check if game exists
       if (item.gameId) {
-        const gameData = await Game.findOne({where: {contentId: item.gameId}});
+        const gameData = await Game.findOne({where: {documentId: item.gameId}});
         if (!gameData) {
           continue;
         }
@@ -89,7 +95,7 @@ export class TaskService {
       }
       // Check if category exists
       if (item.categoryId) {
-        const categoryData = await TaskCategory.findOne({where: {contentId: item.categoryId}});
+        const categoryData = await TaskCategory.findOne({where: {documentId: item.categoryId}});
         if (!categoryData) {
           continue;
         }

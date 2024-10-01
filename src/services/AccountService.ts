@@ -18,6 +18,7 @@ import Bowser from 'bowser';
 export interface GiveawayPointParams {
   contentId?: number;
   inviteCode: string;
+  documentId: string;
   point: number;
   note?: string;
 }
@@ -468,7 +469,7 @@ export class AccountService {
 
   async syncGiveAccountPoint(params: GiveawayPointParams[]) {
     for (const param of params) {
-      const { contentId, inviteCode, point, note } = param;
+      const { contentId, inviteCode, point, note, documentId } = param;
       const _contentId = contentId || 0;
       const account = await Account.findOne({
         where: {
@@ -480,11 +481,12 @@ export class AccountService {
         continue;
       }
       if (_contentId > 0) {
-        const giveAwayPoint = await GiveAwayPoint.findOne({
-          where: {
-            contentId: _contentId,
-          },
-        });
+        const giveAwayPoint = await GiveAwayPoint.findOne({ where: {
+          [Op.or]: [
+            { documentId: documentId },
+            { contentId: _contentId },
+          ],
+        } as never });
         if (giveAwayPoint) {
           continue;
         }
@@ -492,6 +494,7 @@ export class AccountService {
       await GiveAwayPoint.create({
         contentId: _contentId,
         accountId: account.id,
+        documentId: documentId,
         point,
         note,
       });

@@ -4,7 +4,7 @@ import {
 } from '@src/models';
 import { QueryTypes } from 'sequelize';
 import {LeaderboardItem, LeaderboardMetadata} from '@src/types';
-import {KeyValueStoreService} from '@src/services/KeyValueStoreService';
+import {KeyValueStoreService, STORAGE_KEYS} from '@src/services/KeyValueStoreService';
 import * as console from 'node:console';
 import {calculateStartAndEnd, getLastDayOfYearCurrent} from '@src/utils/date';
 import {
@@ -53,12 +53,13 @@ export class LeaderBoardService {
   }
 
   async getConfig(){
-    const leaderboard_map = await KeyValueStoreService.instance.get('leaderboard_map') as unknown as LeaderboardItem[];
-    const leaderboard_general = await KeyValueStoreService.instance.get('leaderboard_general');
+    const leaderboard_map = await KeyValueStoreService.instance.get<LeaderboardItem[]>(STORAGE_KEYS.LEADERBOARD_MAP);
+    const leaderboard_general = await KeyValueStoreService.instance.get(STORAGE_KEYS.LEADERBOARD_GENERAL);
     return {leaderboard_map, leaderboard_general};
   }
+
   async fetchData(accountId: number, id: number, context: LeaderboardContext = {}, limit = 100){
-    const leaderboardList = await KeyValueStoreService.instance.get('leaderboard_map') as unknown as LeaderboardItem[];
+    const leaderboardList = await KeyValueStoreService.instance.get<LeaderboardItem[]>(STORAGE_KEYS.LEADERBOARD_MAP);
     const leaderboard = leaderboardList.find(item => item.id === id);
     if (leaderboard){
       let startTime = leaderboard.startTime as unknown as string;

@@ -20,6 +20,7 @@ export interface GameItemContentCms {
   slug: string;
   name: string;
   description: string;
+  documentId: string;
   price: number;
   tokenPrice: number;
   gameId: number;
@@ -61,18 +62,23 @@ export class GameItemService {
     };
     for (const item of data) {
       const itemData = { ...item } as unknown as GameItem;
-      const existed = await GameItem.findOne({ where: { contentId: item.id } });
+      const existed = await GameItem.findOne({ where: {
+        [Op.or]: [
+          { documentId: item.documentId },
+          { contentId: item.id },
+        ],
+      } as never });
       const gameData = await Game.findOne({
-        where: { contentId: item.gameId },
+        where: { documentId: item.gameId },
       });
       if (!gameData) {
         continue;
       }
       itemData.gameId = gameData.id;
+      itemData.contentId = item.id;
       if (existed) {
         await existed.update(itemData);
       } else {
-        itemData.contentId = item.id;
         await GameItem.create(itemData);
       }
     }

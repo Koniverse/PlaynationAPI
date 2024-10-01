@@ -1,10 +1,12 @@
 import { TaskCategory } from '@src/models';
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
+import {Op} from 'sequelize';
 
 
 export interface TaskCategoryContentCms  {
     id: number,
     slug: string,
+    documentId: string,
     name: string,
     description: string,
     icon: string,
@@ -24,11 +26,16 @@ export class TaskCategoryService {
 
     for (const item of data) {
       const itemData = {...item} as unknown as TaskCategory;
-      const existed = await TaskCategory.findOne({where: {contentId: item.id}});
+      const existed = await TaskCategory.findOne({ where: {
+        [Op.or]: [
+          { documentId: item.documentId },
+          { contentId: item.id },
+        ],
+      } as never });
+      itemData.contentId = item.id;
       if (existed) {
         await existed.update(itemData);
       } else {
-        itemData.contentId = item.id;
         await TaskCategory.create(itemData);
       }
     }
