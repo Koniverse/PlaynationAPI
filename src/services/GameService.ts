@@ -71,6 +71,7 @@ const quickGetService = QuickGetService.instance;
 export interface GameContentCms {
   id: number;
   name: string;
+  documentId: string;
   description: string;
   url: string;
   maxEnergy: number;
@@ -127,12 +128,17 @@ export class GameService {
     for (const item of data) {
       const itemData = { ...item } as unknown as Game;
       itemData.gameType = itemData.gameType || GameType.CASUAL;
-      const existed = await Game.findOne({ where: { contentId: item.id } });
+      const existed = await Game.findOne({ where: {
+        [Op.or]: [
+          { documentId: item.documentId },
+          { contentId: item.id },
+        ],
+      } as never });
       itemData.rankDefinition = JSON.stringify(item.rank_definition);
+      itemData.contentId = item.id;
       if (existed) {
         await existed.update(itemData);
       } else {
-        itemData.contentId = item.id;
         await Game.create(itemData);
       }
     }

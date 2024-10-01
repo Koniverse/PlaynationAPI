@@ -11,6 +11,7 @@ export class TaskCategory extends Model<InferAttributes<TaskCategory>, InferCrea
   declare active: boolean;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  declare documentId: CreationOptional<string>;
 }
 
 TaskCategory.init({
@@ -41,6 +42,10 @@ TaskCategory.init({
   },
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
+  documentId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   tableName: 'task_category',
   sequelize: SequelizeServiceImpl.sequelize,
