@@ -23,7 +23,6 @@ export interface Condition {
     metric: string;
     comparison: ComparisonOperator;
     value: number;
-
 }
 
 export class AchievementMilestone extends Model<InferAttributes<AchievementMilestone>, InferCreationAttributes<AchievementMilestone>> {
@@ -38,6 +37,7 @@ export class AchievementMilestone extends Model<InferAttributes<AchievementMiles
   declare createdAt: CreationOptional<Date>;
   // updatedAt can be undefined during creation
   declare updatedAt: CreationOptional<Date>;
+  declare slug: CreationOptional<string>;
 }
 
 AchievementMilestone.init({
@@ -72,7 +72,10 @@ AchievementMilestone.init({
     type: DataTypes.ENUM(ConditionsCombination.AND, ConditionsCombination.OR),
     allowNull: true,
   },
-    
+  slug: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
 

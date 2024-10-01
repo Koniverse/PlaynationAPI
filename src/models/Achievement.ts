@@ -17,8 +17,6 @@ export enum AchievementType {
   REFERRAL = 'referral',
 }
 
-
-
 export class Achievement extends Model<InferAttributes<Achievement>, InferCreationAttributes<Achievement>> {
   declare id: CreationOptional<number>; // id on db
   declare contentId: number;
@@ -36,6 +34,7 @@ export class Achievement extends Model<InferAttributes<Achievement>, InferCreati
   declare createdAt: CreationOptional<Date>;
   // updatedAt can be undefined during creation
   declare updatedAt: CreationOptional<Date>;
+  declare documentId: CreationOptional<string>;
 }
 
 Achievement.init({
@@ -85,6 +84,10 @@ Achievement.init({
   },
   type: {
     type: DataTypes.ENUM(AchievementType.GAME, AchievementType.LOGIN, AchievementType.REFERRAL, AchievementType.TASK),
+    allowNull: true,
+  },
+  documentId: {
+    type: DataTypes.STRING,
     allowNull: true,
   },
   createdAt: DataTypes.DATE,

@@ -1,8 +1,6 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 
-
-
 export class AchievementCategory extends Model<InferAttributes<AchievementCategory>, InferCreationAttributes<AchievementCategory>> {
   declare id: CreationOptional<number>; // id on db
   declare contentId: number;
@@ -14,6 +12,7 @@ export class AchievementCategory extends Model<InferAttributes<AchievementCatego
   declare createdAt: CreationOptional<Date>;
   // updatedAt can be undefined during creation
   declare updatedAt: CreationOptional<Date>;
+  declare documentId: CreationOptional<string>;
 }
 
 AchievementCategory.init({
@@ -42,7 +41,10 @@ AchievementCategory.init({
     type: DataTypes.STRING,
     allowNull: true,
   },
-    
+  documentId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
 

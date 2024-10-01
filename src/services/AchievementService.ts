@@ -10,12 +10,13 @@ import {
   Task,
 } from '@src/models';
 import {AccountService} from '@src/services/AccountService';
-import {QueryTypes} from 'sequelize';
+import {Op, QueryTypes} from 'sequelize';
 import {AchievementCenterService} from '@src/services/AchievementCenterService';
 
 export interface MilestonesContentCms {
     id: number;
     name: string;
+    slug: string;
     conditions_combination: string;
     nps: number;
     conditions: Condition[];
@@ -24,6 +25,8 @@ export interface MilestonesContentCms {
 export interface AchievementContentCms {
   id: number;
   name: string;
+  documentId: string;
+  achievementCategoryId: string;
   description: string;
   slug: string;
   startTime: Date;
@@ -35,6 +38,7 @@ export interface AchievementContentCms {
 export interface AchievementCategoryContentCms {
   id: number;
   slug: string;
+  documentId: string;
   name: string;
   description: string;
   icon: string;
@@ -127,11 +131,16 @@ export class AchievementService {
     const achievement = dataContentCms.data.achievement;
     for (const item of achievementCategory) {
       const itemData = { ...item } as unknown as AchievementCategory;
-      const existed = await AchievementCategory.findOne({ where: { contentId: item.id } });
+      const existed = await AchievementCategory.findOne({ where: {
+        [Op.or]: [
+          { documentId: item.documentId },
+          { contentId: item.id },
+        ],
+      } as never });
+      itemData.contentId = item.id;
       if (existed) {
         await existed.update(itemData);
       } else {
-        itemData.contentId = item.id;
         await AchievementCategory.create(itemData);
       }
     }
@@ -140,39 +149,51 @@ export class AchievementService {
       const itemData = { ...item } as unknown as Achievement;
       const milestones = item.milestones;
       const metrics = item.metrics;
-      let existed = await Achievement.findOne({ where: { contentId: item.id } });
+      let existed = await Achievement.findOne({ where: {
+        [Op.or]: [
+          { documentId: item.documentId },
+          { contentId: item.id },
+        ],
+      } as never });
       for (const metric of metrics) {
         const contentGameId = metric.games;
         const contentTaskId = metric.tasks;
-        const gameList = await Game.findAll({where: {contentId: contentGameId}});
+        const gameList = await Game.findAll({where: {documentId: contentGameId}});
         metric.games = [];
         if(gameList) {
           metric.games = gameList.map(game => game.id);
         }
-        const taskList = await Task.findAll({where: {contentId: contentTaskId}});
+        const taskList = await Task.findAll({where: {documentId: contentTaskId}});
         metric.tasks = [];
         if(taskList) {
           metric.tasks = taskList.map(task => task.id);
         }
       }
+      const existedCategory = await AchievementCategory.findOne({ where: { documentId: item.achievementCategoryId } as never });
+      if (!existedCategory) {
+        continue;
+      }
+      itemData.achievementCategoryId = existedCategory.id;
+
+      itemData.contentId = item.id;
 
       if (existed) {
         await existed.update(itemData);
       } else {
-        itemData.contentId = item.id;
         existed = await Achievement.create(itemData);
       }
       if (existed) {
         for (const milestone of milestones) {
           const milestoneData = { ...milestone, achievementId: existed.id  } as unknown as AchievementMilestone;
+          console.log('milestoneData', milestoneData);
           const existedMilestone = await AchievementMilestone.findOne({ where: {
-            contentId: milestone.id, achievementId: existed.id } });
+            slug: milestone.slug, achievementId: existed.id } });
 
+          milestoneData.contentId = milestone.id;
           if (existedMilestone) {
             await existedMilestone.update(milestoneData);
           } else {
             milestoneData.achievementId = existed.id;
-            milestoneData.contentId = milestone.id;
             await AchievementMilestone.create(milestoneData);
           }
         }
