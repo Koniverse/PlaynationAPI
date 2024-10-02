@@ -35,6 +35,8 @@
   "dependencies": {
     "@aws-crypto/sha256-browser": "^5.2.0",
     "@ethereumjs/util": "^8.0.6",
+    "@grpc/grpc-js": "^1.11.3",
+    "@koniverse/telegram-bot-grpc": "^1.0.5",
     "@metamask/eth-sig-util": "^6.0.0",
     "@playnation/game-sdk": "^1.0.9",
     "@polkadot/api": "^12.1.1",
