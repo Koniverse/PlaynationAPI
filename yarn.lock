@@ -1604,10 +1604,10 @@
   resolved "https://registry.yarnpkg.com/@js-sdsl/ordered-map/-/ordered-map-4.4.2.tgz#9299f82874bab9e4c7f9c48d865becbfe8d6907c"
   integrity sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==
 
-"@koniverse/telegram-bot-grpc@^1.0.5":
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/@koniverse/telegram-bot-grpc/-/telegram-bot-grpc-1.0.5.tgz#12ddddd7e81375054b1583b4aae00cee5f4edc2a"
-  integrity sha512-mGliAe5FTbWh0vsv48bRd+n7cNboLGryhojF0fTz/ma+d/QH3nTCSzNizK7yokj7dG73VlwQnwcLMGjw301GmQ==
+"@koniverse/telegram-bot-grpc@^1.0.6":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@koniverse/telegram-bot-grpc/-/telegram-bot-grpc-1.0.6.tgz#0d24bb7ceab2b632d663654c23139f81b335be6c"
+  integrity sha512-vsP2ZWOsVNvgvuRoCpx+OTi8BU76/vZ4O0xHlvSo6PKNKZgk7RG++ZYe8i2OSy/Yi/O6wXvrZZ2sXHzyUwg+RA==
   dependencies:
     "@grpc/grpc-js" "^1.11.3"
     "@grpc/proto-loader" "^0.7.13"
