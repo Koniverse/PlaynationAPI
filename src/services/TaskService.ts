@@ -69,12 +69,7 @@ export class TaskService {
     for (const item of data) {
       console.log(item);
       const itemData = {...item} as unknown as Task;
-      const existed = await Task.findOne({ where: {
-        [Op.or]: [
-          { documentId: item.documentId },
-          { contentId: item.id },
-        ],
-      } as never });
+      const existed = await Task.findOne({ where: { documentId: item.documentId }});
       // @ts-ignore
       itemData.share_leaderboard = null;
       if (item.share_leaderboard) {

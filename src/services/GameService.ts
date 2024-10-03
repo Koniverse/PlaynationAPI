@@ -128,12 +128,7 @@ export class GameService {
     for (const item of data) {
       const itemData = { ...item } as unknown as Game;
       itemData.gameType = itemData.gameType || GameType.CASUAL;
-      const existed = await Game.findOne({ where: {
-        [Op.or]: [
-          { documentId: item.documentId },
-          { contentId: item.id },
-        ],
-      } as never });
+      const existed = await Game.findOne({ where: { documentId: item.documentId }});
       itemData.rankDefinition = JSON.stringify(item.rank_definition);
       itemData.contentId = item.id;
       if (existed) {

@@ -62,12 +62,7 @@ export class GameItemService {
     };
     for (const item of data) {
       const itemData = { ...item } as unknown as GameItem;
-      const existed = await GameItem.findOne({ where: {
-        [Op.or]: [
-          { documentId: item.documentId },
-          { contentId: item.id },
-        ],
-      } as never });
+      const existed = await GameItem.findOne({ where: { documentId: item.documentId }});
       const gameData = await Game.findOne({
         where: { documentId: item.gameId },
       });
