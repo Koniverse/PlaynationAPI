@@ -13,6 +13,10 @@ export interface ReferralParams {
   referralCode?: string;
 }
 
+export interface TelegramInitParams {
+  initData: string;
+}
+
 export interface ITelegramParams {
   telegramId: number;
   telegramUsername: string;
@@ -33,6 +37,11 @@ export enum WalletTypeEnum {
 export interface WalletParams {
   address: string;
   signature: string;
+  type?: WalletTypeEnum;
+}
+
+export interface WalletInfoParams {
+  address: string;
   type?: WalletTypeEnum;
 }
 
@@ -60,6 +69,7 @@ export interface ReferralRecord {
 }
 
 export type AccountParams = ReferralParams & ITelegramParams & WalletParams;
+export type TelegramSigninParams = ReferralParams & TelegramInitParams & WalletInfoParams;
 
 export class Account
   extends Model<InferAttributes<Account>, InferCreationAttributes<Account>>

@@ -5,9 +5,9 @@ import {
   AccountBanedParams,
   AccountCheckParams,
   AccountService,
-  GiveawayPointParams,
+  GiveawayPointParams, SyncBanAccountRequest,
 } from '@src/services/AccountService';
-import { AccountParams } from '@src/models';
+import {AccountParams, TelegramSigninParams} from '@src/models';
 import jwt from 'jsonwebtoken';
 import envVars from '@src/constants/EnvVars';
 import { requireLogin, requireSecret } from '@src/routes/helper';
@@ -15,13 +15,20 @@ import { GameService } from '@src/services/GameService';
 
 type SyncAccountQuery = AccountParams & Query;
 
+type LoginAccountQuery = TelegramSigninParams & Query;
+
 type CheckUserByTelegramQuery = AccountCheckParams & Query;
+
+type SyncBanAccountQuery = {
+  data: SyncBanAccountRequest[];
+} & Query;
 
 const AccountRouter = Router();
 
 const accountService = AccountService.instance;
 
 const routerMap = {
+  // Deprecated
   // Sync account data and fetch account details
   sync: async (req: IReq<SyncAccountQuery>, res: IRes) => {
     try {
@@ -50,6 +57,41 @@ const routerMap = {
     } catch (e) {
       console.log('Error in sync account', e);
       return res.status(400).json({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+        error: e.message,
+      });
+    }
+  },
+  login: async (req: IReq<LoginAccountQuery>, res: IRes) => {
+    try {
+      const data = req.body;
+      const headers = req.headers;
+
+      // TODO: Issue-137 | Update this to the middleware
+      const userIP = (headers['cf-connecting-ip'] || '0.0.0.0') as string;
+      const country = (headers['cf-ipcountry'] || 'NA_') as string;
+      const userAgent = req.headers['user-agent'] || '';
+      const account = await AccountService.instance.telegramLogIn(data, {userIP, country, userAgent});
+      const accountDetails = await accountService.fetchAccountWithDetails(account.id);
+
+      const token = jwt.sign(
+        {
+          id: account.id,
+          address: account.address,
+          loginTime: account.sessionTime,
+        },
+        envVars.Jwt.Secret,
+        { expiresIn: '1d' },
+      );
+
+      return res.status(200).json({
+        ...accountDetails,
+        token,
+      });
+    } catch (e) {
+      console.log('Error in sync account', e);
+      return res.status(400).json({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
         error: e.message,
       });
     }
@@ -119,16 +161,16 @@ const routerMap = {
     return res.status(200).json(data);
   },
 
-  handleBanedAccount: async (req: IReq<Query>, res: IRes) => {
-    const data = req.body.data as unknown as AccountBanedParams[];
-    await accountService.handleBanedAccount(data);
+  handleBanedAccount: async (req: IReq<SyncBanAccountQuery>, res: IRes) => {
+    await accountService.handleBanedAccount(req.body.data);
     return res.status(200).json({
       success: true,
     });
   },
 };
 
-AccountRouter.post('/sync', routerMap.sync);
+AccountRouter.post('/sync', routerMap.sync); // Deprecated
+AccountRouter.post('/login', routerMap.login);
 AccountRouter.post('/check-by-telegram-id', routerMap.checkByTelegramId);
 AccountRouter.get('/get-attribute', requireLogin, routerMap.getAttribute);
 AccountRouter.get('/get-rerferal-logs', requireLogin, routerMap.getReferralLog);

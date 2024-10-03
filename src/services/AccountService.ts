@@ -1,5 +1,5 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
-import Account, { AccountParams, ReferralRecord } from '@src/models/Account';
+import Account, {AccountParams, ReferralRecord, TelegramSigninParams} from '@src/models/Account';
 import AccountAttribute, { AccountAttributeRank } from '@src/models/AccountAttribute';
 import { generateRandomString, validateSignature } from '@src/utils';
 import { checkWalletType } from '@src/utils/wallet';
@@ -13,6 +13,7 @@ import { Op } from 'sequelize';
 import logger from 'jet-logger';
 import {AchievementService} from '@src/services/AchievementService';
 import Bowser from 'bowser';
+import {GRPCService} from '@src/services/GRPCService';
 
 // CMS input
 export interface GiveawayPointParams {
@@ -32,6 +33,19 @@ export interface AccountCheckParams {
   point?: number;
 }
 
+export interface RequestInfo {
+  userIP: string;
+  country: string;
+  userAgent: string;
+}
+
+export interface SyncBanAccountRequest {
+  accountIds: number[]
+  isEnabled: boolean
+}
+
+const grpcService = GRPCService.instance;
+
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
 
@@ -42,6 +56,12 @@ export class AccountService {
   // Find an account by Telegram ID
   public async findByAddress(address: string) {
     return await Account.findOne({ where: { address } });
+  }
+
+  // Find an account by Telegram ID
+  public async findByTelegramId(telegramId: number) {
+    // Prefer enabled account
+    return await Account.findOne({ where: { telegramId }, order: [['isEnabled', 'DESC'], ['id', 'ASC']] });
   }
 
   public async fetchAccountWithDetails(id: number) {
@@ -143,6 +163,7 @@ export class AccountService {
   }
 
   // Sync account data with Telegram data
+  // Deprecated: Use telegramSignIn instead
   public async syncAccountData(info: AccountParams, code?: string, accountIp='', country='', userAgent='', validateSign = true) {
     const { signature, telegramId, telegramUsername, address } = info;
 
@@ -201,6 +222,70 @@ export class AccountService {
     return account;
   }
   
+  public async telegramLogIn({ initData, address, referralCode }: TelegramSigninParams, requestInfo: RequestInfo) {
+    const walletType = checkWalletType(address);
+    if (!walletType) {
+      throw new Error('Invalid wallet address');
+    }
+
+    // Validate user data login from init data
+    const validateData = await grpcService.validateTelegramInitData(initData);
+
+    if (!validateData.validData || !validateData.validTime || !validateData.params?.telegramUser) {
+      throw new Error('Invalid telegram data');
+    }
+
+    const user = validateData.params.telegramUser;
+    const info: AccountParams = {
+      telegramId: parseInt(user.id, 10),
+      telegramUsername: user.username || '',
+      firstName: user.firstName,
+      lastName: user.lastName,
+      address,
+      isBot: false,
+      isPremium: false, // Todo: Check premium user with unsaved data
+      languageCode: user.languageCode,
+      photoUrl: '',
+      referralCode,
+      signature: '',
+    };
+
+    // Create account if not exists
+    let account = await this.findByTelegramId(info.telegramId);
+
+    // Check account banned
+    if (account && !account.isEnabled) {
+      throw new Error('ACCOUNT_BANNED');
+    } else if (!account) {
+      // Create account if not exists
+      account = await this.createAccount(info);
+
+      // Add  point from inviteCode
+      referralCode && (await this.addInvitePoint(account.id, referralCode, account.isPremium));
+
+      await TelegramService.instance.saveTelegramAccountAvatar(info.telegramId);
+    }
+
+    // Update account info if changed
+    if (
+      account.telegramUsername !== info.telegramUsername ||
+      account.firstName !== info.firstName ||
+      account.lastName !== info.lastName ||
+      account.isPremium !== info.isPremium||
+      account.languageCode !== info.languageCode||
+      account.address !== info.address // Todo: Consider update address or not?
+    ) {
+      logger.info('Updating account info');
+      await account.update(info);
+    }
+
+    // Update signature, telegramId, telegramUsername
+    this.addLoginLog(account.id, requestInfo.userIP, requestInfo.country, requestInfo.userAgent).catch(logger.err);
+
+    // Update wallet addresses
+    return account;
+  }
+  
   async addLoginLog(accountId: number, ip: string, country: string, userAgent: string) {
     // Save info account login daily
     const account = await this.findById(accountId);
@@ -209,25 +294,28 @@ export class AccountService {
     }
     const now = new Date();
     const today = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const  dailyLogin = await AccountLoginLog.findOne({
+
+    // Check daily login
+    const dailyLogin = await AccountLoginLog.findOne({
       where: {
         accountId,
         loginDate: today,
       },
     });
-
     if (!dailyLogin) {
-      await AccountLoginLog.create({
-        accountId,
-        loginDate: today,
-        ip,
-        country,
-        browserInfo: Bowser.parse(userAgent) as BrowserInfo,
-      });
       AchievementService.instance.triggerAchievement(account.id, AchievementType.LOGIN).catch(logger.err);
-      logger.info('Call trigger Achievement login');
+      logger.info('New daily login => trigger achievement');
     }
-    
+
+    // Create login log
+    // TODO: Issue-137 | Add login token, startTime, endTime => user ping to save user online time
+    await AccountLoginLog.create({
+      accountId,
+      loginDate: today,
+      ip,
+      country,
+      browserInfo: Bowser.parse(userAgent) as BrowserInfo,
+    });
   }
 
   checkAccountAttributeRank(accumulatePoint: number) {
@@ -562,7 +650,7 @@ export class AccountService {
   }
 
   // handle baned user
-  async handleBanedAccount(data: any[]) {
+  async handleBanedAccount(data: SyncBanAccountRequest[]) {
     const transaction = await this.sequelizeService.sequelize.transaction();
     try {
       for (const item of data) {
@@ -597,7 +685,7 @@ export class AccountService {
       return { success: true };
     } catch (e) {
       await transaction.rollback();
-      logger.info('Error in handle baned account', e);
+      logger.info('Error in handle baned account');
     }
   }
 
