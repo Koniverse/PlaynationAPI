@@ -10,7 +10,7 @@ import {
   Task,
 } from '@src/models';
 import {AccountService} from '@src/services/AccountService';
-import {Op, QueryTypes} from 'sequelize';
+import {QueryTypes} from 'sequelize';
 import {AchievementCenterService} from '@src/services/AchievementCenterService';
 
 export interface MilestonesContentCms {
@@ -131,12 +131,7 @@ export class AchievementService {
     const achievement = dataContentCms.data.achievement;
     for (const item of achievementCategory) {
       const itemData = { ...item } as unknown as AchievementCategory;
-      const existed = await AchievementCategory.findOne({ where: {
-        [Op.or]: [
-          { documentId: item.documentId },
-          { contentId: item.id },
-        ],
-      } as never });
+      const existed = await AchievementCategory.findOne({ where: { documentId: item.documentId }});
       itemData.contentId = item.id;
       if (existed) {
         await existed.update(itemData);
@@ -149,12 +144,7 @@ export class AchievementService {
       const itemData = { ...item } as unknown as Achievement;
       const milestones = item.milestones;
       const metrics = item.metrics;
-      let existed = await Achievement.findOne({ where: {
-        [Op.or]: [
-          { documentId: item.documentId },
-          { contentId: item.id },
-        ],
-      } as never });
+      let existed = await Achievement.findOne({ where: { documentId: item.documentId }});
       for (const metric of metrics) {
         const contentGameId = metric.games;
         const contentTaskId = metric.tasks;
