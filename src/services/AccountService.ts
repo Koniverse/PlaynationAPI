@@ -481,12 +481,7 @@ export class AccountService {
         continue;
       }
       if (_contentId > 0) {
-        const giveAwayPoint = await GiveAwayPoint.findOne({ where: {
-          [Op.or]: [
-            { documentId: documentId },
-            { contentId: _contentId },
-          ],
-        } as never });
+        const giveAwayPoint = await GiveAwayPoint.findOne({ where: { documentId: documentId }});
         if (giveAwayPoint) {
           continue;
         }
