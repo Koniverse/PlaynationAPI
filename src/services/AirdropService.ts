@@ -140,6 +140,7 @@ export class AirdropService {
         if (existed) {
           await existed.update(itemData);
         } else {
+          itemData.document_id = item.documentId;
           await AirdropCampaign.create(itemData);
         }
       }
@@ -169,11 +170,13 @@ export class AirdropService {
         if (!existedCampaign) {
           continue;
         }
+
         itemData.campaign_id = existedCampaign.id;
         itemData.content_id = item.id;
         if (existed) {
           await existed.update(itemData);
         } else {
+          itemData.document_id = item.documentId;
           await AirdropEligibility.create(itemData);
         }
       }
