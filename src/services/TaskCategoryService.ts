@@ -26,12 +26,7 @@ export class TaskCategoryService {
 
     for (const item of data) {
       const itemData = {...item} as unknown as TaskCategory;
-      const existed = await TaskCategory.findOne({ where: {
-        [Op.or]: [
-          { documentId: item.documentId },
-          { contentId: item.id },
-        ],
-      } as never });
+      const existed = await TaskCategory.findOne({ where: { documentId: item.documentId }});
       itemData.contentId = item.id;
       if (existed) {
         await existed.update(itemData);
