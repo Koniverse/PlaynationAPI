@@ -44,6 +44,8 @@ const Environments = {
   },
   Telegram: {
     Token: process.env.BOT_TELEGRAM_TOKEN ?? '',
+    BotUsername: process.env.BOT_TELEGRAM_USERNAME ?? '',
+    InternalValidate: Boolean(process.env.BOT_TELEGRAM_INTERNAL_VALIDATE) || false,
     IntervalTime: Number(process.env.INTERVAL_TELEGRAM_TIME || '1000'),
     IntervalCronTime: Number(process.env.INTERVAL_TELEGRAM_CRON_TIME || '86400000'),
     RateLimit: Number(process.env.TELEGRAM_RATE_LIMIT || '20'),

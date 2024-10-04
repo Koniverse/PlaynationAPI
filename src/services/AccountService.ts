@@ -14,6 +14,28 @@ import logger from 'jet-logger';
 import {AchievementService} from '@src/services/AchievementService';
 import Bowser from 'bowser';
 import {GRPCService} from '@src/services/GRPCService';
+import {createHmac} from 'crypto';
+import {TelegramAuthResponse__Output} from '@koniverse/telegram-bot-grpc';
+
+export interface TelegramUser {
+  id: number
+  first_name: string
+  last_name?: string
+  username?: string
+  language_code?: string,
+  allows_write_to_pm?: boolean
+}
+
+export interface ValidateInitDataResult {
+  validData: boolean
+  validTime: boolean
+  params?: {
+    query_id: string,
+    user: TelegramUser | string,
+    auth_date: number,
+  }
+  error?: string,
+}
 
 // CMS input
 export interface GiveawayPointParams {
@@ -44,6 +66,11 @@ export interface SyncBanAccountRequest {
   isEnabled: boolean
 }
 
+const BOT_USERNAME = EnvVars.Telegram.BotUsername;
+const INTERNAL_VALIDATE = EnvVars.Telegram.InternalValidate;
+const BOT_SECRET = createHmac('sha256', 'WebAppData')
+  .update(EnvVars.Telegram.Token)
+  .digest();
 const grpcService = GRPCService.instance;
 
 export class AccountService {
@@ -229,7 +256,7 @@ export class AccountService {
     }
 
     // Validate user data login from init data
-    const validateData = await grpcService.validateTelegramInitData(initData);
+    const validateData = INTERNAL_VALIDATE ? this.validateInitData(initData) : await grpcService.validateTelegramInitData(initData, BOT_USERNAME);
 
     if (!validateData.validData || !validateData.validTime || !validateData.params?.telegramUser) {
       throw new Error('Invalid telegram data');
@@ -698,6 +725,70 @@ export class AccountService {
     });
     return accountAttribute;
   }
+  
+  validateInitData(initData: string): TelegramAuthResponse__Output {
+    const result = {
+      validData: false,
+      validTime: false,
+    } as ValidateInitDataResult;
+
+    try {
+      // This token re-create every time the pop-up is re-opened except reload the page => don't need to cache
+      // Step 1: Parse the initData string
+      const params = new URLSearchParams(initData);
+      const receivedHash = params.get('hash');
+      params.delete('hash');
+
+      // Step 2: Create the data_check_string
+      const dataCheckString = Array.from(params.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => `${key}=${value}`)
+        .join('\n');
+
+      // Step 3: Generate the HMAC-SHA-256 signature of the data_check_string
+      const generatedHash = createHmac('sha256', BOT_SECRET)
+        .update(dataCheckString)
+        .digest('hex');
+
+      // Step 4: Compare the generated signature with the received hash
+      result.validData = generatedHash === receivedHash;
+      if (!result.validData) {
+        return result as TelegramAuthResponse__Output;
+      }
+
+      // Step 5: Extract the params data
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      result.params = Object.fromEntries(params.entries()) as any;
+      // @ts-ignore
+      if (typeof result.params.user === 'string') {
+        // @ts-ignore
+        result.params.user = JSON.parse(result.params.user) as TelegramUser;
+      }
+
+      // Step 6: Optionally, check the auth_date to ensure the data is not outdated
+      const authDate = parseInt(params.get('auth_date') || '0', 10);
+      const currentTime = Math.floor(Date.now() / 1000);
+      const maxAge = 86400; // 24 hours
+      result.validTime = (currentTime - authDate) < maxAge;
+    } catch (error) {
+      logger.err(error);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+      result.error = error.message;
+    }
+
+    return {
+      validData: result.validData,
+      validTime: result.validTime,
+      error: result.error,
+      params: {
+        queryId: result.params?.query_id,
+        telegramUser: result.params?.user,
+        authDate: result.params?.auth_date,
+      },
+    } as unknown as TelegramAuthResponse__Output;
+  }
+
 
   // Singleton this class
   private static _instance: AccountService;
