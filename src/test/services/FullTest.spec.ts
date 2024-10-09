@@ -43,7 +43,7 @@ describe('Game Item Test', () => {
   });
 
   it('User Create Account', async function () {
-    const firstAccount = await accountService.syncAccountData(info, '123456', false);
+    const firstAccount = await accountService.syncAccountData(info, '123456');
   });
 
   it('Sync Account Actions', async function () {

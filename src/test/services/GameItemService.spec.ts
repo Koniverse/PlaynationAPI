@@ -33,7 +33,7 @@ describe('Game Item Test', () => {
   beforeEach(async () => {
     await SequelizeServiceImpl.syncAll();
     await SequelizeServiceImpl.truncateDB();
-    const syncAccount = await accountService.syncAccountData(info, undefined, false);
+    const syncAccount = await accountService.syncAccountData(info, undefined);
     accountId = syncAccount.id;
     const sampleDataGame = await createSampleGameData();
     sampleGameItems = sampleDataGame.createdGameItems;

@@ -51,7 +51,7 @@ describe('Referral Test', () => {
       lastName: '01',
       photoUrl: 'https://via.placeholder.com/300x300',
       languageCode: 'en',
-    }, accountLv0.inviteCode, false);
+    }, accountLv0.inviteCode);
 
     const accLv0Point01 = await accountService.getAccountAttribute(accountLv0.id).then((attrs) => attrs.point);
     console.log('Account 0', accLv0Point00, '==>', accLv0Point01);
@@ -70,7 +70,7 @@ describe('Referral Test', () => {
       lastName: '02',
       photoUrl: 'https://via.placeholder.com/300x300',
       languageCode: 'en',
-    }, accountLv1.inviteCode, false);
+    }, accountLv1.inviteCode);
 
     const accLv1Point01 = await accountService.getAccountAttribute(accountLv1.id).then((attrs) => attrs.point);
     console.log('Account 1', accLv1Point00, '==>', accLv1Point01);
@@ -95,7 +95,7 @@ describe('Referral Test', () => {
       lastName: '03',
       photoUrl: 'https://via.placeholder.com/300x300',
       languageCode: 'en',
-    }, accountLv2.inviteCode, false);
+    }, accountLv2.inviteCode);
 
     const accLv2Point01 = await accountService.getAccountAttribute(accountLv2.id).then((attrs) => attrs.point);
     console.log('Account 2', accLv2Point00, '==>', accLv2Point01);
@@ -159,6 +159,7 @@ describe('Referral Test', () => {
       return;
     }
     const giveAccountPoint = {
+      documentId: '001',
       inviteCode: account.inviteCode,
       point: rankData.minPoint,
       rank,
