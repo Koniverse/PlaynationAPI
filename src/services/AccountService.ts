@@ -15,7 +15,6 @@ import {AchievementService} from '@src/services/AchievementService';
 import Bowser from 'bowser';
 import {GRPCService} from '@src/services/GRPCService';
 import {createHmac} from 'crypto';
-import {TelegramAuthResponse__Output} from '@koniverse/telegram-bot-grpc';
 
 export interface TelegramUser {
   id: number
@@ -23,6 +22,8 @@ export interface TelegramUser {
   last_name?: string
   username?: string
   language_code?: string,
+  is_bot?: boolean,
+  is_premium?: boolean,
   allows_write_to_pm?: boolean
 }
 
@@ -255,23 +256,25 @@ export class AccountService {
       throw new Error('Invalid wallet address');
     }
 
+    // Todo: fix validateData with grpc
+    // const validateData = INTERNAL_VALIDATE ? this.validateInitData(initData) : await grpcService.validateTelegramInitData(initData, BOT_USERNAME);
     // Validate user data login from init data
-    const validateData = INTERNAL_VALIDATE ? this.validateInitData(initData) : await grpcService.validateTelegramInitData(initData, BOT_USERNAME);
+    const validateData = this.validateInitData(initData);
 
-    if (!validateData.validData || !validateData.validTime || !validateData.params?.telegramUser) {
+    if (!validateData.validData || !validateData.validTime || !validateData.params?.user) {
       throw new Error('Invalid telegram data');
     }
 
-    const user = validateData.params.telegramUser;
+    const user = validateData.params.user as TelegramUser;
     const info: AccountParams = {
-      telegramId: parseInt(user.id, 10),
+      telegramId: user.id,
       telegramUsername: user.username || '',
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: user.first_name,
+      lastName: user.last_name,
       address,
-      isBot: false,
-      isPremium: false, // Todo: Check premium user with unsaved data
-      languageCode: user.languageCode,
+      isBot: user.is_bot,
+      isPremium: user.is_premium || false,
+      languageCode: user.language_code || '',
       photoUrl: '',
       referralCode,
       signature: '',
@@ -726,7 +729,7 @@ export class AccountService {
     return accountAttribute;
   }
   
-  validateInitData(initData: string): TelegramAuthResponse__Output {
+  validateInitData(initData: string): ValidateInitDataResult{
     const result = {
       validData: false,
       validTime: false,
@@ -753,7 +756,7 @@ export class AccountService {
       // Step 4: Compare the generated signature with the received hash
       result.validData = generatedHash === receivedHash;
       if (!result.validData) {
-        return result as TelegramAuthResponse__Output;
+        return result;
       }
 
       // Step 5: Extract the params data
@@ -777,16 +780,7 @@ export class AccountService {
       result.error = error.message;
     }
 
-    return {
-      validData: result.validData,
-      validTime: result.validTime,
-      error: result.error,
-      params: {
-        queryId: result.params?.query_id,
-        telegramUser: result.params?.user,
-        authDate: result.params?.auth_date,
-      },
-    } as unknown as TelegramAuthResponse__Output;
+    return result;
   }
 
 
