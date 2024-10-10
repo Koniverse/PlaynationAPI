@@ -81,6 +81,7 @@ export abstract class BaseLeaderBoard {
   protected topRefresh = 500;
   protected leaderBoardLength = 1000;
   protected cacheTime = 30000;
+  protected rankOffset = 20;
   protected fullLeaderBoardCacheHandler : PromiseObject<LeaderBoardItem[]> | undefined;
   protected fullLeaderBoardMap: Record<number, LeaderBoardItem> = {};
 
@@ -102,12 +103,12 @@ export abstract class BaseLeaderBoard {
     return (await data).slice(0, top);
   }
 
-  protected async getTopLeaderboard(limit: number) : Promise<LeaderBoardItem[]> {
+  protected async getTopLeaderboard() : Promise<LeaderBoardItem[]> {
     const data = this.getFullLeaderboard();
-
     // Return top leaderboard records
-    const top = Math.min(Math.max(this.topRefresh, limit), this.leaderBoardLength);
-    return (await data).slice(0, top);
+    // const top = Math.min(Math.max(this.topRefresh, limit), this.leaderBoardLength);
+    //Get all data leader board
+    return await data;
   }
 
   async getAccountData(accountIds: number[]): Promise<LeaderBoardItem | undefined> {
@@ -163,10 +164,10 @@ export abstract class BaseLeaderBoard {
   async getLeaderBoardData(accountId: number[], limit=100) : Promise<LeaderBoardItem[]> {
     // Get current user's leaderboard record
     const accountData = await this.getAccountData(accountId);
-    const topLeaderboard = await this.getTopLeaderboard(limit);
+    const topLeaderboard = await this.getTopLeaderboard();
     const topDisplay = await this.getDisplayLeaderboard(limit);
 
-    const topRefreshMinPoint = topLeaderboard[topLeaderboard.length - 1]?.point || 0;
+    // const topRefreshMinPoint = topLeaderboard[topLeaderboard.length - 1]?.point || 0;
     const topDisplayMinPoint = topLeaderboard[topDisplay.length - 1]?.point || 0;
 
     // Get top leaderboard records
@@ -177,21 +178,27 @@ export abstract class BaseLeaderBoard {
 
     const accountPoint = accountData?.point;
     accountData.mine = true;
+    let currentRank = 0;
 
     // Check if user's record is in topDisplay
     if (accountPoint >= topDisplayMinPoint) {
       const topDisplayRs = deepCopy(topDisplay);
+      const resultListOffset = topLeaderboard.slice(limit+1, limit + this.rankOffset);
 
       // Just update mine record if it's point is not changed
       const currentRecord = this.fullLeaderBoardMap[accountData.accountId];
       if (currentRecord.point === accountPoint) {
-        topDisplayRs.forEach((item) => {
+        topDisplayRs.forEach((item, index) => {
           if (item.accountId === accountData.accountId) {
             item.mine = true;
+            currentRank = index + 1;
           }
         });
+        if (currentRank <= (limit - this.rankOffset)) {
+          return topDisplayRs;
+        }
 
-        return topDisplayRs;
+        return [...topDisplayRs, ...resultListOffset];
       }
 
       const resultList = topDisplayRs.filter((item) => item.accountId !== accountData.accountId);
@@ -199,20 +206,39 @@ export abstract class BaseLeaderBoard {
       resultList.sort((a, b) => b.point - a.point);
       resultList.forEach((item, index) => {
         item.rank = index + 1;
+        if (item.accountId === accountData.accountId) {
+          currentRank = index + 1;
+        }
       }, 0);
 
-      return resultList;
-    } else if (accountPoint >= topRefreshMinPoint) {
-      accountData.rank = topLeaderboard.findIndex((item) => item.point <= accountPoint) + 1;
+      if (currentRank <= (limit - this.rankOffset)) {
+        return resultList;
+      }
 
-      return [...topDisplay, accountData];
-    } else {
-      // Get full leaderboard
-      const currentRankInBoard = this.fullLeaderBoardMap[accountData.accountId];
-      accountData.rank = currentRankInBoard?.rank || this.leaderBoardLength + 1;
+      return [...resultList, ...resultListOffset];
+    }else {
+      // Find user's rank in top leaderboard a
+      accountData.rank = topLeaderboard.findIndex((item) => item.point <= accountPoint && item.accountId === accountData.accountId) + 1;
 
-      return [...topDisplay, accountData];
+      const currentRank = accountData.rank;
+      // Add user's record to top leaderboard +- 20 from current rank
+      const resultList = this.getLeaderBoardRankOffsetList(currentRank, accountData, topLeaderboard, limit);
+      return [...topDisplay, ...resultList];
     }
+  }
+  
+  getLeaderBoardRankOffsetList(currentRank: number, accountData: LeaderBoardItem, topLeaderboard: LeaderBoardItem[], limit: number) {
+    const start = Math.max(currentRank - this.rankOffset - 1, limit);
+    const end = Math.min(accountData.rank + this.rankOffset, this.leaderBoardLength);
+    const resultList = topLeaderboard.slice(start, end).filter((item) => item.accountId !== accountData.accountId);
+    resultList.push(accountData);
+    resultList.sort((a, b) => b.point - a.point);
+    resultList.forEach((item) => {
+      if (item.accountId === accountData.accountId) {
+        item.mine = true;
+      }
+    });
+    return resultList;
   }
 
   async fetchLeaderBoard(accountIds: number[], limit = 100) : Promise<LeaderBoardOutput[]> {
