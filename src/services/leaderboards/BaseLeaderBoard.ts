@@ -163,7 +163,7 @@ export abstract class BaseLeaderBoard {
     const topLeaderboard = await this.getTopLeaderboard();
     const topDisplay = await this.getDisplayLeaderboard(limit);
 
-    const topRefreshMinPoint = topLeaderboard[topLeaderboard.length - 1]?.point || 0;
+    // const topRefreshMinPoint = topLeaderboard[topLeaderboard.length - 1]?.point || 0;
     const topDisplayMinPoint = topLeaderboard[topDisplay.length - 1]?.point || 0;
 
     // Get top leaderboard records
