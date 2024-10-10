@@ -223,6 +223,10 @@ export abstract class BaseLeaderBoard {
       // Find user's rank in top leaderboard a
       accountData.rank = fullLeaderboard.findIndex((item) => item.point <= accountPoint) + 1;
 
+      if (accountData.point === 0) {
+        accountData.rank = fullLeaderboard.findIndex((item) => item.accountId === accountData.accountId) + 1;
+      }
+
       // Add user's record to top leaderboard +- 20 from current rank
       const currentRank = accountData.rank;
       const start = Math.max(currentRank - this.rankOffset - 1, limit);
