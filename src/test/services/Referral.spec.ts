@@ -2,7 +2,7 @@ import {AccountService} from '@src/services/AccountService';
 import {Account} from '@src/models/Account';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {createSampleAccounts} from '@src/test/data_samples/Accounts';
-import rankJson from '@src/data/ranks.json';
+import rankJson from '../../../config/ranks.json';
 import { AccountAttributeRank } from '@src/models';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 import * as console from 'node:console';

@@ -4,7 +4,7 @@ import AccountAttribute, { AccountAttributeRank } from '@src/models/AccountAttri
 import { generateRandomString, validateSignature } from '@src/utils';
 import { checkWalletType } from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
-import rankJson from '../data/ranks.json';
+import rankJson from '../../config/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
 import { GameData, GiveAwayPoint } from '@src/models';
 import { TelegramService } from '@src/services/TelegramService';
