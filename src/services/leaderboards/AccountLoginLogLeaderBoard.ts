@@ -20,12 +20,18 @@ export class AccountLoginLogLeaderBoard extends BaseLeaderBoard {
 
     // Get the consecutive login days
     const sql = `
-    WITH login_data AS (SELECT al."accountId",
-                           al."loginDate"::date                                                          as login_date,
-                           ROW_NUMBER() OVER (PARTITION BY al."accountId" ORDER BY al."loginDate"::date) as row_num
+    WITH
+        login_daily AS (SELECT al."accountId",
+                           al."loginDate"::date                                                    as login_date,
+                           Min(al."createdAt"::date)                                               as created_date
                     FROM account_login_log al
                     ${conditionQuery}
-                    order by al."loginDate" asc),
+                    group by 1,2 ),
+        login_data AS (SELECT al."accountId",
+                           al.login_date,
+                           ROW_NUMBER() OVER (PARTITION BY al."accountId" ORDER BY al.login_date::date) as row_num
+                    FROM login_daily al
+                    order by al.login_date asc),
      consecutive_logins AS (SELECT ld."accountId",
                                    ld.login_date,
                                    ld.row_num,

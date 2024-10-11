@@ -32,6 +32,7 @@ async function createAchievement(slug: string, leaderBoardType: LeaderboardType,
     'name': slug,
     'description': slug,
     'icon': 'icon',
+    'documentId': 'documentId',
     'slug': slug,
   } as AchievementCategory);
 
@@ -39,6 +40,7 @@ async function createAchievement(slug: string, leaderBoardType: LeaderboardType,
     'name': slug,
     'description': slug,
     'icon': 'icon',
+    'documentId': 'documentId',
     'achievementCategoryId': category.id,
     'type': type,
     'metrics': metricData,
@@ -50,6 +52,7 @@ async function createAchievement(slug: string, leaderBoardType: LeaderboardType,
     'metricId': 'metric-1',
     'nps': 100,
     'name': slug +' Milestone',
+    'documentId': 'documentId',
     'conditions_combination': ConditionsCombination.AND,
     conditions: [
       {
@@ -124,6 +127,12 @@ describe('Achievement Test', () => {
     for (let i = 10; i > 2; i--) {
       const now = new Date();
       const today = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i);
+      await AccountLoginLog.create({
+        accountId: account.id,
+        loginDate: today,
+        ip: '1',
+        country: 'vn',
+      });
       await AccountLoginLog.create({
         accountId: account.id,
         loginDate: today,
