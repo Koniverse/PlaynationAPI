@@ -223,8 +223,9 @@ export abstract class BaseLeaderBoard {
       // Find user's rank in top leaderboard a
       accountData.rank = fullLeaderboard.findIndex((item) => item.point <= accountPoint) + 1;
 
+      // If user's point is 0, set rank to the last of full leaderboard
       if (accountData.point === 0) {
-        accountData.rank = fullLeaderboard.findIndex((item) => item.accountId === accountData.accountId) + 1;
+        accountData.rank = fullLeaderboard.length;
       }
 
       // Add user's record to top leaderboard +- 20 from current rank
