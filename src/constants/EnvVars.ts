@@ -3,8 +3,9 @@
  */
 
 /* eslint-disable node/no-process-env */
-import chainConfig from '@src/data/chainConfig.json';
-import {ChainData} from '@src/types';
+import chainConfig from '../../config/chainConfig.json';
+import rankConfig from '../../config/ranks.json';
+import {ChainData, RankDefinition} from '@src/types';
 
 const Environments = {
   NodeEnv: process.env.NODE_ENV ?? '',
@@ -85,6 +86,9 @@ const Environments = {
   Session: {
     Secret: process.env.SESSION_SECRET ?? 'xxxxxxxxx',
     Exp: process.env.SESSION_EXP ?? 259200000,
+  },
+  Rank: {
+    Config: rankConfig as RankDefinition[],
   },
   Game: {
     MaxEnergy: parseInt(process.env.MAX_ENERGY || '1440'),

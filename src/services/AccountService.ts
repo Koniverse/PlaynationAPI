@@ -4,7 +4,6 @@ import AccountAttribute, { AccountAttributeRank } from '@src/models/AccountAttri
 import { generateRandomString, validateSignature } from '@src/utils';
 import { checkWalletType } from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
-import rankJson from '../../config/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
 import {AccountLoginLog, AchievementType, BrowserInfo, GameData, GiveAwayPoint} from '@src/models';
 import { TelegramService } from '@src/services/TelegramService';
@@ -349,7 +348,7 @@ export class AccountService {
   }
 
   checkAccountAttributeRank(accumulatePoint: number) {
-    const rankData = rankJson.find((rank) => accumulatePoint >= rank.minPoint && accumulatePoint <= rank.maxPoint);
+    const rankData = EnvVars.Rank.Config.find((rank) => accumulatePoint >= rank.minPoint && accumulatePoint <= rank.maxPoint);
     if (!rankData && accumulatePoint > 100000000) {
       return AccountAttributeRank.DIAMOND;
     }
@@ -377,7 +376,7 @@ export class AccountService {
         if (existed) {
           return;
         }
-        const rankData = rankJson.find((item) => item.rank === AccountAttributeRank.IRON);
+        const rankData = EnvVars.Rank.Config.find((item) => item.rank === AccountAttributeRank.IRON);
         if (rankData) {
           // Check log invite from this account
           const referralLogIndirect = await ReferralLog.findOne({
@@ -489,7 +488,7 @@ export class AccountService {
     if (!account) {
       return;
     }
-    const rankData = rankJson.find((item) => item.rank === rank);
+    const rankData = EnvVars.Rank.Config.find((item) => item.rank === rank);
     if (rankData) {
       const invitePoint = Number(account.isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
       const indirectPoint = invitePoint * EnvVars.INDIRECT_POINT_RATE;

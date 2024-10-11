@@ -239,6 +239,14 @@ export interface LeaderboardItem {
   tasks: number[];
 }
 
+export interface RankDefinition {
+  rank: string;
+  minPoint: number;
+  maxPoint: number;
+  invitePoint: number;
+  premiumInvitePoint: number;
+}
+
 export interface ChainData {
   address: string;
   seedPhrase: string;

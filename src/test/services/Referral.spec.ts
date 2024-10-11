@@ -2,10 +2,10 @@ import {AccountService} from '@src/services/AccountService';
 import {Account} from '@src/models/Account';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {createSampleAccounts} from '@src/test/data_samples/Accounts';
-import rankJson from '../../../config/ranks.json';
 import { AccountAttributeRank } from '@src/models';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 import * as console from 'node:console';
+import EnvVars from '@src/constants/EnvVars';
 
 interface Rank {
     rank: string;
@@ -16,7 +16,7 @@ interface Rank {
 }
 function getRankPoint(rank: string): Rank | undefined{
   console.log('Rank', rank);
-  const dataRank = rankJson.find((r) => r.rank === rank);
+  const dataRank = EnvVars.Rank.Config.find((r) => r.rank === rank);
   return dataRank;
 }
 
