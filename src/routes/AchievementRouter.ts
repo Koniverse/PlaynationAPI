@@ -22,8 +22,15 @@ const routerMap = {
     const response = await achievementService.claimAchievement(userId, req.body.milestoneId);
     return res.status(200).json(response);
   },
+
+  missionList: async (req: IReq<Query>, res: IRes) => {
+    const userId = req.user?.id || 0;
+    const response = await achievementService.getMissionList(userId);
+    return res.status(200).json(response);
+  },
 };
 
+AchievementRouter.get('/mission-fetch', requireLogin, routerMap.missionList);
 AchievementRouter.post('/sync', requireSecret, routerMap.sync);
 AchievementRouter.get('/fetch', requireLogin, routerMap.fetch);
 AchievementRouter.post('/claim', requireLogin, routerMap.claim);

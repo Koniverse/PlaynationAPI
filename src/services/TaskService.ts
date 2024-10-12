@@ -1,8 +1,6 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
 import {
-  AchievementType,
-  AirlyftEvent,
   Task,
   TaskCategory,
   TaskHistory,
@@ -11,10 +9,9 @@ import {
 import {AccountService} from '@src/services/AccountService';
 import {dateDiffInDays} from '@src/utils/date';
 import {Op, QueryTypes} from 'sequelize';
-import {AirlyftService} from '@src/services/AirlyftService';
 import {CacheService} from '@src/services/CacheService';
 import {v4} from 'uuid';
-import {AchievementService} from '@src/services/AchievementService';
+import {AchievementService, AchievementType} from '@src/services/AchievementService';
 import logger from 'jet-logger';
 
 export interface TaskContentCms {
@@ -54,7 +51,6 @@ interface TaskHistoryLog {
 
 type TaskHistoryRecord = Task & TaskHistory & TaskHistoryLog;
 const accountService = AccountService.instance;
-const airlyftService = AirlyftService.instance;
 const cacheService = CacheService.instance;
 
 export class TaskService {
@@ -157,14 +153,15 @@ export class TaskService {
       }
       return {completed, isSubmitting: !!taskUniqueValue};
     }
+
     const taskHistory = await TaskHistory.findOne({
       where: {taskId, accountId: userId, status: TaskHistoryStatus.COMPLETED},
     });
     if (taskHistory) {
       completed = true;
     }
-    return {completed};
 
+    return {completed};
   }
 
   async listTaskHistory(userId: number) {
@@ -186,6 +183,7 @@ export class TaskService {
     if (!data) {
       return [];
     }
+
     const mapTask = data.reduce((acc: Record<string, TaskHistoryRecord[]>, item: TaskHistoryRecord) => {
       if (!acc[item.id]) {
         acc[item.id] = [];
@@ -194,6 +192,7 @@ export class TaskService {
 
       return acc;
     }, {});
+
     const result: TaskHistoryRecord[] = [];
     const keys = Object.keys(mapTask);
     for (const key of keys) {
@@ -256,12 +255,6 @@ export class TaskService {
     // Validate task submission
     const interval = task.interval;
     if (latestLast.length > 0 && (!interval || interval <= 0)) {
-      if (task.airlyftType){
-        return {
-          success: true,
-          isOpenUrl: false,
-        };
-      }
       throw new Error('Task already submitted');
     }
 
@@ -290,26 +283,6 @@ export class TaskService {
       const isCompleted = !lastSubmit.extrinsicHash || (lastSubmit.extrinsicHash && lastSubmit.status !== TaskHistoryStatus.FAILED);
       if (diffInDays < interval && isCompleted) {
         throw new Error('Task is not ready to be submitted yet');
-      }
-    }
-    let isOpenUrl = true;
-    if (task.airlyftId && task.airlyftType) {
-      const airlyftUserId = await airlyftService.getAirlyftUserIdByAddress(account.address);
-      if (airlyftUserId){
-        const checkSuccess = await this.checkTaskAirlyft(task, airlyftUserId);
-        if (!checkSuccess) {
-          return {
-            success: false,
-            isOpenUrl: isOpenUrl,
-          };
-        }else {
-          isOpenUrl = false;
-        }
-      }else {
-        return {
-          success: false,
-          isOpenUrl: isOpenUrl,
-        };
       }
     }
 
@@ -350,67 +323,9 @@ export class TaskService {
 
     return {
       success: true,
-      isOpenUrl: isOpenUrl,
+      isOpenUrl: true,
     };
   }
-
-  //
-  async checkTaskAirlyft(task: Task, userId: string) {
-    const taskIds = [task.airlyftId];
-    const eventId = task.airlyftEventId;
-    const event = await AirlyftEvent.findOne(
-      {where: {
-        userId: userId,
-        taskId: task.airlyftId,
-        eventId: task.airlyftEventId,
-        status: 'VALID',
-      }},
-    );
-    if (event){
-      return true;
-    }
-    try {
-      const data = await airlyftService.eventSubmissions(eventId, taskIds, userId);
-      return !(!data || (data.errors && data.errors.length > 0));
-    }catch (e) {
-      console.log('error airlyft', e);
-      return false;
-    }
-
-  }
-
-  async createTaskHistory(taskId: number, accountId: number) {
-    const task = await Task.findByPk(taskId);
-    if (!task) {
-      throw new Error('Task not found');
-    }
-
-    const account = await accountService.findById(accountId);
-    if (!account || !account.isEnabled) {
-      throw new Error('Your account is suspended');
-    }
-    const existed = await TaskHistory.findOne({
-      where: {taskId, accountId},
-    });
-    if (existed) {
-      return;
-    }
-    
-    const data = {
-      taskId,
-      accountId,
-      status: TaskHistoryStatus.COMPLETED,
-      completedAt: new Date(),
-      pointReward: task.pointReward,
-    } as TaskHistory;
-    await TaskHistory.create(data);
-    // Add point to account
-    await AccountService.instance.addAccountPoint(accountId, task.pointReward);
-    return {
-      success: true,
-    };
-  }
-
 
   async buildMap() {
     const data = await Task.findAll();

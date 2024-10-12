@@ -6,15 +6,19 @@ import {
   Model,
 } from 'sequelize';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
-import AchievementCategory from '@src/models/AchievementCategory';
 import {LeaderboardItem} from '@src/types';
+import TaskCategory from '@src/models/TaskCategory';
 export type Metric = LeaderboardItem & {metricId: string};
 
-export enum AchievementType {
-  LOGIN = 'login',
-  TASK = 'task',
-  GAME = 'game',
-  REFERRAL = 'referral',
+export enum RepeatableType {
+  NON_REPEATABLE = 'non_repeatable',
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+}
+
+export enum LogViewType {
+  SINGLE = 'single',
+  MULTIPLE = 'multiple',
 }
 
 export class Achievement extends Model<InferAttributes<Achievement>, InferCreationAttributes<Achievement>> {
@@ -24,11 +28,12 @@ export class Achievement extends Model<InferAttributes<Achievement>, InferCreati
   declare name: string;
   declare description: string;
   declare icon: string;
-  declare achievementCategoryId: number;
+  declare taskCategoryId: number;
   declare startTime: CreationOptional<Date>;
   declare endTime: CreationOptional<Date>;
   declare metrics: CreationOptional<Metric[]>; // metrics for achievement
-  declare type: CreationOptional<AchievementType>;
+  declare repeatable: CreationOptional<RepeatableType>;
+  declare logViewType: CreationOptional<LogViewType>;
 
   // createdAt can be undefined during creation
   declare createdAt: CreationOptional<Date>;
@@ -63,10 +68,10 @@ Achievement.init({
     type: DataTypes.STRING,
     allowNull: true,
   },
-  achievementCategoryId: {
+  taskCategoryId: {
     type: DataTypes.INTEGER,
     references: {
-      model: AchievementCategory,
+      model: TaskCategory,
       key: 'id',
     },
   },
@@ -82,8 +87,12 @@ Achievement.init({
     type: DataTypes.JSONB,
     allowNull: true,
   },
-  type: {
-    type: DataTypes.ENUM(AchievementType.GAME, AchievementType.LOGIN, AchievementType.REFERRAL, AchievementType.TASK),
+  repeatable: {
+    type: DataTypes.ENUM(RepeatableType.NON_REPEATABLE, RepeatableType.DAILY, RepeatableType.WEEKLY),
+    allowNull: true,
+  },
+  logViewType: {
+    type: DataTypes.ENUM(LogViewType.SINGLE, LogViewType.MULTIPLE),
     allowNull: true,
   },
   documentId: {

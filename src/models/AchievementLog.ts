@@ -7,6 +7,7 @@ import AchievementMilestone from '@src/models/AchievementMilestone';
 
 export enum AchievementLogStatus {
   PENDING = 'pending',
+  CLAIM = 'claim',
   CLAIMED = 'claimed',
 }
 export class AchievementLog extends Model<InferAttributes<AchievementLog>, InferCreationAttributes<AchievementLog>> {
@@ -63,7 +64,6 @@ AchievementLog.init({
     type: DataTypes.DATE,
     allowNull: true,
   },
-    
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
 

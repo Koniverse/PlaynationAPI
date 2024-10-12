@@ -74,8 +74,6 @@ export class AchievementCenterService {
   private async getAccountMetricData(accountIds: number[], metrics: MetricFilter[]){
     const accountMetricData: Record<string, {point: number, rank: number}> = {};
     for (const metric of metrics) {
-      // Todo: add leaderboard function to achievement service map list accountIds
-      // Todo: change limit accountId length
       const data = await this.getLeaderBoard(accountIds, metric as LeaderboardItem,metric.filterType, {}, 1000000);
       for (const accountId of accountIds) {
         const account = data.find(item => item.accountInfo.id === accountId);
@@ -205,6 +203,8 @@ export class AchievementCenterService {
       achievementId,
       pointReward,
     };
+    // TODO: Add log to database and check if log cycle
+    // @ts-ignore
     await AchievementLog.create(logData);
   }
 
