@@ -4,7 +4,7 @@ import {
   AchievementMilestone,
   Condition,
   Game, LogViewType,
-  Metric, RepeatableType,
+  Metric, ProgressData, RepeatableType,
   Task, TaskCategory, TaskCategoryType, TaskHistoryStatus,
 } from '@src/models';
 import {AccountService} from '@src/services/AccountService';
@@ -20,8 +20,8 @@ export interface MilestonesContentCms {
     conditions_combination: string;
     nps: number;
     conditions: Condition[];
-
 }
+
 export interface AchievementContentCms {
   id: number;
   name: string;
@@ -39,7 +39,6 @@ export interface AchievementDataContentCms {
   data: AchievementContentCms[];
 }
 
-
 export interface MilestoneOutput {
   id: number
   name: string,
@@ -48,6 +47,7 @@ export interface MilestoneOutput {
   startTime?: Date,
   endTime?: Date,
 }
+
 export interface AchievementOutput {
   achievementName: string;
   achievementId: number;
@@ -72,6 +72,7 @@ export interface MissionRecord {
   type: string;
   logViewType: LogViewType;
   conditions: Condition[];
+  progress: ProgressData[];
   name: string;
   id: number;
   milestoneId: number;
@@ -257,6 +258,37 @@ export class AchievementService {
     return [];
   }
 
+  // Get current achievement log for cycle check in repeatable achievement
+  // Return log if exist, otherwise return null
+  public async getCurrentAchievementLog(achievement: Achievement, accountId: number, milestoneId: number) {
+    // Get last log
+    const logs = await AchievementLog.findAll({
+      where: {accountId, achievementId: achievement.id, achievementMilestoneId: milestoneId},
+      order: [['createdAt', 'DESC']],
+      limit: 1,
+    });
+
+    if (logs.length === 0) {
+      return null;
+    }
+
+    const log = logs[0];
+    // Check repeatable achievement
+    if (achievement.repeatable === RepeatableType.NON_REPEATABLE){
+      return log;
+    }
+
+    // Get time range for repeatable achievement
+    const repeatableTime = calculateStartAndEnd(achievement.repeatable);
+    const start = new Date(repeatableTime.start);
+    const end = new Date(repeatableTime.end);
+    if (log.createdAt >= start && log.createdAt <= end){
+      return log;
+    }
+
+    return null;
+  }
+
   async claimAchievement(accountId: number, milestoneId: number){
     const account = await AccountService.instance.findById(accountId);
     if (!account){
@@ -272,9 +304,9 @@ export class AchievementService {
     if (!achievement){
       throw new Error('Achievement not found');
     }
-    
-    const log = await AchievementLog.findOne({where: {accountId,
-      achievementMilestoneId: milestone.id, achievementId: achievement.id}});
+
+    // Get current achievement log
+    const log = await this.getCurrentAchievementLog(achievement, accountId, milestoneId);
     if (!log){
       throw new Error('Achievement log not found');
     }
@@ -371,7 +403,7 @@ export class AchievementService {
       // Achievement log get all achievement log of account and check if it is in the time range
       // Task history log get all task history log of account and check if it is in the time range
       // Combine all data and sort by id and milestone id
-      // Todo: Get achievement progress data in json
+      // Get achievement progress data in json
       const sql = `
       with achievement_account_log as (
             select al.* from achievement_log al 
@@ -412,7 +444,9 @@ export class AchievementService {
             al."createdAt",
             al."completedAt",
             '' as "onChainType",
-            '' as network
+            '' as network,
+            al.progress,
+            am.conditions_combination::text as "conditions_combination"
         FROM achievement a
         JOIN task_category ac on ac.id = a."taskCategoryId"
         JOIN achievement_milestone am on a.id = am."achievementId"
@@ -437,7 +471,9 @@ export class AchievementService {
             th."createdAt", 
             th."completedAt",
             t."onChainType",
-            t.network
+            t.network,
+            '{}'::jsonb as "progress",
+            '' as "conditions_combination"
         FROM task t
         JOIN task_category tc on tc.id = t."categoryId"
         left join task_history_log th on t.id = th."taskId"
@@ -467,7 +503,15 @@ export class AchievementService {
 
       return result.map((item) => {
         if (item.type === 'achievement') {
-          // Todo:  Get achievement progress data in json
+          // Get achievement progress data in json
+          if (!item.progress) {
+            item.progress = item.conditions.map((condition) => {
+              return {
+                required: condition.value,
+                completed: 0,
+              };
+            });
+          }
         }
         return item;
       });
