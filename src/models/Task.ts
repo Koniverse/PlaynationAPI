@@ -22,10 +22,6 @@ export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<T
   declare endTime: CreationOptional<Date>;
   declare share_leaderboard: CreationOptional<JSON>;
   declare active: boolean;
-  declare airlyftType: CreationOptional<string>;
-  declare airlyftId: CreationOptional<string>;
-  declare airlyftEventId: CreationOptional<string>;
-  declare airlyftWidgetId: CreationOptional<string>;
   declare documentId: CreationOptional<string>;
 }
 
@@ -100,22 +96,6 @@ Task.init({
   active: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
-  },
-  airlyftId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  airlyftType: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  airlyftEventId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  airlyftWidgetId: {
-    type: DataTypes.STRING,
-    allowNull: true,
   },
   documentId: {
     type: DataTypes.STRING,

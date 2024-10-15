@@ -1,7 +1,6 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import {
   Account,
-  AchievementType,
   Game,
   GameData,
   GameInventoryItem,
@@ -16,7 +15,7 @@ import {tryToParseJSON, tryToStringify, validatePayload} from '@src/utils';
 import EnvVars from '@src/constants/EnvVars';
 import {Op, QueryTypes} from 'sequelize';
 import {GameState} from '@playnation/game-sdk';
-import {AchievementService} from '@src/services/AchievementService';
+import {AchievementService, AchievementType} from '@src/services/AchievementService';
 
 export interface newGamePlayParams {
   gameId: number;

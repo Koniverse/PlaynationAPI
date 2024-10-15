@@ -1,17 +1,17 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import {
-  Achievement,
-  AchievementCategory, AchievementLog, AchievementLogStatus,
+  Achievement, AchievementLog, AchievementLogStatus,
   AchievementMilestone,
-  AchievementType,
   Condition,
-  Game,
-  Metric,
-  Task,
+  Game, LogViewType,
+  Metric, ProgressData, RepeatableType,
+  Task, TaskCategory, TaskCategoryType, TaskHistoryStatus,
 } from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {QueryTypes} from 'sequelize';
 import {AchievementCenterService} from '@src/services/AchievementCenterService';
+import {calculateStartAndEnd} from '@src/utils/date';
+import {LeaderboardType} from '@src/services/leaderboards/BaseLeaderBoard';
 
 export interface MilestonesContentCms {
     id: number;
@@ -20,13 +20,13 @@ export interface MilestonesContentCms {
     conditions_combination: string;
     nps: number;
     conditions: Condition[];
-
 }
+
 export interface AchievementContentCms {
   id: number;
   name: string;
   documentId: string;
-  achievementCategoryId: string;
+  taskCategoryId: string;
   description: string;
   slug: string;
   startTime: Date;
@@ -35,21 +35,9 @@ export interface AchievementContentCms {
   metrics: Metric[];
 }
 
-export interface AchievementCategoryContentCms {
-  id: number;
-  slug: string;
-  documentId: string;
-  name: string;
-  description: string;
-  icon: string;
-}
 export interface AchievementDataContentCms {
-  data: {
-    achievementCategory: AchievementCategoryContentCms[];
-    achievement: AchievementContentCms[];
-  }
+  data: AchievementContentCms[];
 }
-
 
 export interface MilestoneOutput {
   id: number
@@ -59,6 +47,7 @@ export interface MilestoneOutput {
   startTime?: Date,
   endTime?: Date,
 }
+
 export interface AchievementOutput {
   achievementName: string;
   achievementId: number;
@@ -71,6 +60,29 @@ export interface AchievementDataOutput {
   achievementCategoryName: string;
   achievementCategoryId: number;
   achievements: AchievementOutput[];
+}
+
+type MissionStatusType = TaskHistoryStatus & AchievementLogStatus;
+
+export interface MissionRecord {
+  categoryName: string;
+  categoryType: TaskCategoryType;
+  categoryId: number;
+  repeatable: RepeatableType;
+  type: string;
+  logViewType: LogViewType;
+  conditions: Condition[];
+  progress: ProgressData[];
+  name: string;
+  id: number;
+  milestoneId: number;
+  earned: number;
+  milestoneName: string,
+  slug: string;
+  icon: string,
+  nps: number,
+  status: MissionStatusType,
+  createdAt: Date,
 }
 
 export interface AchievementRecord {
@@ -89,6 +101,24 @@ export interface AchievementRecord {
 export interface AchievementClaimParams {
   milestoneId: number,
 }
+
+export enum AchievementType {
+  LOGIN = 'login',
+  TASK = 'task',
+  GAME = 'game',
+  REFERRAL = 'referral',
+}
+
+// Map achievement type to leaderboard type
+export const LEADERBOARD_ACHIEVEMENT_TYPE_MAP = {
+  [AchievementType.LOGIN]: [LeaderboardType.ALL_NPS, LeaderboardType.ACCOUNT_DAILY_QUANTITY],
+  [AchievementType.TASK]: [LeaderboardType.TASK_NPS, LeaderboardType.TASK_QUANTITY, LeaderboardType.ALL_NPS],
+  [AchievementType.GAME]: [LeaderboardType.ALL_NPS, LeaderboardType.GAME_CASUAL_NPS, LeaderboardType.GAME_CASUAL_POINT,
+    LeaderboardType.GAME_CASUAL_QUANTITY, LeaderboardType.GAME_FARMING_POINT, LeaderboardType.GAME_FARMING_TOTAL_POINT,
+    LeaderboardType.GAME_FARMING_EARN_SPEED],
+  [AchievementType.REFERRAL]: [LeaderboardType.REFERRAL_NPS, LeaderboardType.REFERRAL_QUANTITY,
+    LeaderboardType.REFERRAL_INVITE_TO_PLAY_NPS, LeaderboardType.ALL_NPS],
+};
 
 export type AchievementData =  Achievement & {milestones: AchievementMilestone[]};
 
@@ -127,18 +157,7 @@ export class AchievementService {
     const response = {
       success: true,
     };
-    const achievementCategory = dataContentCms.data.achievementCategory;
-    const achievement = dataContentCms.data.achievement;
-    for (const item of achievementCategory) {
-      const itemData = { ...item } as unknown as AchievementCategory;
-      const existed = await AchievementCategory.findOne({ where: { documentId: item.documentId }});
-      itemData.contentId = item.id;
-      if (existed) {
-        await existed.update(itemData);
-      } else {
-        await AchievementCategory.create(itemData);
-      }
-    }
+    const achievement = dataContentCms.data;
 
     for (const item of achievement) {
       const itemData = { ...item } as unknown as Achievement;
@@ -159,11 +178,11 @@ export class AchievementService {
           metric.tasks = taskList.map(task => task.id);
         }
       }
-      const existedCategory = await AchievementCategory.findOne({ where: { documentId: item.achievementCategoryId } as never });
+      const existedCategory = await TaskCategory.findOne({ where: { documentId: item.taskCategoryId } as never });
       if (!existedCategory) {
         continue;
       }
-      itemData.achievementCategoryId = existedCategory.id;
+      itemData.taskCategoryId = existedCategory.id;
 
       itemData.contentId = item.id;
 
@@ -175,7 +194,6 @@ export class AchievementService {
       if (existed) {
         for (const milestone of milestones) {
           const milestoneData = { ...milestone, achievementId: existed.id  } as unknown as AchievementMilestone;
-          console.log('milestoneData', milestoneData);
           const existedMilestone = await AchievementMilestone.findOne({ where: {
             slug: milestone.slug, achievementId: existed.id } });
 
@@ -219,13 +237,56 @@ export class AchievementService {
       return;
     }
 
-    const achievementList = (await this.getList()).filter(item => item.type === type);
+    // Get all achievement of type
+    const achievementList = await this.getFindAchievementByMetricType(type);
 
     if (achievementList.length > 0){
       for (const achievement of achievementList) {
         achievementCenterService.checkAccountAchievement(accountId, achievement.id).catch(console.error);
       }
     }
+  }
+
+  // Get achievement by metric type
+  // Achievement type is used to get the list of achievement that is related to the metric type
+  async getFindAchievementByMetricType(metricType: AchievementType){
+    const achievementList = await this.getList();
+    const metricMap = LEADERBOARD_ACHIEVEMENT_TYPE_MAP[metricType] || [];
+    if (metricMap) {
+      return achievementList.filter(item => item.metrics.some(metric => metricMap.includes(metric.type as LeaderboardType)));
+    }
+    return [];
+  }
+
+  // Get current achievement log for cycle check in repeatable achievement
+  // Return log if exist, otherwise return null
+  public async getCurrentAchievementLog(achievement: Achievement, accountId: number, milestoneId: number) {
+    // Get last log
+    const logs = await AchievementLog.findAll({
+      where: {accountId, achievementId: achievement.id, achievementMilestoneId: milestoneId},
+      order: [['createdAt', 'DESC']],
+      limit: 1,
+    });
+
+    if (logs.length === 0) {
+      return null;
+    }
+
+    const log = logs[0];
+    // Check repeatable achievement
+    if (achievement.repeatable === RepeatableType.NON_REPEATABLE){
+      return log;
+    }
+
+    // Get time range for repeatable achievement
+    const repeatableTime = calculateStartAndEnd(achievement.repeatable);
+    const start = new Date(repeatableTime.start);
+    const end = new Date(repeatableTime.end);
+    if (log.createdAt >= start && log.createdAt <= end){
+      return log;
+    }
+
+    return null;
   }
 
   async claimAchievement(accountId: number, milestoneId: number){
@@ -243,11 +304,15 @@ export class AchievementService {
     if (!achievement){
       throw new Error('Achievement not found');
     }
-    
-    const log = await AchievementLog.findOne({where: {accountId,
-      achievementMilestoneId: milestone.id, achievementId: achievement.id}});
+
+    // Get current achievement log
+    const log = await this.getCurrentAchievementLog(achievement, accountId, milestoneId);
     if (!log){
       throw new Error('Achievement log not found');
+    }
+
+    if (log.status === AchievementLogStatus.PENDING){
+      throw new Error('Achievement not completed');
     }
 
     if (log.status === AchievementLogStatus.CLAIMED){
@@ -327,6 +392,129 @@ export class AchievementService {
         }
       }
       return Object.values(resultMap);
+    }
+    return [];
+  }
+
+  async getMissionList(accountId: number){
+    const account = await AccountService.instance.findById(accountId);
+    if (account) {
+      // Get all achievement and task history log
+      // Achievement log get all achievement log of account and check if it is in the time range
+      // Task history log get all task history log of account and check if it is in the time range
+      // Combine all data and sort by id and milestone id
+      // Get achievement progress data in json
+      const sql = `
+      with achievement_account_log as (
+            select al.* from achievement_log al 
+                     JOIN achievement a on al."achievementId" = a.id
+                     where "accountId" = :accountId 
+                       and (
+                           (a.repeatable = 'daily' and al."createdAt" >= :startTime and al."createdAt" <= :endTime)
+                         or (a.repeatable = 'weekly' and al."createdAt" >= :startWeeklyTime and al."createdAt" <= :endWeeklyTime)
+                            or a.repeatable = 'non_repeatable')
+                     order by al."createdAt" desc
+        ),
+        task_history_log as (
+            select th.* from task_history th
+                        JOIN task t on th."taskId" = t.id
+            where "accountId" = :accountId
+              and (
+                  (t."onChainType" = 'attendance' and th."createdAt" >= :startTime and th."createdAt" <= :endTime)
+                      or t."onChainType" is null )
+                        order by th."createdAt" desc
+        ), all_data as (
+        SELECT
+            a."taskCategoryId" as "categoryId",
+            a.repeatable::text as "repeatable",
+            ac.type as "categoryType",
+            ac.name as "categoryName",
+            a."logViewType",
+            'achievement' as "type",
+            am."achievementId" as id,
+            a.name,
+            0 as "interval",
+            a.icon,
+            am.id as "milestoneId",
+            am.name as "milestoneName",
+            am.nps as "pointReward",
+            am.conditions as "conditions",
+            a.slug,
+            al.status::text as status,
+            al."createdAt",
+            al."completedAt",
+            '' as "onChainType",
+            '' as network,
+            al.progress,
+            am.conditions_combination::text as "conditions_combination"
+        FROM achievement a
+        JOIN task_category ac on ac.id = a."taskCategoryId"
+        JOIN achievement_milestone am on a.id = am."achievementId"
+        left join achievement_account_log al on a.id = al."achievementId" and am.id = al."achievementMilestoneId"
+        UNION ALL
+        SELECT t."categoryId" as "categoryId",
+            case when t."onChainType" = 'attendance' then 'daily' else 'non_repeatable' end as "repeatable",
+            tc.type as "categoryType",
+            tc.name as "categoryName",
+            'single'as "logViewType",
+            'task' as "type",
+            t.id as id,
+            t.name,
+            t."interval",
+            t.icon,
+            0 as "milestoneId",
+            '' as "milestoneName",
+            t."pointReward",
+            '{}'::jsonb as "conditions",
+            t.slug,
+            th.status::text as status,
+            th."createdAt", 
+            th."completedAt",
+            t."onChainType",
+            t.network,
+            '{}'::jsonb as "progress",
+            '' as "conditions_combination"
+        FROM task t
+        JOIN task_category tc on tc.id = t."categoryId"
+        left join task_history_log th on t.id = th."taskId"
+      )
+      select * from all_data order by id desc, "milestoneId" desc;
+        `;
+
+      // Get start and end time of daily and weekly
+      const dailyTime = calculateStartAndEnd('daily');
+      const weeklyTime = calculateStartAndEnd('weekly');
+      const startTime = dailyTime.start;
+      const endTime = dailyTime.end;
+      const startWeeklyTime = weeklyTime.start;
+      const endWeeklyTime = weeklyTime.end;
+        
+        
+      const result = await SequelizeServiceImpl.sequelize.query<MissionRecord>(sql, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          accountId,
+          startTime,
+          endTime,
+          startWeeklyTime,
+          endWeeklyTime,
+        },
+      });
+
+      return result.map((item) => {
+        if (item.type === 'achievement') {
+          // Get achievement progress data in json
+          if (!item.progress) {
+            item.progress = item.conditions.map((condition) => {
+              return {
+                required: condition.value,
+                completed: 0,
+              };
+            });
+          }
+        }
+        return item;
+      });
     }
     return [];
   }

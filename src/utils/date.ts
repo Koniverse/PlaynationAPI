@@ -78,6 +78,11 @@ export function calculateStartAndEnd (key: string) {
   const day = today.getUTCDate();
 
   switch (key) {
+  case 'daily': {
+    const todayUTC = new Date(Date.UTC(year, month, day)); // Adjust if today is Sunday
+
+    return { start: formatDate(todayUTC, false), end: formatDate(todayUTC, true) };
+  }
   case 'weekly': {
     const dayOfWeek = today.getUTCDay(); // 0 (Chủ Nhật) đến 6 (Thứ Bảy)
     const start = new Date(Date.UTC(year, month, day - dayOfWeek + (dayOfWeek === 0 ? -6 : 1))); // Adjust if today is Sunday

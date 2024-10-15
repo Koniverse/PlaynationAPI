@@ -2,19 +2,18 @@ import {
   AccountLoginLog,
   AccountParams,
   Achievement,
-  AchievementCategory,
   AchievementLog,
   AchievementMilestone,
-  AchievementType,
   ComparisonOperator,
   Condition,
   ConditionsCombination,
-  Metric,
+  Metric, ProgressData, RepeatableType, TaskCategory, TaskCategoryType,
 } from '@src/models';
 import {LeaderboardType} from '@src/services/leaderboards/BaseLeaderBoard';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {AccountService} from '@src/services/AccountService';
 import {GameService} from '@src/services/GameService';
+import {AchievementType} from '@src/services/AchievementService';
 
 async function wait(millis: number) {
   await new Promise(r => setTimeout(r, millis));
@@ -28,13 +27,14 @@ async function createAchievement(slug: string, leaderBoardType: LeaderboardType,
     },
   ] as Metric[];
 
-  const category = await AchievementCategory.create({
+  const category = await TaskCategory.create({
     'name': slug,
     'description': slug,
     'icon': 'icon',
     'documentId': 'documentId',
     'slug': slug,
-  } as AchievementCategory);
+    'type': TaskCategoryType.DAILY,
+  } as TaskCategory);
 
   const achievement = await Achievement.create({
     'name': slug,
@@ -42,10 +42,11 @@ async function createAchievement(slug: string, leaderBoardType: LeaderboardType,
     'icon': 'icon',
     'documentId': 'documentId',
     'achievementCategoryId': category.id,
-    'type': type,
+    'taskCategoryId': category.id,
+    'repeatable': RepeatableType.DAILY,
     'metrics': metricData,
     'slug': slug,
-  } as Achievement);
+  } as unknown as Achievement);
   
   const milestone = await AchievementMilestone.create({
     'achievementId': achievement.id,
@@ -89,7 +90,7 @@ describe('Achievement Test', () => {
   });
   
   it('Achievement Test Game Action', async function () {
-    const {achievement, milestone} = await createAchievement('Game Achievement', LeaderboardType.GAME_CASUAL_POINT, AchievementType.GAME, 2);
+    const {achievement, milestone} = await createAchievement('Game Achievement', LeaderboardType.GAME_CASUAL_QUANTITY, AchievementType.GAME, 20);
     const defaultGame = await gameService.generateDefaultData();
 
     let account = await accountService.findByAddress(info.address);
@@ -108,10 +109,88 @@ describe('Achievement Test', () => {
       point: 10,
     });
 
+    // Play game
+    const newGame1 = await gameService.newGamePlay(account.id, defaultGame.id);
+
+    // Submit game
+    await gameService.submitGameplay({
+      gamePlayId: newGame1.id,
+      signature: '0x000',
+      point: 10,
+    });
+
+    // Play game
+    const newGame2 = await gameService.newGamePlay(account.id, defaultGame.id);
+
+    // Submit game
+    await gameService.submitGameplay({
+      gamePlayId: newGame2.id,
+      signature: '0x000',
+      point: 10,
+    });
+
     // Wait for achievement to be processed
     await wait(2000);
     const log = await AchievementLog.findOne({where: {accountId: account.id, achievementMilestoneId: milestone.id, achievementId: achievement.id}});
     expect(log !== null).toEqual(true);
+    if (log){
+      const progress: ProgressData[] = log.progress;
+      if (progress) {
+        expect(progress[0].completed).toEqual(3);
+      }
+    }
+  });
+
+  it('Achievement Test Game Nps Action', async function () {
+    const {achievement, milestone} = await createAchievement('Game Achievement', LeaderboardType.GAME_CASUAL_NPS, AchievementType.GAME, 200);
+    const defaultGame = await gameService.generateDefaultData();
+
+    let account = await accountService.findByAddress(info.address);
+
+    if (!account) {
+      account = await accountService.createAccount(info);
+    }
+
+    // Play game
+    const newGame = await gameService.newGamePlay(account.id, defaultGame.id);
+
+    // Submit game
+    await gameService.submitGameplay({
+      gamePlayId: newGame.id,
+      signature: '0x000',
+      point: 60,
+    });
+
+    // Play game
+    const newGame1 = await gameService.newGamePlay(account.id, defaultGame.id);
+
+    // Submit game
+    await gameService.submitGameplay({
+      gamePlayId: newGame1.id,
+      signature: '0x000',
+      point: 10,
+    });
+
+    // Play game
+    const newGame2 = await gameService.newGamePlay(account.id, defaultGame.id);
+
+    // Submit game
+    await gameService.submitGameplay({
+      gamePlayId: newGame2.id,
+      signature: '0x000',
+      point: 10,
+    });
+
+    // Wait for achievement to be processed
+    await wait(2000);
+    const log = await AchievementLog.findOne({where: {accountId: account.id, achievementMilestoneId: milestone.id, achievementId: achievement.id}});
+    expect(log !== null).toEqual(true);
+    if (log){
+      const progress: ProgressData[] = log.progress;
+      if (progress) {
+        expect(progress[0].completed).toEqual(80);
+      }
+    }
   });
 
   it('Achievement Test Login Action', async function () {
@@ -154,6 +233,40 @@ describe('Achievement Test', () => {
 
   it('Achievement Test Login 2 day', async function () {
     const {achievement, milestone} = await createAchievement('Daily 2 days Achievement', LeaderboardType.ACCOUNT_DAILY_QUANTITY, AchievementType.LOGIN, 2);
+    // Create new account
+    let account = await accountService.findByAddress(info.address);
+
+    if (!account) {
+      account = await accountService.createAccount(info);
+    }
+    // Create login log for 2 days once
+    for (let i = 10; i > 2; i--) {
+      if (i % 2 === 0) {
+        // i++;
+        continue;
+      }
+      const now = new Date();
+      const today = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i);
+      await AccountLoginLog.create({
+        accountId: account.id,
+        loginDate: today,
+        ip: '1',
+        country: 'vn',
+      });
+    }
+
+    const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)';
+    const currentUser = await accountService.syncAccountData(info, '','', '', userAgent, false);
+
+    // Wait for achievement to be processed
+    await wait(2000);
+    const log = await AchievementLog.findOne({where: {accountId: currentUser.id, achievementMilestoneId: milestone.id, achievementId: achievement.id}});
+    expect(log !== null).toEqual(false);
+    console.log('Achievement Test Login 2 days Done');
+  });
+
+  it('Achievement Test Login 20 day', async function () {
+    const {achievement, milestone} = await createAchievement('Daily 20 days Achievement', LeaderboardType.ACCOUNT_DAILY_QUANTITY, AchievementType.LOGIN, 20);
     // Create new account
     let account = await accountService.findByAddress(info.address);
 

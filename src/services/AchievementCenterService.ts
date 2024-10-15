@@ -1,16 +1,21 @@
 import {v4} from 'uuid';
 import {LeaderBoardServiceV2} from '@src/services/LeaderBoardServiceV2';
+import {LeaderboardContext, LeaderboardType} from '@src/services/leaderboards/BaseLeaderBoard';
 import {
-  LeaderboardContext,
-  LeaderboardType,
-} from '@src/services/leaderboards/BaseLeaderBoard';
-import {AchievementLog, ComparisonOperator, Condition, ConditionsCombination, Metric} from '@src/models';
+  AchievementLog,
+  AchievementLogStatus,
+  ComparisonOperator,
+  Condition,
+  ConditionsCombination,
+  Metric
+} from '@src/models';
 import {createPromise, PromiseObject} from '@src/utils';
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import {AchievementService} from '@src/services/AchievementService';
 import {LeaderboardItem} from '@src/types';
 import {calculateStartAndEnd} from '@src/utils/date';
 import logger from 'jet-logger';
+
 // Config values comparison
 export type ComparativeValue = Condition & {valueCondition: {point: number, rank: number}};
 
@@ -74,19 +79,17 @@ export class AchievementCenterService {
   private async getAccountMetricData(accountIds: number[], metrics: MetricFilter[]){
     const accountMetricData: Record<string, {point: number, rank: number}> = {};
     for (const metric of metrics) {
-      // Todo: add leaderboard function to achievement service map list accountIds
-      // Todo: change limit accountId length
       const data = await this.getLeaderBoard(accountIds, metric as LeaderboardItem,metric.filterType, {}, 1000000);
       for (const accountId of accountIds) {
         const account = data.find(item => item.accountInfo.id === accountId);
         if (!account) {
           continue;
         }
+
         accountMetricData[`${metric.metricId}_${accountId}`] = {
           point: account.point,
           rank: account.rank,
         };
-
       }
     }
     return accountMetricData;
@@ -127,6 +130,7 @@ export class AchievementCenterService {
       if (!achievement) {
         continue;
       }
+
       const metrics = await this.getAchievementMetrics(achievement.id);
       if (!metrics) {
         continue;
@@ -138,10 +142,11 @@ export class AchievementCenterService {
       for (const itemData of dataList) {
         // get milestone to achievement cache
         for (const milestone of achievement.milestones) {
-          const log = await AchievementLog.findOne({where: {accountId: itemData.accountId,
-            achievementMilestoneId: milestone.id, achievementId}});
+          // Check if log cycle
+          const log = await AchievementService.instance.getCurrentAchievementLog(achievement, itemData.accountId, milestone.id);
+          const success = log &&  log.status !== AchievementLogStatus.PENDING;
           const handler = itemData.handler;
-          if (log) {
+          if (success && log) {
             handler.resolve(false);
             continue;
           }
@@ -151,13 +156,12 @@ export class AchievementCenterService {
           });
 
           const isCheck = this.checkConditions(userConditions, milestone.conditions_combination);
-          if (isCheck) {
-            await this.logAchievement(itemData.accountId, milestone.id, Number(achievementId), milestone.nps);
-          }
+          await this.logAchievement(itemData.accountId, milestone.id, Number(achievementId), milestone.nps, log, userConditions, isCheck);
           handler.resolve(isCheck);
         }
       }
     }
+
     // delete requestMap after process
     for (const [id, queue] of Object.entries(this.requestMap)) {
       if (queue.isProcessing) {
@@ -198,14 +202,37 @@ export class AchievementCenterService {
     return combination === ConditionsCombination.AND ? checks.every(check => check) : checks.some(check => check);
   }
 
-  async logAchievement(accountId: number, achievementMilestoneId: number, achievementId: number, pointReward: number): Promise<void> {
+  async logAchievement(accountId: number, achievementMilestoneId: number, achievementId: number, pointReward: number,
+    log: AchievementLog | null, userConditions: ComparativeValue[], check: boolean): Promise<void> {
+    // Get progress data
+    const progress = userConditions.map(cond => {
+      let completed = cond.valueCondition.point;
+      if (cond.comparison.includes('rank')) {
+        completed = cond.valueCondition.rank;
+      }
+      return {
+        required: cond.value,
+        completed,
+      };
+    });
+    const status = check ? AchievementLogStatus.CLAIM : AchievementLogStatus.PENDING;
+
     const logData = {
       accountId,
       achievementMilestoneId,
       achievementId,
       pointReward,
+      status,
+      progress,
     };
-    await AchievementLog.create(logData);
+
+    if (log) {
+      log.status = status;
+      log.progress = progress;
+      await log.save();
+    }else {
+      await AchievementLog.create(logData);
+    }
   }
 
   async getLeaderBoard(accountIds: number[], leaderboard: LeaderboardItem, filterType: MetricFilterType, context: LeaderboardContext = {}, limit = 100){
