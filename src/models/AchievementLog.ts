@@ -6,13 +6,14 @@ import AchievementMilestone from '@src/models/AchievementMilestone';
 
 export enum AchievementLogStatus {
   PENDING = 'pending',
-  CLAIM = 'claim',
+  CLAIMABLE = 'claimable',
   CLAIMED = 'claimed',
 }
 
 export interface ProgressData {
     required: number;
     completed: number;
+    metricId: string;
 }
 
 export class AchievementLog extends Model<InferAttributes<AchievementLog>, InferCreationAttributes<AchievementLog>> {
@@ -63,7 +64,7 @@ AchievementLog.init({
     type: DataTypes.INTEGER,
   },
   status: {
-    type: DataTypes.ENUM(AchievementLogStatus.PENDING, AchievementLogStatus.CLAIM, AchievementLogStatus.CLAIMED),
+    type: DataTypes.ENUM(AchievementLogStatus.PENDING, AchievementLogStatus.CLAIMABLE, AchievementLogStatus.CLAIMED),
     defaultValue: AchievementLogStatus.PENDING,
   },
   completedAt: {

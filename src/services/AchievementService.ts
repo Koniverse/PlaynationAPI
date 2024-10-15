@@ -5,7 +5,7 @@ import {
   Condition,
   Game, LogViewType,
   Metric, ProgressData, RepeatableType,
-  Task, TaskCategory, TaskCategoryType, TaskHistoryStatus,
+  Task, TaskCategory, TaskCategoryType,
 } from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {QueryTypes} from 'sequelize';
@@ -62,8 +62,6 @@ export interface AchievementDataOutput {
   achievements: AchievementOutput[];
 }
 
-type MissionStatusType = TaskHistoryStatus & AchievementLogStatus;
-
 export interface MissionRecord {
   categoryName: string;
   categoryType: TaskCategoryType;
@@ -76,13 +74,13 @@ export interface MissionRecord {
   name: string;
   id: number;
   milestoneId: number;
-  earned: number;
   milestoneName: string,
   slug: string;
   icon: string,
   nps: number,
-  status: MissionStatusType,
+  status: AchievementLogStatus,
   createdAt: Date,
+  completedAt: Date,
 }
 
 export interface AchievementRecord {
@@ -127,6 +125,7 @@ const achievementCenterService = AchievementCenterService.instance;
 export class AchievementService {
   private achievementMap: Record<string, AchievementData> | undefined;
   private milestoneMap: Record<string, AchievementMilestone> | undefined;
+  private metricsLeaderboardTypeMap: Record<string, AchievementData[]> | undefined;
 
   constructor(private sequelizeService: SequelizeService) {}
 
@@ -136,6 +135,16 @@ export class AchievementService {
     for (const item of data) {
       item.milestones = await AchievementMilestone.findAll({where: {achievementId: item.id}});
       achievementMap[item.id.toString()] = item;
+      if (!this.metricsLeaderboardTypeMap) {
+        this.metricsLeaderboardTypeMap = {};
+      }
+
+      for (const metric of item.metrics) {
+        if (!this.metricsLeaderboardTypeMap[metric.type]) {
+          this.metricsLeaderboardTypeMap[metric.type] = [];
+        }
+        this.metricsLeaderboardTypeMap[metric.type].push(item);
+      }
     }
 
     this.achievementMap = achievementMap;
@@ -250,13 +259,29 @@ export class AchievementService {
   // Get achievement by metric type
   // Achievement type is used to get the list of achievement that is related to the metric type
   async getFindAchievementByMetricType(metricType: AchievementType){
-    const achievementList = await this.getList();
+    // auto sync data and return the list of metricsLeaderboardTypeMap
+    await this.getList();
     const metricMap = LEADERBOARD_ACHIEVEMENT_TYPE_MAP[metricType] || [];
+
+    const result:AchievementData[] = [];
+    const ids:number[] = [];
     // Todo: Should create Record<metricType, Achievement[]> to store and check the result. This map will be renewed every time the syncData is called
     if (metricMap) {
-      return achievementList.filter(item => item.metrics.some(metric => metricMap.includes(metric.type as LeaderboardType)));
+      for (const metricType of metricMap) {
+        if (this.metricsLeaderboardTypeMap && this.metricsLeaderboardTypeMap[metricType]) {
+          const achievementList = this.metricsLeaderboardTypeMap[metricType];
+          // Check if the achievement is already in the result
+          for (const achievement of achievementList) {
+            if (!ids.includes(achievement.id)) {
+              result.push(achievement);
+              ids.push(achievement.id);
+            }
+          }
+        }
+      }
     }
-    return [];
+
+    return result;
   }
 
   // Get current achievement log for cycle check in repeatable achievement
@@ -416,17 +441,8 @@ export class AchievementService {
                          or (a.repeatable = 'weekly' and al."createdAt" >= :startWeeklyTime and al."createdAt" <= :endWeeklyTime)
                             or a.repeatable = 'non_repeatable')
                      order by al."createdAt" desc
-        ),
-        task_history_log as (
-            select th.* from task_history th
-                        JOIN task t on th."taskId" = t.id
-            where "accountId" = :accountId
-              and (
-                  (t."onChainType" = 'attendance' and th."createdAt" >= :startTime and th."createdAt" <= :endTime)
-                      or t."onChainType" is null )
-                        order by th."createdAt" desc
-        ), all_data as (
-        SELECT
+        )
+       SELECT
             a."taskCategoryId" as "categoryId",
             a.repeatable::text as "repeatable",
             ac.type as "categoryType",
@@ -435,7 +451,6 @@ export class AchievementService {
             'achievement' as "type",
             am."achievementId" as id,
             a.name,
-            0 as "interval",
             a.icon,
             am.id as "milestoneId",
             am.name as "milestoneName",
@@ -445,42 +460,13 @@ export class AchievementService {
             al.status::text as status,
             al."createdAt",
             al."completedAt",
-            '' as "onChainType",
-            '' as network,
             al.progress,
             am.conditions_combination::text as "conditions_combination"
         FROM achievement a
         JOIN task_category ac on ac.id = a."taskCategoryId"
         JOIN achievement_milestone am on a.id = am."achievementId"
         left join achievement_account_log al on a.id = al."achievementId" and am.id = al."achievementMilestoneId"
-        UNION ALL
-        SELECT t."categoryId" as "categoryId",
-            case when t."onChainType" = 'attendance' then 'daily' else 'non_repeatable' end as "repeatable",
-            tc.type as "categoryType",
-            tc.name as "categoryName",
-            'single'as "logViewType",
-            'task' as "type",
-            t.id as id,
-            t.name,
-            t."interval",
-            t.icon,
-            0 as "milestoneId",
-            '' as "milestoneName",
-            t."pointReward",
-            '{}'::jsonb as "conditions",
-            t.slug,
-            th.status::text as status,
-            th."createdAt", 
-            th."completedAt",
-            t."onChainType",
-            t.network,
-            '{}'::jsonb as "progress",
-            '' as "conditions_combination"
-        FROM task t
-        JOIN task_category tc on tc.id = t."categoryId"
-        left join task_history_log th on t.id = th."taskId"
-      )
-      select * from all_data order by id desc, "milestoneId" desc;
+        order by am."achievementId" desc, am.id desc;
         `;
 
       // Get start and end time of daily and weekly
@@ -511,6 +497,7 @@ export class AchievementService {
               return {
                 required: condition.value,
                 completed: 0,
+                metricId: condition.metric,
               };
             });
           }

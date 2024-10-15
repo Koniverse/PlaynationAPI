@@ -7,7 +7,7 @@ import {
   ComparisonOperator,
   Condition,
   ConditionsCombination,
-  Metric
+  Metric,
 } from '@src/models';
 import {createPromise, PromiseObject} from '@src/utils';
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
@@ -36,6 +36,16 @@ interface AchievementQueue {
     achievementId: number,
     isProcessing: boolean,
     handler: PromiseObject<any>
+}
+
+interface AchievementLogParams {
+  accountId: number;
+  achievementId: number;
+  achievementMilestoneId: number;
+  pointReward: number;
+  checkCondition: boolean;
+  log: AchievementLog | null;
+  userConditions: ComparativeValue[];
 }
 
 export class AchievementCenterService {
@@ -155,9 +165,18 @@ export class AchievementCenterService {
             return {...cond, valueCondition: accountMetricData[`${cond.metric}_${itemData.accountId}`]};
           });
 
-          const isCheck = this.checkConditions(userConditions, milestone.conditions_combination);
-          await this.logAchievement(itemData.accountId, milestone.id, Number(achievementId), milestone.nps, log, userConditions, isCheck);
-          handler.resolve(isCheck);
+          const checkCondition = this.checkConditions(userConditions, milestone.conditions_combination);
+          const logData = {
+            accountId: itemData.accountId,
+            achievementId: Number(achievementId),
+            achievementMilestoneId: milestone.id,
+            pointReward: milestone.nps,
+            checkCondition,
+            log,
+            userConditions,
+          } as AchievementLogParams;
+          await this.logAchievement(logData);
+          handler.resolve(checkCondition);
         }
       }
     }
@@ -202,22 +221,25 @@ export class AchievementCenterService {
     return combination === ConditionsCombination.AND ? checks.every(check => check) : checks.some(check => check);
   }
 
-  async logAchievement(accountId: number, achievementMilestoneId: number, achievementId: number, pointReward: number,
-    log: AchievementLog | null, userConditions: ComparativeValue[], check: boolean): Promise<void> {
+  async logAchievement(logParams: AchievementLogParams): Promise<void> {
     // Todo: Combine many parameters into an object
     // Todo: Why not log another things like ranks...?
+    const {accountId, achievementId, achievementMilestoneId, pointReward, checkCondition, log, userConditions} = logParams;
     // Get progress data
     const progress = userConditions.map(cond => {
       let completed = cond.valueCondition.point;
       if (cond.comparison.includes('rank')) {
         completed = cond.valueCondition.rank;
       }
+      
       return {
         required: cond.value,
         completed,
+        metricId: cond.metric,
       };
     });
-    const status = check ? AchievementLogStatus.CLAIM : AchievementLogStatus.PENDING;
+
+    const status = checkCondition ? AchievementLogStatus.CLAIMABLE : AchievementLogStatus.PENDING;
 
     const logData = {
       accountId,
@@ -227,7 +249,7 @@ export class AchievementCenterService {
       status,
       progress,
     };
-
+    
     if (log) {
       log.status = status;
       log.progress = progress;
