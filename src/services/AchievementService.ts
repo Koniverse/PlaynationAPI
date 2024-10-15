@@ -252,6 +252,7 @@ export class AchievementService {
   async getFindAchievementByMetricType(metricType: AchievementType){
     const achievementList = await this.getList();
     const metricMap = LEADERBOARD_ACHIEVEMENT_TYPE_MAP[metricType] || [];
+    // Todo: Should create Record<metricType, Achievement[]> to store and check the result. This map will be renewed every time the syncData is called
     if (metricMap) {
       return achievementList.filter(item => item.metrics.some(metric => metricMap.includes(metric.type as LeaderboardType)));
     }
@@ -397,6 +398,7 @@ export class AchievementService {
   }
 
   async getMissionList(accountId: number){
+    // Todo: Should separate into 3 different queries for performance and purpose
     const account = await AccountService.instance.findById(accountId);
     if (account) {
       // Get all achievement and task history log

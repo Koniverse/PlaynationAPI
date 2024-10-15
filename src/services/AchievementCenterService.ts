@@ -204,6 +204,8 @@ export class AchievementCenterService {
 
   async logAchievement(accountId: number, achievementMilestoneId: number, achievementId: number, pointReward: number,
     log: AchievementLog | null, userConditions: ComparativeValue[], check: boolean): Promise<void> {
+    // Todo: Combine many parameters into an object
+    // Todo: Why not log another things like ranks...?
     // Get progress data
     const progress = userConditions.map(cond => {
       let completed = cond.valueCondition.point;

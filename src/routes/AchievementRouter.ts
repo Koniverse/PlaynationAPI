@@ -30,6 +30,7 @@ const routerMap = {
   },
 };
 
+// Todo: Split into multiple routers category, task
 AchievementRouter.get('/mission-fetch', requireLogin, routerMap.missionList);
 AchievementRouter.post('/sync', requireSecret, routerMap.sync);
 AchievementRouter.get('/fetch', requireLogin, routerMap.fetch);
