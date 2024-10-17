@@ -5,7 +5,8 @@
 /* eslint-disable node/no-process-env */
 import chainConfig from '../../config/chainConfig.json';
 import rankConfig from '../../config/ranks.json';
-import {ChainData, RankDefinition} from '@src/types';
+import telegramGroup from '../../config/telegramGroup.json';
+import {ChainData, RankDefinition, TelegramGroupInfo} from '@src/types';
 
 const Environments = {
   NodeEnv: process.env.NODE_ENV ?? '',
@@ -89,6 +90,9 @@ const Environments = {
   },
   Rank: {
     Config: rankConfig as RankDefinition[],
+  },
+  TelegramGroup: {
+    Config: telegramGroup as TelegramGroupInfo[],
   },
   Game: {
     MaxEnergy: parseInt(process.env.MAX_ENERGY || '1440'),
