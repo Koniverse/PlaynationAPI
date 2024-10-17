@@ -1,6 +1,7 @@
 import {AccountService} from '@src/services/AccountService';
 import {Account, AccountParams, GamePlay} from '@src/models';
 import {GameService} from '@src/services/GameService';
+import account from '@src/models/Account';
 // import { signPayload } from '@src/utils';
 // import envVars from '@src/constants/EnvVars';
 
@@ -19,6 +20,7 @@ describe('General Test', () => {
     }
     const attrs = await accountService.getAccountAttribute(account.id);
     await accountService.giveAccountPoint({
+      documentId: '001',
       inviteCode: account.inviteCode,
       point: 300,
     });
@@ -48,7 +50,7 @@ describe('General Test', () => {
       referralCode: account.inviteCode,
     };
 
-    const newAccount = await accountService.syncAccountData(info, account.inviteCode, false);
+    const newAccount = await accountService.syncAccountData(info, account.inviteCode);
 
     const attrs2 = await accountService.getAccountAttribute(account.id);
 

@@ -3,7 +3,7 @@ services:
   redis:
     image: redis:latest
     ports:
-      - "8101:6379"
+      - "${REDIS_PUBLIC_PORT}:6379"
     volumes:
       - redis:/data
     networks:
@@ -13,7 +13,7 @@ services:
 #  mongo:
 #    image: mongo:latest
 #    ports:
-#      - "8002:27017"
+#      - "${MONGO_PUBLIC_PORT}:27017"
 #    environment:
 #      - MONGO_INITDB_ROOT_USERNAME=mongo
 #      - MONGO_INITDB_ROOT_PASSWORD=qweqwe123
@@ -33,7 +33,7 @@ services:
     volumes:
       - postgres:/data/postgres
     ports:
-      - "8102:5432"
+      - "${POSTGRES_PUBLIC_PORT}:5432"
     networks:
       - nft-minting-services_net
     restart: always
@@ -43,7 +43,7 @@ services:
     depends_on:
       - postgres
     ports:
-      - "8108:3000"
+      - "${WORKER_PUBLIC_PORT}:3000"
     secrets:
       - source: environment-config
         target: /app/.env
@@ -61,7 +61,7 @@ services:
     depends_on:
       - postgres
     ports:
-      - "8109:3001"
+      - "${WORKER_CHAIN_PUBLIC_PORT}:3001"
     secrets:
       - source: environment-config
         target: /app/.env

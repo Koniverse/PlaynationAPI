@@ -2,8 +2,8 @@ import {createPromise, PromiseObject} from '@src/utils';
 import {LeaderboardMetadata} from '@src/types';
 
 export interface LeaderboardContext {
-    games?: number[];
-    tasks?: number[];
+  games?: number[];
+  tasks?: number[];
 }
 
 export enum LeaderboardType {
@@ -20,7 +20,7 @@ export enum LeaderboardType {
   REFERRAL_INVITE_TO_PLAY_QUANTITY = 'referral:inviteToPlay:quantity',
   TASK_NPS = 'task:nps',
   TASK_QUANTITY = 'task:quantity',
-  SUMMARY_NPS = 'all:nps',
+  ACCOUNT_DAILY_QUANTITY = 'account:daily:quantity',
 }
 
 export interface LeaderBoardQueryInputRaw {
@@ -30,7 +30,7 @@ export interface LeaderBoardQueryInputRaw {
   gameIds?: number[];
   taskIds?: number[];
   limit?: number;
-  accountId?: number;
+  accountIds?: number[];
   metadata?: LeaderboardMetadata;
 }
 
@@ -81,20 +81,21 @@ export abstract class BaseLeaderBoard {
   protected topRefresh = 500;
   protected leaderBoardLength = 1000;
   protected cacheTime = 30000;
-  protected fullLeaderBoardCacheHandler : PromiseObject<LeaderBoardItem[]> | undefined;
+  protected rankOffset = 20;
+  protected fullLeaderBoardCacheHandler: PromiseObject<LeaderBoardItem[]> | undefined;
   protected fullLeaderBoardMap: Record<number, LeaderBoardItem> = {};
 
-  abstract queryData(input: LeaderBoardQueryInputRaw) : Promise<LeaderBoardItem[]>;
+  abstract queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]>;
 
   constructor(protected input: LeaderBoardQueryInputRaw) {
 
   }
 
   public static getKey({type, startTime, endTime, gameIds, taskIds, metadata}: LeaderBoardQueryInputRaw) {
-    return `${type}|${String(startTime||'')}|${String(endTime||'')}|${gameIds?.join(',')||''}|${taskIds?.join(',')||''}|${JSON.stringify(metadata ?? {})}`;
+    return `${type}|${String(startTime || '')}|${String(endTime || '')}|${gameIds?.join(',') || ''}|${taskIds?.join(',') || ''}|${JSON.stringify(metadata ?? {})}`;
   }
 
-  async getDisplayLeaderboard(limit: number) : Promise<LeaderBoardItem[]> {
+  async getDisplayLeaderboard(limit: number): Promise<LeaderBoardItem[]> {
     const data = this.getFullLeaderboard();
 
     // Return top leaderboard records
@@ -102,7 +103,7 @@ export abstract class BaseLeaderBoard {
     return (await data).slice(0, top);
   }
 
-  protected async getTopLeaderboard(limit: number) : Promise<LeaderBoardItem[]> {
+  protected async getTopLeaderboard(limit: number): Promise<LeaderBoardItem[]> {
     const data = this.getFullLeaderboard();
 
     // Return top leaderboard records
@@ -110,8 +111,12 @@ export abstract class BaseLeaderBoard {
     return (await data).slice(0, top);
   }
 
-  async getAccountData(accountId: number): Promise<LeaderBoardItem | undefined> {
-    return (await this.queryData({...this.input, limit: 1, accountId}))[0];
+  async getAccountData(accountIds: number[]): Promise<LeaderBoardItem | undefined> {
+    return (await this.queryData({...this.input, limit: 1, accountIds}))[0];
+  }
+
+  async getAccountDataList(accountIds: number[]): Promise<LeaderBoardItem[]> {
+    return await this.queryData({...this.input, limit: 1, accountIds});
   }
 
   async getFullLeaderboard() {
@@ -134,7 +139,7 @@ export abstract class BaseLeaderBoard {
 
     return await this.fullLeaderBoardCacheHandler.promise;
   }
-  
+
   processOutput(data: LeaderBoardItem[]): LeaderBoardOutput[] {
     return data.map((item) => {
       return {
@@ -156,14 +161,13 @@ export abstract class BaseLeaderBoard {
   /**
    * Get leaderboard data for current user
    * */
-  async getLeaderBoardData(accountId: number, limit=100) : Promise<LeaderBoardItem[]> {
+  async getLeaderBoardData(accountId: number[], limit = 100): Promise<LeaderBoardItem[]> {
     // Get current user's leaderboard record
     const accountData = await this.getAccountData(accountId);
-    const topLeaderboard = await this.getTopLeaderboard(limit);
+    const fullLeaderboard = await this.getFullLeaderboard();
     const topDisplay = await this.getDisplayLeaderboard(limit);
 
-    const topRefreshMinPoint = topLeaderboard[topLeaderboard.length - 1]?.point || 0;
-    const topDisplayMinPoint = topLeaderboard[topDisplay.length - 1]?.point || 0;
+    const topDisplayMinPoint = fullLeaderboard[topDisplay.length - 1]?.point || 0;
 
     // Get top leaderboard records
     // Return top leaderboard records with user's record
@@ -173,6 +177,7 @@ export abstract class BaseLeaderBoard {
 
     const accountPoint = accountData?.point;
     accountData.mine = true;
+    let currentRank = 0;
 
     // Check if user's record is in topDisplay
     if (accountPoint >= topDisplayMinPoint) {
@@ -181,38 +186,78 @@ export abstract class BaseLeaderBoard {
       // Just update mine record if it's point is not changed
       const currentRecord = this.fullLeaderBoardMap[accountData.accountId];
       if (currentRecord.point === accountPoint) {
-        topDisplayRs.forEach((item) => {
+        topDisplayRs.forEach((item, index) => {
           if (item.accountId === accountData.accountId) {
             item.mine = true;
+            currentRank = index + 1;
           }
         });
 
-        return topDisplayRs;
+        // If user's rank is in topDisplay and don't need to extended display list
+        if (currentRank <= (limit - this.rankOffset)) {
+          return topDisplayRs;
+        }
+
+        const resultListOffset = fullLeaderboard.slice(limit + 1, currentRank + this.rankOffset);
+        return [...topDisplayRs, ...resultListOffset];
       }
 
+      // Case rank may be changed
       const resultList = topDisplayRs.filter((item) => item.accountId !== accountData.accountId);
       resultList.push(accountData);
       resultList.sort((a, b) => b.point - a.point);
       resultList.forEach((item, index) => {
         item.rank = index + 1;
+        if (item.accountId === accountData.accountId) {
+          currentRank = index + 1;
+        }
       }, 0);
 
-      return resultList;
-    } else if (accountPoint >= topRefreshMinPoint) {
-      accountData.rank = topLeaderboard.findIndex((item) => item.point <= accountPoint) + 1;
+      if (currentRank <= (limit - this.rankOffset)) {
+        return resultList;
+      }
 
-      return [...topDisplay, accountData];
+      const resultListOffset = fullLeaderboard.slice(limit + 1, currentRank + this.rankOffset);
+      return [...resultList, ...resultListOffset];
     } else {
-      // Get full leaderboard
-      const currentRankInBoard = this.fullLeaderBoardMap[accountData.accountId];
-      accountData.rank = currentRankInBoard?.rank || this.leaderBoardLength + 1;
+      // Find user's rank in top leaderboard a
+      accountData.rank = fullLeaderboard.findIndex((item) => item.point <= accountPoint) + 1;
 
-      return [...topDisplay, accountData];
+      // If user's point is 0, set rank to the last of full leaderboard
+      if (accountData.point === 0) {
+        accountData.rank = fullLeaderboard.length;
+      }
+
+      // Add user's record to top leaderboard +- 20 from current rank
+      const currentRank = accountData.rank;
+      const start = Math.max(currentRank - this.rankOffset - 1, limit);
+      const end = Math.min(accountData.rank + this.rankOffset, this.leaderBoardLength);
+      const resultList = deepCopy(fullLeaderboard.slice(start, end).filter((item) => item.accountId !== accountData.accountId));
+
+      // Return top leaderboard records with user's record
+      if (resultList.length === 0) {
+        return [...topDisplay, accountData];
+      }
+
+      // Update rank for resultList from the first rank
+      const firstRank = resultList[0].rank;
+      resultList.push(accountData);
+      resultList.sort((a, b) => b.point - a.point);
+      resultList.forEach((item, index) => {
+        item.rank = firstRank + index;
+      });
+
+      return [...topDisplay, ...resultList];
     }
   }
 
-  async fetchLeaderBoard(accountId: number, limit = 100) : Promise<LeaderBoardOutput[]> {
-    const data = await this.getLeaderBoardData(accountId, limit);
+  async fetchLeaderBoard(accountIds: number[], limit = 100): Promise<LeaderBoardOutput[]> {
+    const data = await this.getLeaderBoardData(accountIds, limit);
+    return this.processOutput(data);
+  }
+
+  async fetchAccountData(accountIds: number[]): Promise<LeaderBoardOutput[]> {
+    const data = await this.getAccountDataList(accountIds);
     return this.processOutput(data);
   }
 }

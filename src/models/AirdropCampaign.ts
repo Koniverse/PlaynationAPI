@@ -10,6 +10,7 @@ export enum AirdropCampaignStatus {
 export interface AirdropCampaignInterface {
   id: number;
   name: string;
+  documentId: string;
   icon: string;
   banner: string;
   start_snapshot: Date;
@@ -62,6 +63,7 @@ export class AirdropCampaign extends Model<InferAttributes<AirdropCampaign>, Inf
   declare share: CreationOptional<JSON>;
   declare leaderboard_groups: CreationOptional<JSON>;
   declare token_slug: CreationOptional<string>;
+  declare document_id: CreationOptional<string>;
 }
 
 AirdropCampaign.init(
@@ -186,6 +188,10 @@ AirdropCampaign.init(
       allowNull: true,
     },
     token_slug: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    document_id: {
       type: DataTypes.STRING,
       allowNull: true,
     },

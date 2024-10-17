@@ -1,0 +1,10 @@
+### Send request with dynamic variables in request's body
+POST {{host}}/api/account/login
+Content-Type: application/json
+
+{
+  "address": "5CMRN4m2x8s5uvTcUStd9vgKhX1nMakyjedr55qeTDGrRPsW",
+  "initData": "query_id=AAHa5GRXAAAAANrkZFdO5o1M&user=%7B%22id%22%3A1466229978%2C%22first_name%22%3A%22Peter%22%2C%22last_name%22%3A%22Mai%22%2C%22username%22%3A%22petermai%22%2C%22language_code%22%3A%22en%22%2C%22allows_write_to_pm%22%3Atrue%7D&auth_date=1727956837&hash=0bd20362e7971694347d12e30e037453fc8c76340d68635400a2ffbe6993ddb7"
+}
+
+###

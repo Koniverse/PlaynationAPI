@@ -1,19 +1,21 @@
-import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
+import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
 import {
   Account,
   Game,
   GameData,
   GameInventoryItem,
   GameInventoryItemStatus,
-  GamePlay, GameType,
+  GamePlay,
+  GameType,
 } from '@src/models';
-import { v4 } from 'uuid';
-import { AccountService } from '@src/services/AccountService';
-import { QuickGetService } from '@src/services/QuickGetService';
+import {v4} from 'uuid';
+import {AccountService} from '@src/services/AccountService';
+import {QuickGetService} from '@src/services/QuickGetService';
 import {tryToParseJSON, tryToStringify, validatePayload} from '@src/utils';
 import EnvVars from '@src/constants/EnvVars';
 import {Op, QueryTypes} from 'sequelize';
 import {GameState} from '@playnation/game-sdk';
+import {AchievementService, AchievementType} from '@src/services/AchievementService';
 
 export interface newGamePlayParams {
   gameId: number;
@@ -71,6 +73,7 @@ const quickGetService = QuickGetService.instance;
 export interface GameContentCms {
   id: number;
   name: string;
+  documentId: string;
   description: string;
   url: string;
   maxEnergy: number;
@@ -127,12 +130,12 @@ export class GameService {
     for (const item of data) {
       const itemData = { ...item } as unknown as Game;
       itemData.gameType = itemData.gameType || GameType.CASUAL;
-      const existed = await Game.findOne({ where: { contentId: item.id } });
+      const existed = await Game.findOne({ where: { documentId: item.documentId }});
       itemData.rankDefinition = JSON.stringify(item.rank_definition);
+      itemData.contentId = item.id;
       if (existed) {
         await existed.update(itemData);
       } else {
-        itemData.contentId = item.id;
         await Game.create(itemData);
       }
     }
@@ -348,6 +351,7 @@ export class GameService {
 
     if (success) {
       await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, point, pointRate);
+      AchievementService.instance.triggerAchievement(gamePlay.accountId, AchievementType.GAME).catch(console.error);
     }
 
     return gamePlay;

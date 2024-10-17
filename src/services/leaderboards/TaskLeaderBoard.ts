@@ -10,13 +10,14 @@ import {buildDynamicCondition} from '@src/utils';
 
 export class TaskLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const {type, gameIds, taskIds, accountId, startTime, endTime} = input;
+    const {type, gameIds, taskIds, accountIds, startTime, endTime} = input;
+    const filterByAccountIds = !!accountIds && accountIds?.length > 0;
 
     const conditionQuery = buildDynamicCondition({
       '((t."extrinsicHash" IS NOT NULL AND t.status != \'failed\') or t."extrinsicHash" is null)': true,
       'ta."gameId" IN (:gameIds)': !!gameIds && gameIds.length > 0,
       't."taskId" IN (:taskIds)': !!taskIds && taskIds.length > 0,
-      't."accountId" = :accountId': !!accountId,
+      't."accountId" IN (:accountIds)': filterByAccountIds,
       't."createdAt" >= :startTime': !!startTime,
       't."createdAt" <= :endTime': !!endTime,
     }, 'WHERE');
@@ -52,7 +53,7 @@ export class TaskLeaderBoard extends BaseLeaderBoard {
       replacements: {
         gameIds: gameIds,
         taskIds: taskIds,
-        accountId,
+        accountIds,
         startTime,
         endTime,
       },

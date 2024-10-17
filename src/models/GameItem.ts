@@ -22,6 +22,7 @@ export class GameItem extends Model<InferAttributes<GameItem>, InferCreationAttr
   declare itemGroupLevel: CreationOptional<number>;
 
   declare effectDuration: CreationOptional<number>; // -1 is forever, 0 is one time use, > 0 is duration in seconds
+  declare documentId: CreationOptional<string>;
 }
 
 GameItem.init({
@@ -73,6 +74,10 @@ GameItem.init({
   },
   effectDuration: {
     type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  documentId: {
+    type: DataTypes.STRING,
     allowNull: true,
   },
 }, {

@@ -3,8 +3,9 @@
  */
 
 /* eslint-disable node/no-process-env */
-import chainConfig from '@src/data/chainConfig.json';
-import {ChainData} from '@src/types';
+import chainConfig from '../../config/chainConfig.json';
+import rankConfig from '../../config/ranks.json';
+import {ChainData, RankDefinition} from '@src/types';
 
 const Environments = {
   NodeEnv: process.env.NODE_ENV ?? '',
@@ -44,6 +45,8 @@ const Environments = {
   },
   Telegram: {
     Token: process.env.BOT_TELEGRAM_TOKEN ?? '',
+    BotUsername: process.env.BOT_TELEGRAM_USERNAME ?? '',
+    InternalValidate: Boolean(process.env.BOT_TELEGRAM_INTERNAL_VALIDATE) || false,
     IntervalTime: Number(process.env.INTERVAL_TELEGRAM_TIME || '1000'),
     IntervalCronTime: Number(process.env.INTERVAL_TELEGRAM_CRON_TIME || '86400000'),
     RateLimit: Number(process.env.TELEGRAM_RATE_LIMIT || '20'),
@@ -83,6 +86,9 @@ const Environments = {
   Session: {
     Secret: process.env.SESSION_SECRET ?? 'xxxxxxxxx',
     Exp: process.env.SESSION_EXP ?? 259200000,
+  },
+  Rank: {
+    Config: rankConfig as RankDefinition[],
   },
   Game: {
     MaxEnergy: parseInt(process.env.MAX_ENERGY || '1440'),

@@ -52,14 +52,14 @@ export class KeyValueStoreService {
         const itemData = {...item};
         const contentGameId = item.games;
         const contentTaskId = item.tasks;
-        const gameList = await Game.findAll({where: {contentId: contentGameId}});
+        const gameList = await Game.findAll({where: {documentId: contentGameId}});
         // @ts-ignore
         itemData.games = [];
         if(gameList) {
           // @ts-ignore
           itemData.games = gameList.map(game => game.id);
         }
-        const taskList = await Task.findAll({where: {contentId: contentTaskId}});
+        const taskList = await Task.findAll({where: {documentId: contentTaskId}});
         // @ts-ignore
         itemData.tasks = [];
         if(taskList) {

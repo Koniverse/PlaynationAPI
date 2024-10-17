@@ -9,6 +9,7 @@ export interface AirdropEligibilityInterface {
   campaign_id: AirdropCampaign;
   userId: number;
   name: string;
+  documentId: string;
   userList: JSON;
   boxCount: number;
   boxPrice: number;
@@ -41,6 +42,7 @@ export class AirdropEligibility extends Model<
   declare start: Date;
   declare end: Date;
   declare note: string;
+  declare document_id: CreationOptional<string>;
 }
 
 AirdropEligibility.init(
@@ -92,6 +94,10 @@ AirdropEligibility.init(
       allowNull: true,
     },
     note: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    document_id: {
       type: DataTypes.STRING,
       allowNull: true,
     },

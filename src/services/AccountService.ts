@@ -1,21 +1,47 @@
 import SequelizeServiceImpl, { SequelizeService } from '@src/services/SequelizeService';
-import Account, { AccountParams, ReferralRecord } from '@src/models/Account';
+import Account, {AccountParams, ReferralRecord, TelegramSigninParams} from '@src/models/Account';
 import AccountAttribute, { AccountAttributeRank } from '@src/models/AccountAttribute';
 import { generateRandomString, validateSignature } from '@src/utils';
 import { checkWalletType } from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
-import rankJson from '../data/ranks.json';
 import ReferralLog from '@src/models/ReferralLog';
-import { GameData, GiveAwayPoint } from '@src/models';
+import {AccountLoginLog, BrowserInfo, GameData, GiveAwayPoint} from '@src/models';
 import { TelegramService } from '@src/services/TelegramService';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 import { Op } from 'sequelize';
 import logger from 'jet-logger';
+import {AchievementService, AchievementType} from '@src/services/AchievementService';
+import Bowser from 'bowser';
+import {GRPCService} from '@src/services/GRPCService';
+import {createHmac} from 'crypto';
+
+export interface TelegramUser {
+  id: number
+  first_name: string
+  last_name?: string
+  username?: string
+  language_code?: string,
+  is_bot?: boolean,
+  is_premium?: boolean,
+  allows_write_to_pm?: boolean
+}
+
+export interface ValidateInitDataResult {
+  validData: boolean
+  validTime: boolean
+  params?: {
+    query_id: string,
+    user: TelegramUser | string,
+    auth_date: number,
+  }
+  error?: string,
+}
 
 // CMS input
 export interface GiveawayPointParams {
   contentId?: number;
   inviteCode: string;
+  documentId: string;
   point: number;
   note?: string;
 }
@@ -29,6 +55,24 @@ export interface AccountCheckParams {
   point?: number;
 }
 
+export interface RequestInfo {
+  userIP: string;
+  country: string;
+  userAgent: string;
+}
+
+export interface SyncBanAccountRequest {
+  accountIds: number[]
+  isEnabled: boolean
+}
+
+const BOT_USERNAME = EnvVars.Telegram.BotUsername;
+const INTERNAL_VALIDATE = EnvVars.Telegram.InternalValidate;
+const BOT_SECRET = createHmac('sha256', 'WebAppData')
+  .update(EnvVars.Telegram.Token)
+  .digest();
+const grpcService = GRPCService.instance;
+
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
 
@@ -39,6 +83,12 @@ export class AccountService {
   // Find an account by Telegram ID
   public async findByAddress(address: string) {
     return await Account.findOne({ where: { address } });
+  }
+
+  // Find an account by Telegram ID
+  public async findByTelegramId(telegramId: number) {
+    // Prefer enabled account
+    return await Account.findOne({ where: { telegramId }, order: [['isEnabled', 'DESC'], ['id', 'ASC']] });
   }
 
   public async fetchAccountWithDetails(id: number) {
@@ -140,7 +190,8 @@ export class AccountService {
   }
 
   // Sync account data with Telegram data
-  public async syncAccountData(info: AccountParams, code?: string, validateSign = true) {
+  // Deprecated: Use telegramSignIn instead
+  public async syncAccountData(info: AccountParams, code?: string, accountIp='', country='', userAgent='', validateSign = true) {
     const { signature, telegramId, telegramUsername, address } = info;
 
     info.type = checkWalletType(address);
@@ -192,13 +243,112 @@ export class AccountService {
         sessionTime: new Date(),
       });
     }
+    this.addLoginLog(account.id, accountIp, country, userAgent).catch(logger.err);
 
     // Update wallet addresses
     return account;
   }
+  
+  public async telegramLogIn({ initData, address, referralCode }: TelegramSigninParams, requestInfo: RequestInfo) {
+    const walletType = checkWalletType(address);
+    if (!walletType) {
+      throw new Error('Invalid wallet address');
+    }
+
+    // Todo: fix validateData with grpc
+    // const validateData = INTERNAL_VALIDATE ? this.validateInitData(initData) : await grpcService.validateTelegramInitData(initData, BOT_USERNAME);
+    // Validate user data login from init data
+    const validateData = this.validateInitData(initData);
+
+    if (!validateData.validData || !validateData.validTime || !validateData.params?.user) {
+      throw new Error('Invalid telegram data');
+    }
+
+    const user = validateData.params.user as TelegramUser;
+    const info: AccountParams = {
+      telegramId: user.id,
+      telegramUsername: user.username || '',
+      firstName: user.first_name,
+      lastName: user.last_name,
+      address,
+      isBot: user.is_bot,
+      isPremium: user.is_premium || false,
+      languageCode: user.language_code || '',
+      photoUrl: '',
+      referralCode,
+      signature: '',
+    };
+
+    // Create account if not exists
+    let account = await this.findByTelegramId(info.telegramId);
+
+    // Check account banned
+    if (account && !account.isEnabled) {
+      throw new Error('ACCOUNT_BANNED');
+    } else if (!account) {
+      // Create account if not exists
+      account = await this.createAccount(info);
+
+      // Add  point from inviteCode
+      referralCode && (await this.addInvitePoint(account.id, referralCode, account.isPremium));
+
+      await TelegramService.instance.saveTelegramAccountAvatar(info.telegramId);
+    }
+
+    // Update account info if changed
+    if (
+      account.telegramUsername !== info.telegramUsername ||
+      account.firstName !== info.firstName ||
+      account.lastName !== info.lastName ||
+      account.isPremium !== info.isPremium||
+      account.languageCode !== info.languageCode||
+      account.address !== info.address // Todo: Consider update address or not?
+    ) {
+      logger.info('Updating account info');
+      await account.update(info);
+    }
+
+    // Update signature, telegramId, telegramUsername
+    this.addLoginLog(account.id, requestInfo.userIP, requestInfo.country, requestInfo.userAgent).catch(logger.err);
+
+    // Update wallet addresses
+    return account;
+  }
+  
+  async addLoginLog(accountId: number, ip: string, country: string, userAgent: string) {
+    // Save info account login daily
+    const account = await this.findById(accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    const now = new Date();
+    const today = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
+    // Check daily login
+    const dailyLogin = await AccountLoginLog.findOne({
+      where: {
+        accountId,
+        loginDate: today,
+      },
+    });
+    if (!dailyLogin) {
+      AchievementService.instance.triggerAchievement(account.id, AchievementType.LOGIN).catch(logger.err);
+      logger.info('New daily login => trigger achievement');
+    }
+
+    // Create login log
+    // TODO: Issue-137 | Add login token, startTime, endTime => user ping to save user online time
+    await AccountLoginLog.create({
+      accountId,
+      loginDate: today,
+      ip,
+      country,
+      browserInfo: Bowser.parse(userAgent) as BrowserInfo,
+    });
+  }
 
   checkAccountAttributeRank(accumulatePoint: number) {
-    const rankData = rankJson.find((rank) => accumulatePoint >= rank.minPoint && accumulatePoint <= rank.maxPoint);
+    const rankData = EnvVars.Rank.Config.find((rank) => accumulatePoint >= rank.minPoint && accumulatePoint <= rank.maxPoint);
     if (!rankData && accumulatePoint > 100000000) {
       return AccountAttributeRank.DIAMOND;
     }
@@ -226,7 +376,7 @@ export class AccountService {
         if (existed) {
           return;
         }
-        const rankData = rankJson.find((item) => item.rank === AccountAttributeRank.IRON);
+        const rankData = EnvVars.Rank.Config.find((item) => item.rank === AccountAttributeRank.IRON);
         if (rankData) {
           // Check log invite from this account
           const referralLogIndirect = await ReferralLog.findOne({
@@ -257,6 +407,10 @@ export class AccountService {
             invitePoint: invitePointRecipient,
             receiverInviteRatio: 0,
           });
+          
+          AchievementService.instance.triggerAchievement(account.id, AchievementType.REFERRAL).catch(console.error);
+          AchievementService.instance.triggerAchievement(indirectAccount, AchievementType.REFERRAL).catch(console.error);
+          logger.info('Call trigger Achievement');
 
           await this.addAccountPoint(account.id, invitePoint);
           if (indirectAccount > 0) {
@@ -334,7 +488,7 @@ export class AccountService {
     if (!account) {
       return;
     }
-    const rankData = rankJson.find((item) => item.rank === rank);
+    const rankData = EnvVars.Rank.Config.find((item) => item.rank === rank);
     if (rankData) {
       const invitePoint = Number(account.isPremium ? rankData.premiumInvitePoint : rankData.invitePoint);
       const indirectPoint = invitePoint * EnvVars.INDIRECT_POINT_RATE;
@@ -432,7 +586,7 @@ export class AccountService {
 
   async syncGiveAccountPoint(params: GiveawayPointParams[]) {
     for (const param of params) {
-      const { contentId, inviteCode, point, note } = param;
+      const { contentId, inviteCode, point, note, documentId } = param;
       const _contentId = contentId || 0;
       const account = await Account.findOne({
         where: {
@@ -444,11 +598,7 @@ export class AccountService {
         continue;
       }
       if (_contentId > 0) {
-        const giveAwayPoint = await GiveAwayPoint.findOne({
-          where: {
-            contentId: _contentId,
-          },
-        });
+        const giveAwayPoint = await GiveAwayPoint.findOne({ where: { documentId: documentId }});
         if (giveAwayPoint) {
           continue;
         }
@@ -456,6 +606,7 @@ export class AccountService {
       await GiveAwayPoint.create({
         contentId: _contentId,
         accountId: account.id,
+        documentId: documentId,
         point,
         note,
       });
@@ -528,7 +679,7 @@ export class AccountService {
   }
 
   // handle baned user
-  async handleBanedAccount(data: any[]) {
+  async handleBanedAccount(data: SyncBanAccountRequest[]) {
     const transaction = await this.sequelizeService.sequelize.transaction();
     try {
       for (const item of data) {
@@ -563,7 +714,7 @@ export class AccountService {
       return { success: true };
     } catch (e) {
       await transaction.rollback();
-      logger.info('Error in handle baned account', e);
+      logger.info('Error in handle baned account');
     }
   }
 
@@ -576,6 +727,61 @@ export class AccountService {
     });
     return accountAttribute;
   }
+  
+  validateInitData(initData: string): ValidateInitDataResult{
+    const result = {
+      validData: false,
+      validTime: false,
+    } as ValidateInitDataResult;
+
+    try {
+      // This token re-create every time the pop-up is re-opened except reload the page => don't need to cache
+      // Step 1: Parse the initData string
+      const params = new URLSearchParams(initData);
+      const receivedHash = params.get('hash');
+      params.delete('hash');
+
+      // Step 2: Create the data_check_string
+      const dataCheckString = Array.from(params.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => `${key}=${value}`)
+        .join('\n');
+
+      // Step 3: Generate the HMAC-SHA-256 signature of the data_check_string
+      const generatedHash = createHmac('sha256', BOT_SECRET)
+        .update(dataCheckString)
+        .digest('hex');
+
+      // Step 4: Compare the generated signature with the received hash
+      result.validData = generatedHash === receivedHash;
+      if (!result.validData) {
+        return result;
+      }
+
+      // Step 5: Extract the params data
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      result.params = Object.fromEntries(params.entries()) as any;
+      // @ts-ignore
+      if (typeof result.params.user === 'string') {
+        // @ts-ignore
+        result.params.user = JSON.parse(result.params.user) as TelegramUser;
+      }
+
+      // Step 6: Optionally, check the auth_date to ensure the data is not outdated
+      const authDate = parseInt(params.get('auth_date') || '0', 10);
+      const currentTime = Math.floor(Date.now() / 1000);
+      const maxAge = 86400; // 24 hours
+      result.validTime = (currentTime - authDate) < maxAge;
+    } catch (error) {
+      logger.err(error);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+      result.error = error.message;
+    }
+
+    return result;
+  }
+
 
   // Singleton this class
   private static _instance: AccountService;

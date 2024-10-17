@@ -10,21 +10,20 @@ import {buildDynamicCondition} from '@src/utils';
 
 export class GameFarmingLeaderBoard extends BaseLeaderBoard {
   async queryData(input: LeaderBoardQueryInputRaw): Promise<LeaderBoardItem[]> {
-    const {type, gameIds, taskIds, accountId, startTime, endTime, metadata} = input;
+    const {type, gameIds, taskIds, accountIds, startTime, endTime, metadata} = input;
 
     const checkNewPlayer = metadata?.newPlayer || false;
-    
-
     const filterByGameIds = !!gameIds && gameIds?.length > 0;
+    const filterByAccountIds = !!accountIds && accountIds?.length > 0;
     const conditionFirstQuery = buildDynamicCondition({
       'gp.state IS NOT NULL': true,
-      'gp."accountId" = :accountId': !!accountId,
+      'gp."accountId" IN (:accountIds)': filterByAccountIds,
       'gp."gameId" IN (:gameIds)': filterByGameIds,
     }, 'WHERE');
     const conditionQuery = buildDynamicCondition({
       'gp.state IS NOT NULL': true,
       'gp."gameId" IN (:gameIds)': filterByGameIds,
-      'gp."accountId" = :accountId': !!accountId,
+      'gp."accountId" IN (:accountIds)': filterByAccountIds,
       'gp."createdAt" >= :startTime': !!startTime,
       'gp."createdAt" <= :endTime': !!endTime,
     }, 'WHERE');
@@ -78,7 +77,7 @@ export class GameFarmingLeaderBoard extends BaseLeaderBoard {
       type: QueryTypes.SELECT,
       replacements: {
         gameIds: gameIds,
-        accountId,
+        accountIds,
         startTime,
         endTime,
       },
