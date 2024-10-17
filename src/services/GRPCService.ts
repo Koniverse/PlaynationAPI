@@ -2,7 +2,7 @@ import Protocols, {
   GetAllCardResponse__Output, GetCardByTelegramResponse__Output,
   NflRivalCardClient,
   TelegramAuthClient,
-  TelegramAuthResponse__Output,
+  TelegramAuthResponse__Output, TelegramBotCheckClient, TelegramBotCheckResponse__Output,
 } from '@koniverse/telegram-bot-grpc';
 import {credentials} from '@grpc/grpc-js';
 
@@ -11,11 +11,17 @@ const SERVER_URL = process.env.GRPC_SERVER_URL || 'localhost:9090';
 
 export class GRPCService {
   public readonly telegramAuth: TelegramAuthClient;
+  public readonly telegramBotCheck: TelegramBotCheckClient;
   public readonly cardManagement: NflRivalCardClient;
   constructor() {
     this.telegramAuth = new Protocols.telegram.auth.TelegramAuth(
       SERVER_URL,
       credentials.createInsecure(),
+    );
+
+    this.telegramBotCheck = new Protocols.telegram.bot_check.TelegramBotCheck(
+      SERVER_URL,
+      credentials.createInsecure()
     );
 
     this.cardManagement = new Protocols.mythical.nfl_rival_card.NflRivalCard(
@@ -35,6 +41,26 @@ export class GRPCService {
         {
           botUsername,
           initData,
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else if (!result) {
+            reject(new Error('No result'));
+          } else {
+            resolve(result);
+          }
+        },
+      );
+    });
+  }
+
+  async checkUserStateInGroup(telegramId: number, groupId?: number) {
+    return new Promise<TelegramBotCheckResponse__Output>((resolve, reject) => {
+      this.telegramBotCheck.getUserState(
+        {
+          telegramId,
+          groupId,
         },
         (error, result) => {
           if (error) {

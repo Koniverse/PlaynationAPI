@@ -9,6 +9,11 @@ describe('GRPCService Test', () => {
 
     console.table(rs.params?.telegramUser);
   });
+  it('should check user data', async () => {
+    const rs = await GRPCService.instance.checkUserStateInGroup(6325180043, -1002410605608);
+
+    expect(rs.success).toBeTrue();
+  });
   it('should get all card', async () => {
     const rs = await GRPCService.instance.getAllNflRivalCard();
 
