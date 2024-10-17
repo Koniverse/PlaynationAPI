@@ -149,6 +149,11 @@ export class AchievementCenterService {
       const accountIds = dataList.map(item => item.accountId);
       const accountMetricData = await this.getAccountMetricData(accountIds, metrics);
 
+      // Check if accountMetricData is empty
+      if (Object.keys(accountMetricData).length === 0) {
+        continue;
+      }
+
       for (const itemData of dataList) {
         // get milestone to achievement cache
         for (const milestone of achievement.milestones) {
