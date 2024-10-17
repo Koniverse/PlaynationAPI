@@ -1,5 +1,6 @@
 import Protocols, {
-  MythicalCardClient,
+  GetAllCardResponse__Output, GetCardByTelegramResponse__Output,
+  NflRivalCardClient,
   TelegramAuthClient,
   TelegramAuthResponse__Output,
 } from '@koniverse/telegram-bot-grpc';
@@ -10,17 +11,22 @@ const SERVER_URL = process.env.GRPC_SERVER_URL || 'localhost:9090';
 
 export class GRPCService {
   public readonly telegramAuth: TelegramAuthClient;
-  public readonly cardManagement: MythicalCardClient;
+  public readonly cardManagement: NflRivalCardClient;
   constructor() {
     this.telegramAuth = new Protocols.telegram.auth.TelegramAuth(
       SERVER_URL,
       credentials.createInsecure(),
     );
 
-    this.cardManagement = new Protocols.mythical.card.MythicalCard(
+    this.cardManagement = new Protocols.mythical.nfl_rival_card.NflRivalCard(
       SERVER_URL,
       credentials.createInsecure(),
+      {
+        'grpc.max_receive_message_length': 33554432, // 32MB
+      },
     );
+
+    console.log('GRPCService initialized with server url:', SERVER_URL);
   }
 
   async validateTelegramInitData(initData: string, botUsername?: string) {
@@ -29,6 +35,42 @@ export class GRPCService {
         {
           botUsername,
           initData,
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else if (!result) {
+            reject(new Error('No result'));
+          } else {
+            resolve(result);
+          }
+        },
+      );
+    });
+  }
+
+  async getAllNflRivalCard() {
+    return new Promise<GetAllCardResponse__Output>((resolve, reject) => {
+      this.cardManagement.getAllCard(
+        {},
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else if (!result) {
+            reject(new Error('No result'));
+          } else {
+            resolve(result);
+          }
+        },
+      );
+    });
+  }
+
+  async getCardByTelegramId(telegramId: number) {
+    return new Promise<GetCardByTelegramResponse__Output>((resolve, reject) => {
+      this.cardManagement.getCardByTelegramId(
+        {
+          telegramId,
         },
         (error, result) => {
           if (error) {

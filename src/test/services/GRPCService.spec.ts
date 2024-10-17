@@ -9,4 +9,14 @@ describe('GRPCService Test', () => {
 
     console.table(rs.params?.telegramUser);
   });
+  it('should get all card', async () => {
+    const rs = await GRPCService.instance.getAllNflRivalCard();
+
+    expect(rs.cards).toBeDefined();
+  });
+  it('should get users card', async () => {
+    const rs = await GRPCService.instance.getCardByTelegramId(1466229978);
+
+    expect(rs.telegramId).toBeDefined();
+  });
 });
