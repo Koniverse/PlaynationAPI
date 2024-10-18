@@ -28,11 +28,6 @@ export class InitNpsService {
 
   // Add point to account when user create account isPremium and return point added
   public async addPointUserPremium(accountId: number) {
-    const account = await Account.findByPk(accountId);
-    if (!account) {
-      throw new Error('Account not found');
-    }
-
     const point = EnvVars.Telegram.PremiumBonusPoint;
     const note = `Premium reward: ${point} points`;
     await AccountService.instance.addAccountPoint(accountId, point);
