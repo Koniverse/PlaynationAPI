@@ -11,7 +11,7 @@ describe('General Test', () => {
   const info: AccountParams = {
     address: '5Eo5BJntLSFRYGjzEedEguxVjH7dxo1iEXUCgXJEP2bFNHSo',
     signature: '0x660b13c0908541dcfdde53c0cb98e37ac47e4cd4d032941e53b51aac593ed81b8ec5c0ac6123c3c51bd08f1ae7b88afda838314d6727bb0dc6b0d1ad5b18438a',
-    telegramId: 12345699909987,
+    telegramId: 1842790242,
     telegramUsername: 'john_doe',
     firstName: 'John',
     lastName: 'Doe',
@@ -34,6 +34,8 @@ describe('General Test', () => {
 
     if (!account) {
       account = await accountService.createAccount(info);
+      const point = await accountService.addPointUserJoinGroup(account.id, info.telegramId);
+      console.log(point)
     }
 
     await new Promise((resolve) => setTimeout(resolve, 1000));

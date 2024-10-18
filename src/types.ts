@@ -248,7 +248,7 @@ export interface RankDefinition {
 }
 
 export interface TelegramGroupInfo {
-  groupId: string;
+  groupId: number;
   messagePoint: number;
   dayPoint: number;
 }

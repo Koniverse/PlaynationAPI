@@ -2,12 +2,18 @@ import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, M
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Account from '@src/models/Account';
 
+export interface InitNpsMetadata {
+  telegramId: number;
+  groupId: number;
+  messageCount: number;
+  timeSinceJoin: Date;
+}
+
 export class InitNps extends Model<InferAttributes<InitNps>, InferCreationAttributes<InitNps>> {
   declare id: CreationOptional<number>; // id on db
   declare accountId: number;
   declare point: number;
-  declare telegramId: number;
-  declare groupId: string;
+  declare metadata: CreationOptional<InitNpsMetadata[]>;
   declare note: CreationOptional<string>;
 }
 
@@ -27,18 +33,16 @@ InitNps.init({
   point: {
     type: DataTypes.INTEGER,
   },
-  telegramId: {
-    type: DataTypes.INTEGER,
-  },
-  groupId: {
-    type: DataTypes.STRING,
+  metadata: {
+    type: DataTypes.JSONB,
+    allowNull: true,
   },
   note: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
 }, {
-  indexes: [{unique: true, fields: ['accountId', 'telegramId', 'groupId']}],
+  indexes: [],
   tableName: 'init_nps',
   sequelize: SequelizeServiceImpl.sequelize,
   createdAt: true,
