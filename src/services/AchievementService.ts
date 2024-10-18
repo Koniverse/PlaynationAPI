@@ -422,7 +422,7 @@ export class AchievementService {
     return [];
   }
 
-  async getMissionList(accountId: number){
+  async getAchievementListV2(accountId: number){
     // Todo: Should separate into 3 different queries for performance and purpose
     const account = await AccountService.instance.findById(accountId);
     if (account) {

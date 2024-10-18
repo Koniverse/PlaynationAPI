@@ -22,16 +22,14 @@ const routerMap = {
     const response = await achievementService.claimAchievement(userId, req.body.milestoneId);
     return res.status(200).json(response);
   },
-
-  missionList: async (req: IReq<Query>, res: IRes) => {
+  fetchV2: async (req: IReq<Query>, res: IRes) => {
     const userId = req.user?.id || 0;
-    const response = await achievementService.getMissionList(userId);
+    const response = await achievementService.getAchievementListV2(userId);
     return res.status(200).json(response);
   },
 };
 
-// Todo: Split into multiple routers category, task
-AchievementRouter.get('/mission-fetch', requireLogin, routerMap.missionList);
+AchievementRouter.get('/fetch-v2', requireLogin, routerMap.fetchV2);
 AchievementRouter.post('/sync', requireSecret, routerMap.sync);
 AchievementRouter.get('/fetch', requireLogin, routerMap.fetch);
 AchievementRouter.post('/claim', requireLogin, routerMap.claim);
