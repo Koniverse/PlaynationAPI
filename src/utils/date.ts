@@ -109,3 +109,19 @@ export function calculateStartAndEnd (key: string) {
     throw new Error('Invalid key. Must be "weekly", "monthly", or "yearly".');
   }
 }
+
+export function calculateDaysBetween(date: string | Date): number {
+  // Chuyển đổi chuỗi ngày thành đối tượng Date
+  const inputDate = new Date(date);
+
+  // Lấy ngày hiện tại
+  const currentDate = new Date();
+
+  // Tính chênh lệch thời gian giữa 2 ngày (milliseconds)
+  const diffInTime = currentDate.getTime() - inputDate.getTime();
+
+  // Chuyển đổi từ milliseconds sang ngày
+  const diffInDays = Math.floor(diffInTime / (1000 * 3600 * 24));
+
+  return diffInDays;
+}

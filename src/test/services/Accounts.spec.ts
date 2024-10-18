@@ -2,21 +2,23 @@ import {AccountService} from '@src/services/AccountService';
 import {AccountParams} from '@src/models/Account';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {GameService} from '@src/services/GameService';
+import {InitNpsService} from '@src/services/InitNpsService';
 
 
 describe('General Test', () => {
   const accountService = AccountService.instance;
+  const initNpsService = InitNpsService.instance;
   const gameService = GameService.instance;
 
   const info: AccountParams = {
     address: '5Eo5BJntLSFRYGjzEedEguxVjH7dxo1iEXUCgXJEP2bFNHSo',
     signature: '0x660b13c0908541dcfdde53c0cb98e37ac47e4cd4d032941e53b51aac593ed81b8ec5c0ac6123c3c51bd08f1ae7b88afda838314d6727bb0dc6b0d1ad5b18438a',
-    telegramId: 12345699909987,
+    telegramId: 1842790242,
     telegramUsername: 'john_doe',
     firstName: 'John',
     lastName: 'Doe',
     photoUrl: 'https://via.placeholder.com/300x300',
-    languageCode: 'en',
+    languageCode: 'en'
   };
 
   beforeAll(async () => {
@@ -34,6 +36,8 @@ describe('General Test', () => {
 
     if (!account) {
       account = await accountService.createAccount(info);
+      const point = await initNpsService.addPointUserJoinGroup(account.id, info.telegramId);
+      console.log(point);
     }
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
