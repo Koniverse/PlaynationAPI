@@ -2,12 +2,12 @@ import {AccountService} from '@src/services/AccountService';
 import {AccountParams} from '@src/models/Account';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {GameService} from '@src/services/GameService';
-import {IntNpsService} from '@src/services/IntNpsService';
+import {InitNpsService} from '@src/services/InitNpsService';
 
 
 describe('General Test', () => {
   const accountService = AccountService.instance;
-  const initNpsService = IntNpsService.instance;
+  const initNpsService = InitNpsService.instance;
   const gameService = GameService.instance;
 
   const info: AccountParams = {
@@ -18,7 +18,7 @@ describe('General Test', () => {
     firstName: 'John',
     lastName: 'Doe',
     photoUrl: 'https://via.placeholder.com/300x300',
-    languageCode: 'en',
+    languageCode: 'en'
   };
 
   beforeAll(async () => {

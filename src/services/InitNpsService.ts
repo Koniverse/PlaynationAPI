@@ -15,9 +15,37 @@ export interface AccountCheckJoinGroupResponse {
 }
 const grpcService = GRPCService.instance;
 
-export class IntNpsService {
+export class InitNpsService {
   constructor(private sequelizeService: SequelizeService) {}
-  
+
+  public async getInitNpsByAccount(accountId: number) {
+    return InitNps.findAll({
+      where: {
+        accountId,
+      },
+    });
+  }
+
+  // Add point to account when user create account isPremium and return point added
+  public async addPointUserPremium(accountId: number) {
+    const account = await Account.findByPk(accountId);
+    if (!account) {
+      throw new Error('Account not found');
+    }
+
+    const point = EnvVars.Telegram.PremiumBonusPoint;
+    const note = `Premium reward: ${point} points`;
+    await AccountService.instance.addAccountPoint(accountId, point);
+    await InitNps.create({
+      accountId,
+      point,
+      note,
+      metadata: [],
+    });
+
+    return point;
+  }
+
   // Add point to account when user join group when create account and return point added
   public async addPointUserJoinGroup(accountId: number, telegramId: number) {
     const groupConfigs = EnvVars.TelegramGroup.Config;
@@ -85,10 +113,10 @@ export class IntNpsService {
   }
 
   // Singleton this class
-  private static _instance: IntNpsService;
+  private static _instance: InitNpsService;
   public static get instance() {
     if (!this._instance) {
-      this._instance = new IntNpsService(SequelizeServiceImpl);
+      this._instance = new InitNpsService(SequelizeServiceImpl);
     }
 
     return this._instance;

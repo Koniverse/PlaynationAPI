@@ -13,7 +13,7 @@ import logger from 'jet-logger';
 import {AchievementService, AchievementType} from '@src/services/AchievementService';
 import Bowser from 'bowser';
 import {createHmac} from 'crypto';
-import {IntNpsService} from '@src/services/IntNpsService';
+import {InitNpsService} from '@src/services/InitNpsService';
 
 export interface TelegramUser {
   id: number
@@ -71,7 +71,8 @@ const INTERNAL_VALIDATE = EnvVars.Telegram.InternalValidate;
 const BOT_SECRET = createHmac('sha256', 'WebAppData')
   .update(EnvVars.Telegram.Token)
   .digest();
-const initNpsService = IntNpsService.instance;
+
+const initNpsService = InitNpsService.instance;
 
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
@@ -102,11 +103,14 @@ export class AccountService {
         accountId: account?.id || 0,
       },
     });
+    
+    const initNps = await initNpsService.getInitNpsByAccount(account?.id || 0);
 
     return {
       info: account,
       attributes: attribute,
       gameData,
+      initNps,
     };
   }
 
@@ -281,17 +285,19 @@ export class AccountService {
 
     // Create account if not exists
     let account = await this.findByTelegramId(info.telegramId);
-    let initPoints = 0;
-    let isNewAccount = false;
     // Check account banned
     if (account && !account.isEnabled) {
       throw new Error('ACCOUNT_BANNED');
     } else if (!account) {
       // Create account if not exists
       account = await this.createAccount(info);
-      isNewAccount = true;
+      const {isPremium} = info;
+
+      if (isPremium) {
+        await initNpsService.addPointUserPremium(account.id);
+      }
       // Add  point from user join group
-      initPoints = await initNpsService.addPointUserJoinGroup(account.id, info.telegramId);
+      await initNpsService.addPointUserJoinGroup(account.id, info.telegramId);
 
       // Add  point from inviteCode
       referralCode && (await this.addInvitePoint(account.id, referralCode, account.isPremium));
@@ -317,7 +323,7 @@ export class AccountService {
 
     // Update wallet addresses
 
-    return {account, initPoints, isNewAccount};
+    return account;
   }
   
   async addLoginLog(accountId: number, ip: string, country: string, userAgent: string) {
