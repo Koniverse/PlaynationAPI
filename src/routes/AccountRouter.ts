@@ -72,7 +72,7 @@ const routerMap = {
       const country = (headers['cf-ipcountry'] || 'NA_') as string;
       const userAgent = req.headers['user-agent'] || '';
       // get init point when new account created
-      const {account, isNewAccount, initPoint} = await AccountService.instance.telegramLogIn(data, {userIP, country, userAgent});
+      const {account, isNewAccount, initPoints} = await AccountService.instance.telegramLogIn(data, {userIP, country, userAgent});
       const accountDetails = await accountService.fetchAccountWithDetails(account.id);
 
       const token = jwt.sign(
@@ -88,7 +88,7 @@ const routerMap = {
       if (isNewAccount) {
         return res.status(200).json({
           ...accountDetails,
-          initPoint,
+          initPoints,
           token,
         });
       }

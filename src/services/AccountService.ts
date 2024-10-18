@@ -5,16 +5,15 @@ import { generateRandomString, validateSignature } from '@src/utils';
 import { checkWalletType } from '@src/utils/wallet';
 import EnvVars from '@src/constants/EnvVars';
 import ReferralLog from '@src/models/ReferralLog';
-import {AccountLoginLog, BrowserInfo, GameData, GiveAwayPoint, InitNps} from '@src/models';
+import {AccountLoginLog, BrowserInfo, GameData, GiveAwayPoint} from '@src/models';
 import { TelegramService } from '@src/services/TelegramService';
 import ReferralUpgradeLog from '@src/models/ReferralUpgradeLog';
 import { Op } from 'sequelize';
 import logger from 'jet-logger';
 import {AchievementService, AchievementType} from '@src/services/AchievementService';
 import Bowser from 'bowser';
-import {GRPCService} from '@src/services/GRPCService';
 import {createHmac} from 'crypto';
-import {calculateDaysBetween} from '@src/utils/date';
+import {IntNpsService} from '@src/services/IntNpsService';
 
 export interface TelegramUser {
   id: number
@@ -56,14 +55,6 @@ export interface AccountCheckParams {
   point?: number;
 }
 
-export interface AccountCheckJoinGroupResponse {
-  telegramId: number;
-  groupId: number;
-  messageCount: number;
-  timeSinceJoin: Date;
-  success: boolean;
-}
-
 export interface RequestInfo {
   userIP: string;
   country: string;
@@ -80,7 +71,7 @@ const INTERNAL_VALIDATE = EnvVars.Telegram.InternalValidate;
 const BOT_SECRET = createHmac('sha256', 'WebAppData')
   .update(EnvVars.Telegram.Token)
   .digest();
-const grpcService = GRPCService.instance;
+const initNpsService = IntNpsService.instance;
 
 export class AccountService {
   constructor(private sequelizeService: SequelizeService) {}
@@ -163,72 +154,6 @@ export class AccountService {
     });
 
     return newAccount;
-  }
-  
-  // Add point to account when user join group when create account and return point added
-  public async addPointUserJoinGroup(accountId: number, telegramId: number) {
-    const groupConfigs = EnvVars.TelegramGroup.Config;
-    const groups = groupConfigs.map((group) => group.groupId);
-    const account = await Account.findByPk(accountId);
-    if (!account) {
-      throw new Error('Account not found');
-    }
-
-    if (groups.length === 0) {
-      return 0;
-    }
-
-    const groupMap = await this.checkJoinGroup(groups, telegramId);
-    if (Object.keys(groupMap).length === 0) {
-      return 0;
-    }
-
-    let point = 0;
-    // For each group, calculate point
-    for (const item of groupConfigs) {
-      // messagePoint, dayPoint used to calculate point with messageCount and dayCount
-      const {groupId, messagePoint, dayPoint} = item;
-      const groupData = groupMap[groupId] || null;
-      if (groupData) {
-        const {timeSinceJoin, messageCount} = groupData;
-        let dayCount = 0;
-        if (timeSinceJoin) {
-          dayCount = calculateDaysBetween(timeSinceJoin);
-        }
-        point += messageCount * messagePoint + dayCount * dayPoint;
-      }
-    }
-
-    const note = `Join group reward: ${point} points`;
-    await this.addAccountPoint(accountId, point);
-    await InitNps.create({
-      accountId,
-      point,
-      note,
-      metadata: Object.values(groupMap),
-    });
-
-    return point;
-  }
-
-  // Check user join group, can be used for task, login, ...
-  // Return map of groupId and AccountCheckJoinGroupResponse
-  public async checkJoinGroup(groupIds: number[], telegramId: number) {
-    // Add promise to check user join group
-    const promises = groupIds.map((groupId) => {
-      return grpcService.checkUserStateInGroup(telegramId, groupId);
-    });
-
-    // Get result from promise and map to groupId
-    const results = (await Promise.all(promises)) as unknown as AccountCheckJoinGroupResponse[];
-    const dataMap: Record<number, AccountCheckJoinGroupResponse> = {};
-    results.forEach((item) => {
-      if (item.success) {
-        dataMap[item.groupId] = item;
-      }
-    });
-
-    return dataMap;
   }
 
   public async checkPointByTelegramId({telegramId, point}: AccountCheckParams) {
@@ -356,7 +281,7 @@ export class AccountService {
 
     // Create account if not exists
     let account = await this.findByTelegramId(info.telegramId);
-    let initPoint = 0;
+    let initPoints = 0;
     let isNewAccount = false;
     // Check account banned
     if (account && !account.isEnabled) {
@@ -366,7 +291,7 @@ export class AccountService {
       account = await this.createAccount(info);
       isNewAccount = true;
       // Add  point from user join group
-      initPoint = await this.addPointUserJoinGroup(account.id, info.telegramId);
+      initPoints = await initNpsService.addPointUserJoinGroup(account.id, info.telegramId);
 
       // Add  point from inviteCode
       referralCode && (await this.addInvitePoint(account.id, referralCode, account.isPremium));
@@ -392,7 +317,7 @@ export class AccountService {
 
     // Update wallet addresses
 
-    return {account, initPoint, isNewAccount};
+    return {account, initPoints, isNewAccount};
   }
   
   async addLoginLog(accountId: number, ip: string, country: string, userAgent: string) {

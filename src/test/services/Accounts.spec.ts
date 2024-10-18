@@ -2,10 +2,12 @@ import {AccountService} from '@src/services/AccountService';
 import {AccountParams} from '@src/models/Account';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {GameService} from '@src/services/GameService';
+import {IntNpsService} from '@src/services/IntNpsService';
 
 
 describe('General Test', () => {
   const accountService = AccountService.instance;
+  const initNpsService = IntNpsService.instance;
   const gameService = GameService.instance;
 
   const info: AccountParams = {
@@ -34,8 +36,8 @@ describe('General Test', () => {
 
     if (!account) {
       account = await accountService.createAccount(info);
-      const point = await accountService.addPointUserJoinGroup(account.id, info.telegramId);
-      console.log(point)
+      const point = await initNpsService.addPointUserJoinGroup(account.id, info.telegramId);
+      console.log(point);
     }
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
