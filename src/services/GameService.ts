@@ -201,7 +201,7 @@ export class GameService {
     }
   }
 
-  async newGamePlay(accountId: number, gameId: number) {
+  async newGamePlay(accountId: number, gameId: number, gameEventId?: number) {
     const account = await accountService.findById(accountId);
     if (!account || account.isEnabled === false) {
       throw new Error('Your account is suspended');
@@ -215,6 +215,7 @@ export class GameService {
     return GamePlay.create({
       accountId: gameData.accountId,
       gameId: gameData.gameId,
+      gameEventId: gameEventId,
       gameDataId: gameData.id,
       startTime: new Date(),
       energy: game?.energyPerGame || 0,

@@ -3,10 +3,12 @@ import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Game from '@src/models/Game';
 import Account from '@src/models/Account';
 import GameData from '@src/models/GameData';
+import GameEvent from '@src/models/GameEvent';
 
 export class GamePlay extends Model<InferAttributes<GamePlay>, InferCreationAttributes<GamePlay>> {
   declare id: CreationOptional<number>; // id on db
   declare gameId: number;
+  declare gameEventId: CreationOptional<number>;
   declare accountId: number;
   declare gameDataId: number;
   declare token: string;
@@ -36,6 +38,14 @@ GamePlay.init({
       model: Game,
       key: 'id',
     },
+  },
+  gameEventId: {
+    type: DataTypes.INTEGER,
+    references: {
+      model: GameEvent,
+      key: 'id',
+    },
+    allowNull: true,
   },
   accountId: {
     type: DataTypes.INTEGER,

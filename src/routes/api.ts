@@ -11,6 +11,7 @@ import LeaderboardRouter from '@src/routes/LeaderboardRouter';
 import PublicRouter from '@src/routes/PublicRouter';
 import AchievementRouter from '@src/routes/AchievementRouter';
 import MetadataRouter from '@src/routes/MetadataRouter';
+import CMSSyncRouter from '@src/routes/CMSSyncRouter';
 
 const apiRouter = Router();
 
@@ -26,5 +27,6 @@ apiRouter.use('/leaderboard', LeaderboardRouter);
 apiRouter.use('/achievement', AchievementRouter);
 apiRouter.use('/public', PublicRouter);
 apiRouter.use('/metadata', MetadataRouter);
+apiRouter.use('/cms-sync', CMSSyncRouter);
 
 export default apiRouter;
