@@ -14,7 +14,7 @@ export interface TossUpInfo {
 
 interface Bonus {
   bonus: number;
-  bonus_text: string;
+  bonusText: string;
 }
 
 interface TeamBonus extends Bonus {
@@ -29,18 +29,20 @@ interface ProgramBonus extends Bonus {
   program: string; // Assuming PROGRAM_LIST contains strings
 }
 
+export type TossUpBonus = (TeamBonus | PositionBonus | ProgramBonus);
+
 export class GameEvent extends Model<InferAttributes<GameEvent>, InferCreationAttributes<GameEvent>> {
   declare id: CreationOptional<number>; // id on db
-  declare documentId: number;
+  declare documentId: string;
   declare active: boolean;
   declare name: string;
-  declare gameId: Game;
+  declare gameId: number;
   declare icon: string;
   declare description: string;
   declare startTime: Date;
   declare endTime: Date;
   declare tossUpInfo: TossUpInfo;
-  declare tossUpBonus: [TeamBonus | PositionBonus | ProgramBonus];
+  declare tossUpBonus: TossUpBonus[];
 }
 
 GameEvent.init({

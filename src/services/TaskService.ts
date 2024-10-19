@@ -66,7 +66,6 @@ export class TaskService {
     };
 
     for (const item of data) {
-      console.log(item);
       const itemData = {...item} as unknown as Task;
       const existed = await Task.findOne({ where: { documentId: item.documentId }});
       // @ts-ignore

@@ -2,7 +2,7 @@ import {
   Account,
   AccountAttribute,
   Game,
-  GameData,
+  GameData, GameEvent,
   GameInventoryItem,
   GameInventoryItemStatus,
   GameItem,
@@ -16,6 +16,7 @@ const kvService = KeyValueStoreService.instance;
 
 export class QuickGetService {
   private gameMap: Record<string, Game> | undefined;
+  private gameEventMap: Record<string, GameEvent> | undefined;
   private gameItemMap: Record<string, GameItem> | undefined;
 
   // API for Game
@@ -44,6 +45,10 @@ export class QuickGetService {
     return gameMap;
   }
 
+  async getGameMap() {
+    return !!this.gameMap ? this.gameMap : await this.buildGameMap();
+  }
+
   async listGame() {
     const gameMap = !!this.gameMap ? this.gameMap : await this.buildGameMap();
 
@@ -54,6 +59,35 @@ export class QuickGetService {
     const gameMap = !!this.gameMap ? this.gameMap : await this.buildGameMap();
 
     return gameMap[gameId.toString()];
+  }
+
+  async buildGameEventMap() {
+    const data = await GameEvent.findAll();
+    const gameMap: Record<string, GameEvent> = {};
+
+    data.forEach((game) => {
+      gameMap[game.id.toString()] = game;
+    });
+
+    this.gameEventMap = gameMap;
+
+    return gameMap;
+  }
+
+  async getGameEventMap() {
+    return !!this.gameEventMap ? this.gameEventMap : await this.buildGameEventMap();
+  }
+
+  async listGameEvent() {
+    const gameEventMap = !!this.gameEventMap ? this.gameEventMap : await this.buildGameEventMap();
+
+    return Object.values(gameEventMap);
+  }
+
+  async findGameEvent(gameId: number) {
+    const gameEventMap = !!this.gameEventMap ? this.gameEventMap : await this.buildGameEventMap();
+
+    return gameEventMap[gameId.toString()];
   }
 
   async requireGame(gameId: number) {
@@ -127,7 +161,7 @@ export class QuickGetService {
 
   async requireAccountAttribute(accountId: number) {
     const accountAttribute = await AccountAttribute.findOne({
-      where: { accountId },
+      where: {accountId},
     });
     if (!accountAttribute) {
       throw new Error('AccountAttribute not found');
@@ -137,7 +171,7 @@ export class QuickGetService {
   }
 
   async requireGameData(accountId: number, gameId: number) {
-    const gameData = await GameData.findOne({ where: { accountId, gameId } });
+    const gameData = await GameData.findOne({where: {accountId, gameId}});
 
     if (!gameData) {
       throw new Error('GameData not found');
@@ -157,7 +191,7 @@ export class QuickGetService {
 
   async requireInventoryGame(accountId: number, inventoryId: number) {
     const inventoryGame = await GameInventoryItem.findOne({
-      where: { accountId, id: inventoryId },
+      where: {accountId, id: inventoryId},
     });
     if (!inventoryGame) {
       throw new Error(`Inventory Item not found: ${inventoryId}`);

@@ -25,9 +25,9 @@ const routerMap = {
     return res.status(200).json(response);
   },
 
-  // Get event list
+  // Get game list
   fetch: async (req: IReq<Query>, res: IRes) => {
-    // Get event types
+    // Get game types
     const eventTypes = await GameService.instance.listGame();
 
     return res.status(200).json(eventTypes);

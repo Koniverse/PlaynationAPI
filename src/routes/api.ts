@@ -12,11 +12,13 @@ import PublicRouter from '@src/routes/PublicRouter';
 import AchievementRouter from '@src/routes/AchievementRouter';
 import MetadataRouter from '@src/routes/MetadataRouter';
 import CMSSyncRouter from '@src/routes/CMSSyncRouter';
+import GameEventRouter from '@src/routes/GameEventRouter';
 
 const apiRouter = Router();
 
 apiRouter.use('/account', AccountRouter);
 apiRouter.use('/game', GameRouter);
+apiRouter.use('/game-event', GameEventRouter);
 apiRouter.use('/shop', ShopRouter);
 apiRouter.use('/task', TaskRouter);
 apiRouter.use('/task-category', TaskCategoryRouter);
