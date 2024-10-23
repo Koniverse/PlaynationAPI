@@ -1,6 +1,6 @@
 import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
-import {requireSecret} from '@src/routes/helper';
+import {requireLogin, requireSecret} from '@src/routes/helper';
 import {GameEventContentCMS, GameEventService} from '@src/services/GameEventService';
 
 const GameEventRouter = Router();
@@ -21,6 +21,6 @@ const routerMap = {
 };
 
 GameEventRouter.post('/sync', requireSecret, routerMap.sync);
-GameEventRouter.post('/fetch', requireSecret, routerMap.sync);
+GameEventRouter.get('/fetch', requireLogin, routerMap.fetch);
 
 export default GameEventRouter;

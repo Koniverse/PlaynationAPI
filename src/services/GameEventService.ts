@@ -102,7 +102,7 @@ export class GameEventService {
       return acc;
     }, {} as Record<string, Game>);
     for (const entry of data) {
-      const existed = existedMap[entry.documentId].ge;
+      const existed = existedMap[entry.documentId]?.ge;
       const game = gameMap[entry.game.documentId];
       if (!game) {
         throw new Error(`Game not found: ${entry.game.documentId}`);
