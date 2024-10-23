@@ -247,6 +247,12 @@ export interface RankDefinition {
   premiumInvitePoint: number;
 }
 
+export interface TelegramGroupInfo {
+  groupId: number;
+  messagePoint: number;
+  dayPoint: number;
+}
+
 export interface ChainData {
   address: string;
   seedPhrase: string;

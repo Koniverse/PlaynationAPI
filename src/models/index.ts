@@ -24,6 +24,7 @@ import Achievement from '@src/models/Achievement';
 import AchievementMilestone from '@src/models/AchievementMilestone';
 import AchievementLog from '@src/models/AchievementLog';
 import AccountLoginLog from '@src/models/AccountLoginLog';
+import InitNps from '@src/models/InitNps';
 
 AccountAttribute.belongsTo(Account, { foreignKey: 'accountId' });
 Account.hasOne(AccountAttribute, { foreignKey: 'accountId' });
@@ -74,6 +75,7 @@ SequelizeServiceImpl.addSync(Achievement.sync.bind(Achievement));
 SequelizeServiceImpl.addSync(AchievementMilestone.sync.bind(AchievementMilestone));
 SequelizeServiceImpl.addSync(AchievementLog.sync.bind(AchievementLog));
 SequelizeServiceImpl.addSync(AccountLoginLog.sync.bind(AccountLoginLog));
+SequelizeServiceImpl.addSync(InitNps.sync.bind(InitNps));
 
 export * from '@src/models/AccountAttribute';
 export * from '@src/models/Account';
@@ -100,3 +102,4 @@ export * from '@src/models/Achievement';
 export * from '@src/models/AchievementMilestone';
 export * from '@src/models/AchievementLog';
 export * from '@src/models/AccountLoginLog';
+export * from '@src/models/InitNps';

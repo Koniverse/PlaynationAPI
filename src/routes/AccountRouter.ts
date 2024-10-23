@@ -71,6 +71,7 @@ const routerMap = {
       const userIP = (headers['cf-connecting-ip'] || '0.0.0.0') as string;
       const country = (headers['cf-ipcountry'] || 'NA_') as string;
       const userAgent = req.headers['user-agent'] || '';
+      // get init point when new account created
       const account = await AccountService.instance.telegramLogIn(data, {userIP, country, userAgent});
       const accountDetails = await accountService.fetchAccountWithDetails(account.id);
 

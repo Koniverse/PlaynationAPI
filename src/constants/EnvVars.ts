@@ -5,7 +5,8 @@
 /* eslint-disable node/no-process-env */
 import chainConfig from '../../config/chainConfig.json';
 import rankConfig from '../../config/ranks.json';
-import {ChainData, RankDefinition} from '@src/types';
+import telegramGroup from '../../config/telegramGroup.json';
+import {ChainData, RankDefinition, TelegramGroupInfo} from '@src/types';
 
 const Environments = {
   NodeEnv: process.env.NODE_ENV ?? '',
@@ -51,6 +52,7 @@ const Environments = {
     IntervalCronTime: Number(process.env.INTERVAL_TELEGRAM_CRON_TIME || '86400000'),
     RateLimit: Number(process.env.TELEGRAM_RATE_LIMIT || '20'),
     CronRateLimit: Number(process.env.TELEGRAM_CRON_RATE_LIMIT || '20'),
+    PremiumBonusPoint: Number(process.env.TELEGRAM_PREMIUM_BONUS_POINTS || '500'),
   },
   Subscan: {
     RateLimit: Number(process.env.SUBSCAN_RATE_LIMIT || '20'),
@@ -89,6 +91,9 @@ const Environments = {
   },
   Rank: {
     Config: rankConfig as RankDefinition[],
+  },
+  TelegramGroup: {
+    Config: telegramGroup as TelegramGroupInfo[],
   },
   Game: {
     MaxEnergy: parseInt(process.env.MAX_ENERGY || '1440'),
