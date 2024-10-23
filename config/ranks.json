@@ -1,0 +1,44 @@
+[
+    {
+        "minPoint": 0,
+        "maxPoint": 20000,
+        "rank": "iron",
+        "invitePoint": 200,
+        "premiumInvitePoint": 600
+    },
+    {
+        "minPoint": 20001,
+        "maxPoint": 100000,
+        "rank": "bronze",
+        "invitePoint": 500,
+        "premiumInvitePoint": 1500
+    },
+    {
+        "minPoint": 100001,
+        "maxPoint": 1000000,
+        "rank": "silver",
+        "invitePoint": 1500,
+        "premiumInvitePoint": 4500
+    },
+    {
+        "minPoint": 1000001,
+        "maxPoint": 5000000,
+        "rank": "gold",
+        "invitePoint": 4500,
+        "premiumInvitePoint": 13500
+    },
+    {
+        "minPoint": 5000001,
+        "maxPoint": 20000000,
+        "rank": "platinum",
+        "invitePoint": 13500,
+        "premiumInvitePoint": 40500
+    },
+    {
+        "minPoint": 20000001,
+        "maxPoint": 100000000,
+        "rank": "diamond",
+        "invitePoint": 40500,
+        "premiumInvitePoint": 121500
+    }
+]
