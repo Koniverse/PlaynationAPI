@@ -1,7 +1,7 @@
-import { GameInfo, CardStat, RoundInfo } from '@src/services/MythicalCardGameService';
+import { GameInfo, CardStat, RoundInfo } from '@src/services/game/mythicalGame/MythicalCardGameService';
 import { CardInfo, CardInfo__Output } from '@koniverse/telegram-bot-grpc';
-import { EventInfo, MythicalEventService } from '@src/services/MythicalEventService';
-import { mythicalCardGameService } from '@src/services/MythicalCardGameService';
+import { EventInfo, MythicalEventService } from '@src/services/game/mythicalGame/MythicalEventService';
+import { mythicalCardGameService } from '@src/services/game/mythicalGame/MythicalCardGameService';
 import * as console from 'node:console';
 import { GRPCService } from '@src/services/GRPCService';
 

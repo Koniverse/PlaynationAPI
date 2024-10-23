@@ -9,11 +9,17 @@ import {Op, QueryTypes} from 'sequelize';
 import {GameState} from '@playnation/game-sdk';
 import {AchievementService, AchievementType} from '@src/services/AchievementService';
 import {GameAdapter} from '@src/services/game/GameAdapter';
-import {MythicalCardAdapter} from '@src/services/game/MythicalCardAdapter';
+import {MythicalGameCardAdapter} from '@src/services/game/mythicalGame/MythicalGameCardAdapter';
 import {CreationAttributes} from 'sequelize/types/model';
 
 export interface newGamePlayParams {
   gameId: number;
+  gameEventId?: number;
+  gameInitData?: any;
+}
+
+export interface FullNewGamePlayParams extends newGamePlayParams {
+  accountId: number;
 }
 
 export interface SubmitGamePlayParams {
@@ -92,7 +98,7 @@ export interface GameInventoryItemParams {
 const gameAdapters: Record<string, GameAdapter | null> = {
   [GameType.CASUAL]: null,
   [GameType.FARMING]: null,
-  [GameType.MYTHICAL_CARD]: new MythicalCardAdapter(),
+  [GameType.MYTHICAL_CARD]: new MythicalGameCardAdapter(),
 };
 
 export class GameService {
@@ -202,7 +208,7 @@ export class GameService {
     }
   }
 
-  async newGamePlay(accountId: number, gameId: number, gameEventId?: number) {
+  async newGamePlay({gameId, gameEventId, gameInitData, accountId}: FullNewGamePlayParams) {
     const account = await accountService.findById(accountId);
     if (!account || account.isEnabled === false) {
       throw new Error('Your account is suspended');
@@ -213,18 +219,21 @@ export class GameService {
     const usedEnergy = game?.energyPerGame || 0;
     await accountService.useAccountEnergy(accountId, usedEnergy);
 
-    const createData:CreationAttributes<GamePlay> = {
+    let createData:CreationAttributes<GamePlay> = {
       accountId: gameData.accountId,
       gameId: gameData.gameId,
       gameEventId: gameEventId,
       gameDataId: gameData.id,
       startTime: new Date(),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      initState: gameInitData,
       energy: game?.energyPerGame || 0,
       token: v4(),
     };
 
-    if (gameAdapters[game.gameType]) {
-      gameAdapters[game.gameType]?.onNewGamePlay(createData);
+    const adapter = gameAdapters[game.gameType];
+    if (adapter) {
+      createData = await adapter.onNewGamePlay(createData);
     }
 
     return GamePlay.create(createData);
@@ -267,13 +276,16 @@ export class GameService {
     const newStateCount = (gamePlay.stateCount || 0) + 1;
 
     // Adapter trigger
-    if (gameAdapters[game.gameType]) {
-      gameAdapters[game.gameType]?.onSubmitState(stateData);
+    let finalData = data;
+    const adapter = gameAdapters[game.gameType];
+    if (adapter) {
+      // @ts-ignore
+      finalData = await adapter.onSubmitState(gamePlay, stateData.data);
     }
 
     await gamePlay.update({
-      state: tryToStringify(data),
-      stateData: tryToParseJSON<unknown>(data),
+      state: tryToStringify(finalData),
+      stateData: tryToParseJSON<unknown>(finalData),
       stateSignature: signature,
       stateTimestamp: timestamp,
       stateCount: newStateCount,
@@ -282,8 +294,11 @@ export class GameService {
       success: isSignatureValid,
     });
 
+    // Todo: Issue-22 | AnhMTV | Save state history
+
     return {
       success: isSignatureValid,
+      gamePlay: gamePlay,
     };
   }
 

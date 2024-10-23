@@ -1,4 +1,4 @@
-import {NflRivalCardService} from '@src/services/NflRivalCardService';
+import {NflRivalCardService} from '@src/services/game/mythicalGame/NflRivalCardService';
 
 describe('NflRivalCardService Test', () => {
   const cardService = NflRivalCardService.instance;

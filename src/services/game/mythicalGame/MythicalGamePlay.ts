@@ -1,6 +1,6 @@
 import { CardInfo } from '@koniverse/telegram-bot-grpc';
 import { createPromise } from '@src/utils';
-import { GameInfo, RoundInfo } from '@src/services/MythicalCardGameService';
+import { GameInfo, RoundInfo } from '@src/services/game/mythicalGame/MythicalCardGameService';
 
 export const playGameMiddleware =  async (game: GameInfo, cardToSelectedOfEachRound: string) : Promise<RoundInfo> => {
   const { cardPlayerSelected, rounds, seedEvent } = game;

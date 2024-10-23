@@ -19,11 +19,13 @@ export class GamePlay extends Model<InferAttributes<GamePlay>, InferCreationAttr
   declare gamePoint: CreationOptional<number>;
   declare ratio: CreationOptional<number>;
   declare success: CreationOptional<boolean>;
+  declare initState: CreationOptional<any>;
   declare state: CreationOptional<any>;
   declare stateData: CreationOptional<any>;
   declare stateTimestamp: CreationOptional<string>;
   declare stateSignature: CreationOptional<string>;
   declare stateCount: CreationOptional<number>;
+  declare secretData: CreationOptional<any>;
 }
 
 GamePlay.init({
@@ -90,6 +92,10 @@ GamePlay.init({
     type: DataTypes.INTEGER,
     allowNull: true,
   },
+  initState: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+  },
   state: {
     type: DataTypes.JSONB,
     allowNull: true,
@@ -104,6 +110,10 @@ GamePlay.init({
   },
   stateTimestamp: {
     type: DataTypes.STRING,
+    allowNull: true,
+  },
+  secretData: {
+    type: DataTypes.JSONB,
     allowNull: true,
   },
 }, {

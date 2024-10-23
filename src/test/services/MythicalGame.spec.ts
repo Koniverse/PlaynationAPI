@@ -1,8 +1,8 @@
 import { randomInt } from 'crypto';
 import { CardInfo } from '@koniverse/telegram-bot-grpc';
 import { Card_Player_Default, CardStatArr } from '@src/test/data_samples/MythicalGame';
-import { CardStat, GameInfo, MythicalCardGameService } from '@src/services/MythicalCardGameService';
-import { EventInfo, MythicalEventService } from '@src/services/MythicalEventService';
+import { CardStat, GameInfo, MythicalCardGameService } from '@src/services/game/mythicalGame/MythicalCardGameService';
+import { EventInfo, MythicalEventService } from '@src/services/game/mythicalGame/MythicalEventService';
 import * as console from 'node:console';
 
 const eventService = MythicalEventService.instance;

@@ -84,10 +84,17 @@ export class QuickGetService {
     return Object.values(gameEventMap);
   }
 
-  async findGameEvent(gameId: number) {
+  async findGameEvent(gameEventId: number) {
     const gameEventMap = !!this.gameEventMap ? this.gameEventMap : await this.buildGameEventMap();
 
-    return gameEventMap[gameId.toString()];
+    return gameEventMap[gameEventId.toString()];
+  }
+
+  async requireGameEvent(gameEventId: number) {
+    const gameEventMap = await this.findGameEvent(gameEventId);
+    if (!gameEventMap) {
+      throw new Error(`Game Event not found: ${gameEventId}`);
+    }
   }
 
   async requireGame(gameId: number) {

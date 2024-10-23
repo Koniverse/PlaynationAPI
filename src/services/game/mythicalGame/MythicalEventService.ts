@@ -4,8 +4,8 @@ import {
   GameInfo,
   MythicalCardGameService,
   RoundInfo,
-} from '@src/services/MythicalCardGameService';
-import { CardInfo, CardInfo__Output } from '@koniverse/telegram-bot-grpc';
+} from '@src/services/game/mythicalGame/MythicalCardGameService';
+import { CardInfo } from '@koniverse/telegram-bot-grpc';
 import * as console from 'node:console';
 
 export interface EventInfo {

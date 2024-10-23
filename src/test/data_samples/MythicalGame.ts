@@ -1,5 +1,5 @@
 import { CardInfo } from '@koniverse/telegram-bot-grpc';
-import { CardStat } from '@src/services/MythicalCardGameService';
+import { CardStat } from '@src/services/game/mythicalGame/MythicalCardGameService';
 
 export const Card_Player_Default: CardInfo[] = [{
   defId: '1jelliott4ea1',

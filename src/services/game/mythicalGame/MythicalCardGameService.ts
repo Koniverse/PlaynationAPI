@@ -1,10 +1,11 @@
 import { createPromise } from '@src/utils';
 import { CardInfo, CardInfo__Output } from '@koniverse/telegram-bot-grpc';
 import { GRPCService } from '@src/services/GRPCService';
-import { EventInfo } from '@src/services/MythicalEventService';
-import { preGameMiddleware } from '@src/services/mythicalGamePlay/MythicalPreGamePlay';
-import { playGameMiddleware } from '@src/services/mythicalGamePlay/MythicalGamePlay';
+import { EventInfo } from '@src/services/game/mythicalGame/MythicalEventService';
+import { preGameMiddleware } from '@src/services/game/mythicalGame/MythicalPreGamePlay';
+import { playGameMiddleware } from '@src/services/game/mythicalGame/MythicalGamePlay';
 import * as console from 'node:console';
+import {NflRivalCardService} from "@src/services/game/mythicalGame/NflRivalCardService";
 
 export interface BonusPoint {
   point: number,
@@ -57,16 +58,16 @@ export interface GameInfo {
   cardPlayerSelected: CardInfo[]
 }
 
-const grpcService = GRPCService.instance;
+const cardService = NflRivalCardService.instance;
 export class MythicalCardGameService {
   cardMapReady = createPromise<void>();
   private cardMap: Record<string, CardInfo__Output> = {};
   private static _instance: MythicalCardGameService;
 
   private constructor() {
-    grpcService.getAllNflRivalCard().then(
-      (response) => {
-        this.cardMap = response.cards;
+    cardService.getCardMap().then(
+      (data) => {
+        this.cardMap = data;
         this.cardMapReady.resolve();
       },
     ).catch((error) => {console.error('Error', error);});
@@ -79,12 +80,6 @@ export class MythicalCardGameService {
 
   public getGameById(idGame: string): GameInfo {
     return {} as GameInfo;
-  }
-
-  async getUserCard(telegramId: number) {
-    await this.cardMapReady.promise;
-
-    return await grpcService.getCardByTelegramId(telegramId);
   }
 
   public createGameId( idGame: string, cardSelected: string[]) {

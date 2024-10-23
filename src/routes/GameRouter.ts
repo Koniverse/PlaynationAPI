@@ -35,10 +35,9 @@ const routerMap = {
 
   // Create new game session
   newGame: async (req: IReq<NewGameParams>, res: IRes) => {
-    const gameId = req.body.gameId;
     const userId = req.user?.id || 0;
 
-    const newGame = await gameService.newGamePlay(userId, gameId);
+    const newGame = await gameService.newGamePlay({...req.body, acccountId: userId});
     return res.status(200).json(newGame);
   },
 

@@ -21,7 +21,13 @@ export class NflRivalCardService {
     return this.cardMap;
   }
 
-  async getUserCard(telegramId: number) {
+  async getUserCard(accountId: number) {
+    //Todo: Issue-22 | AnhMTV | Get Telegram ID from user
+
+    return await grpcService.getCardByTelegramId(0);
+  }
+
+  async getUserCardByTelegram(telegramId: number) {
     await this.cardMapReady.promise;
 
     return await grpcService.getCardByTelegramId(telegramId);
