@@ -12,7 +12,7 @@ import {
 import {LeaderboardType} from '@src/services/leaderboards/BaseLeaderBoard';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import {AccountService} from '@src/services/AccountService';
-import {GameService} from '@src/services/GameService';
+import {GameService} from '@src/services/game/GameService';
 import {AchievementType} from '@src/services/AchievementService';
 
 async function wait(millis: number) {

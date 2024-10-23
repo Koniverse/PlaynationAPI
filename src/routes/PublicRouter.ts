@@ -2,7 +2,7 @@ import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {Query} from 'express-serve-static-core';
 import {AccountCheckParams, AccountService} from '@src/services/AccountService';
-import {GameService, MultiGamePlayCheckParams} from '@src/services/GameService';
+import {GameService, MultiGamePlayCheckParams} from '@src/services/game/GameService';
 
 type CheckUserByTelegramQuery = AccountCheckParams & Query;
 type CheckGamePlayByTelegramQuery = MultiGamePlayCheckParams & Query;

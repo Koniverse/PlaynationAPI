@@ -292,7 +292,7 @@ export class GameItemService {
   }
 
   async getInventoryLogs(accountId: number, isUsed = false) {
-    const queryUsed = isUsed ? "AND i.status = 'used'" : '';
+    const queryUsed = isUsed ? 'AND i.status = \'used\'' : '';
     await quickGet.requireAccount(accountId);
     const sql = `
     SELECT
@@ -316,13 +316,13 @@ where i."accountId" = ${accountId} ${queryUsed}
   }
 
   async getConfigBuyEnergy() {
-    return {
+    return Promise.resolve({
       success: true,
       energyPrice: EnvVars.Game.EnergyPrice,
       energyBuyLimit: EnvVars.Game.EnergyBuyLimit,
       maxEnergy: EnvVars.Game.MaxEnergy,
       energyOneBuy: EnvVars.Game.EnergyOneBuy,
-    };
+    });
   }
 
   // Singleton

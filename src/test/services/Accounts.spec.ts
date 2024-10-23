@@ -1,7 +1,7 @@
 import {AccountService} from '@src/services/AccountService';
 import {AccountParams} from '@src/models/Account';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
-import {GameService} from '@src/services/GameService';
+import {GameService} from '@src/services/game/GameService';
 
 
 describe('General Test', () => {

@@ -7,10 +7,10 @@ import {
   GameService, GetLastStateParams,
   newGamePlayParams,
   SubmitGamePlayParams, SubmitGamePlayStateParams,
-} from '@src/services/GameService';
+} from '@src/services/game/GameService';
 import { requireLogin, requireSecret } from '@src/routes/helper';
-import { GameItemService } from '@src/services/GameItemService';
-import {LeaderboardOldParams, LeaderBoardService} from '@src/services/LeaderBoardService';
+import { GameItemService } from '@src/services/game/GameItemService';
+import { LeaderboardOldParams, LeaderBoardService } from '@src/services/LeaderBoardService';
 
 const GameRouter = Router();
 type NewGameParams = newGamePlayParams & Query;
@@ -83,8 +83,6 @@ const routerMap = {
     const response = await GameItemService.instance.getInventoryLogs(userId, true);
     return res.status(200).json(response);
   },
-
-
 
   getLeaderBoard: async (req: IReq<LeaderboardOldParams>, res: IRes) => {
     const userId = req.user?.id || 0;

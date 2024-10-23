@@ -1,13 +1,5 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import {
-  Account,
-  Game,
-  GameData,
-  GameInventoryItem,
-  GameInventoryItemStatus,
-  GamePlay,
-  GameType,
-} from '@src/models';
+import {Account, Game, GameData, GameInventoryItem, GameInventoryItemStatus, GamePlay, GameType,} from '@src/models';
 import {v4} from 'uuid';
 import {AccountService} from '@src/services/AccountService';
 import {QuickGetService} from '@src/services/QuickGetService';
@@ -16,6 +8,9 @@ import EnvVars from '@src/constants/EnvVars';
 import {Op, QueryTypes} from 'sequelize';
 import {GameState} from '@playnation/game-sdk';
 import {AchievementService, AchievementType} from '@src/services/AchievementService';
+import {GameAdapter} from '@src/services/game/GameAdapter';
+import {MythicalCardAdapter} from '@src/services/game/MythicalCardAdapter';
+import {CreationAttributes} from 'sequelize/types/model';
 
 export interface newGamePlayParams {
   gameId: number;
@@ -93,6 +88,12 @@ export interface GameContentCms {
 export interface GameInventoryItemParams {
   gameInventoryItemId: number;
 }
+
+const gameAdapters: Record<string, GameAdapter | null> = {
+  [GameType.CASUAL]: null,
+  [GameType.FARMING]: null,
+  [GameType.MYTHICAL_CARD]: new MythicalCardAdapter(),
+};
 
 export class GameService {
   private gameMap: Record<string, Game> | undefined;
@@ -212,7 +213,7 @@ export class GameService {
     const usedEnergy = game?.energyPerGame || 0;
     await accountService.useAccountEnergy(accountId, usedEnergy);
 
-    return GamePlay.create({
+    const createData:CreationAttributes<GamePlay> = {
       accountId: gameData.accountId,
       gameId: gameData.gameId,
       gameEventId: gameEventId,
@@ -220,7 +221,13 @@ export class GameService {
       startTime: new Date(),
       energy: game?.energyPerGame || 0,
       token: v4(),
-    });
+    };
+
+    if (gameAdapters[game.gameType]) {
+      gameAdapters[game.gameType]?.onNewGamePlay(createData);
+    }
+
+    return GamePlay.create(createData);
   }
 
   async addGameDataPoint(accountId: number, gameId: number, point: number, pointRate: number) {
@@ -258,6 +265,11 @@ export class GameService {
     }
 
     const newStateCount = (gamePlay.stateCount || 0) + 1;
+
+    // Adapter trigger
+    if (gameAdapters[game.gameType]) {
+      gameAdapters[game.gameType]?.onSubmitState(stateData);
+    }
 
     await gamePlay.update({
       state: tryToStringify(data),
@@ -340,6 +352,11 @@ export class GameService {
     // Validate max point
     if (params.point > game.maxPointPerGame) {
       success = false;
+    }
+    
+    // Adapter trigger
+    if (gameAdapters[game.gameType]) {
+      await gameAdapters[game.gameType]?.onSubmitGameplay(params);
     }
 
     await gamePlay.update({

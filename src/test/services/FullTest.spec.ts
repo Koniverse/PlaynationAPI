@@ -11,8 +11,8 @@ import {
   TaskHistory,
 } from '@src/models';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
-import {GameService} from '@src/services/GameService';
-import {GameItemService} from '@src/services/GameItemService';
+import {GameService} from '@src/services/game/GameService';
+import {GameItemService} from '@src/services/game/GameItemService';
 
 
 describe('Game Item Test', () => {

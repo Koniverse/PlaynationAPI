@@ -3,7 +3,7 @@ import { AccountParams } from '@src/models/Account';
 import { AccountAttribute, GameInventoryItem, GameInventoryItemStatus, GameItem, Receipt } from '@src/models';
 import EnvVars from '@src/constants/EnvVars';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
-import { GameItemService } from '@src/services/GameItemService';
+import { GameItemService } from '@src/services/game/GameItemService';
 import { createGameData, createSampleGameData } from '@src/test/data_samples/Games';
 import { QuickGetService } from '@src/services/QuickGetService';
 

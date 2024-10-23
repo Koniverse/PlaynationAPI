@@ -1,7 +1,7 @@
 
 import {TaskService} from '@src/services/TaskService';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
-import {GameService} from '@src/services/GameService';
+import {GameService} from '@src/services/game/GameService';
 import {AccountService} from '@src/services/AccountService';
 import {AccountParams, Task, TaskHistory} from '@src/models';
 

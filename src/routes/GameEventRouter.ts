@@ -1,7 +1,7 @@
 import {IReq, IRes} from '@src/routes/types';
 import {Router} from 'express';
 import {requireSecret} from '@src/routes/helper';
-import {GameEventContentCMS, GameEventService} from '@src/services/GameEventService';
+import {GameEventContentCMS, GameEventService} from '@src/services/game/GameEventService';
 
 const GameEventRouter = Router();
 const gameEventService = GameEventService.instance;
@@ -17,7 +17,7 @@ const routerMap = {
     const rs = await gameEventService.list();
 
     return res.status(200).json(rs);
-  }
+  },
 };
 
 GameEventRouter.post('/sync', requireSecret, routerMap.sync);

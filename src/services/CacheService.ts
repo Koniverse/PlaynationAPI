@@ -1,6 +1,7 @@
 import {createClient, RedisClientType} from 'redis';
 import EnvVars from '@src/constants/EnvVars';
 import {createPromise, PromiseObject} from '@src/utils';
+import logger from 'jet-logger';
 
 
 export class CacheService {
@@ -20,11 +21,11 @@ export class CacheService {
     this.redisClient.on('connect', () => {
       // @ts-ignore
       initPromise.resolve(this.redisClient);
-      console.log('Connected to Redis', url);
+      logger.info(`Connected to Redis ${url}`);
     });
 
     this.redisClient.on('error', (err) => {
-      console.error('Redis client error', err);
+      logger.err(`Redis client error ${String(err)}`);
     });
 
     this.redisClient.connect();

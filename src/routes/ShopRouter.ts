@@ -6,8 +6,7 @@ import {
   GameItemContentCms,
   GameItemService,
   GameItemSearchParams,
-} from '@src/services/GameItemService';
-import {QuickGetService} from '@src/services/QuickGetService';
+} from '@src/services/game/GameItemService';
 
 const ShopRouter = Router();
 

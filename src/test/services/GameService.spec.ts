@@ -1,4 +1,4 @@
-import { GameService } from '@src/services/GameService';
+import { GameService } from '@src/services/game/GameService';
 
 const gameService = GameService.instance;
 describe('GameService', () => {

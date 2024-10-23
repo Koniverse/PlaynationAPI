@@ -1,6 +1,6 @@
 import {AccountService} from '@src/services/AccountService';
 import {Account, AccountParams, GamePlay} from '@src/models';
-import {GameService} from '@src/services/GameService';
+import {GameService} from '@src/services/game/GameService';
 import account from '@src/models/Account';
 // import { signPayload } from '@src/utils';
 // import envVars from '@src/constants/EnvVars';

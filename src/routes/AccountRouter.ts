@@ -2,7 +2,6 @@ import { IReq, IRes } from '@src/routes/types';
 import { Router } from 'express';
 import { Query } from 'express-serve-static-core';
 import {
-  AccountBanedParams,
   AccountCheckParams,
   AccountService,
   GiveawayPointParams, SyncBanAccountRequest,
@@ -11,7 +10,7 @@ import {AccountParams, TelegramSigninParams} from '@src/models';
 import jwt from 'jsonwebtoken';
 import envVars from '@src/constants/EnvVars';
 import { requireLogin, requireSecret } from '@src/routes/helper';
-import { GameService } from '@src/services/GameService';
+import { GameService } from '@src/services/game/GameService';
 
 type SyncAccountQuery = AccountParams & Query;
 

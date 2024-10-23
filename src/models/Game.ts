@@ -5,6 +5,7 @@ import {VersionInfo} from '@src/services/type';
 export enum GameType {
     CASUAL = 'casual',
     FARMING = 'farming',
+    MYTHICAL_CARD = 'mythical-card',
 }
 
 export class Game extends Model<InferAttributes<Game>, InferCreationAttributes<Game>> {
