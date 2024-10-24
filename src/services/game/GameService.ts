@@ -1,5 +1,5 @@
 import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeService';
-import {Account, Game, GameData, GameInventoryItem, GameInventoryItemStatus, GamePlay, GameType,} from '@src/models';
+import {Account, Game, GameData, GameInventoryItem, GameInventoryItemStatus, GamePlay, GameType} from '@src/models';
 import {v4} from 'uuid';
 import {AccountService} from '@src/services/AccountService';
 import {QuickGetService} from '@src/services/QuickGetService';
@@ -11,6 +11,7 @@ import {AchievementService, AchievementType} from '@src/services/AchievementServ
 import {GameAdapter} from '@src/services/game/GameAdapter';
 import {MythicalGameCardAdapter} from '@src/services/game/mythicalGame/MythicalGameCardAdapter';
 import {CreationAttributes} from 'sequelize/types/model';
+import GamePlayStateLog from '@src/models/GamePlayStateLog';
 
 export interface newGamePlayParams {
   gameId: number;
@@ -294,7 +295,15 @@ export class GameService {
       success: isSignatureValid,
     });
 
-    // Todo: Issue-22 | AnhMTV | Save state history
+    await GamePlayStateLog.create({
+      gamePlayId: gamePlayId,
+      state: tryToStringify(finalData),
+      stateData: tryToParseJSON<unknown>(finalData),
+      stateSignature: signature,
+      stateTimestamp: timestamp,
+      stateNumber: newStateCount,
+      validData: isSignatureValid,
+    });
 
     return {
       success: isSignatureValid,

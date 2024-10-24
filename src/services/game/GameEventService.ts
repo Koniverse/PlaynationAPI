@@ -28,9 +28,9 @@ export interface GameEventContentCMS {
   };
   toss_up_bonus: ({
     __component: string;
-    team: string;
-    program: string;
-    position: string;
+    team?: string;
+    program?: string;
+    position?: string;
     bonus: number;
     bonus_text: string;
   })[];
@@ -63,17 +63,17 @@ export class GameEventService {
       if (item.__component === 'mythical.team-bonus') {
         return {
           ...bonusAmount,
-          team: item.team,
+          team: item.team as string,
         };
       } else if (item.__component === 'mythical.position-bonus') {
         return {
           ...bonusAmount,
-          position: item.position,
+          position: item.position as string,
         };
       } else if (item.__component === 'mythical.program-bonus') {
         return {
           ...bonusAmount,
-          program: item.program,
+          program: item.program as string,
         };
       } else {
         throw new Error(`Unknown toss up bonus type: ${item.__component}`);
@@ -102,7 +102,7 @@ export class GameEventService {
       return acc;
     }, {} as Record<string, Game>);
     for (const entry of data) {
-      const existed = existedMap[entry.documentId].ge;
+      const existed = existedMap[entry.documentId]?.ge;
       const game = gameMap[entry.game.documentId];
       if (!game) {
         throw new Error(`Game not found: ${entry.game.documentId}`);
@@ -137,6 +137,9 @@ export class GameEventService {
         });
       }
     }
+
+    // Rebuild map
+    await quickGetService.buildGameEventMap();
 
     return response;
   }

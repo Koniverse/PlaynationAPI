@@ -35,8 +35,9 @@ export class SequelizeService {
     if (this.isSyncAll) {
       return;
     } else {
+      const syncOptions = EnvVars.NodeEnv === 'test' ? { alter: true } : undefined;
       for (const sync of this.syncList) {
-        await sync();
+        await sync(syncOptions);
       }
       this.isSyncAll = true;
     }

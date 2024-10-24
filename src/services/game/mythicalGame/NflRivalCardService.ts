@@ -1,8 +1,11 @@
 import {GRPCService} from '@src/services/GRPCService';
 import {CardInfo__Output} from '@koniverse/telegram-bot-grpc';
 import {createPromise} from '@src/utils';
+import {QuickGetService} from '@src/services/QuickGetService';
 
 const grpcService = GRPCService.instance;
+const quickGetService = QuickGetService.instance;
+
 export class NflRivalCardService {
   cardMapReady = createPromise<void>();
   private cardMap: Record<string, CardInfo__Output> = {};
@@ -22,9 +25,10 @@ export class NflRivalCardService {
   }
 
   async getUserCard(accountId: number) {
-    //Todo: Issue-22 | AnhMTV | Get Telegram ID from user
+    //Issue-22 | AnhMTV | Get Telegram ID from user
+    const account = await quickGetService.requireAccount(accountId);
 
-    return await grpcService.getCardByTelegramId(0);
+    return await grpcService.getCardByTelegramId(account.telegramId);
   }
 
   async getUserCardByTelegram(telegramId: number) {
