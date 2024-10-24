@@ -24,6 +24,7 @@ import Achievement from '@src/models/Achievement';
 import AchievementMilestone from '@src/models/AchievementMilestone';
 import AchievementLog from '@src/models/AchievementLog';
 import AccountLoginLog from '@src/models/AccountLoginLog';
+import GamePlayStateLog from '@src/models/GamePlayStateLog';
 
 AccountAttribute.belongsTo(Account, { foreignKey: 'accountId' });
 Account.hasOne(AccountAttribute, { foreignKey: 'accountId' });
@@ -34,6 +35,7 @@ GameEvent.belongsTo(Game, { foreignKey: 'gameId' });
 GamePlay.belongsTo(Game, { foreignKey: 'gameId' });
 GamePlay.belongsTo(Account, { foreignKey: 'AccountId' });
 GamePlay.belongsTo(GameEvent, { foreignKey: 'gameEventId' });
+GamePlayStateLog.belongsTo(GamePlay, { foreignKey: 'gamePlayId' });
 
 GameItem.belongsTo(Game, { foreignKey: 'gameId' });
 
@@ -55,6 +57,7 @@ SequelizeServiceImpl.addSync(Game.sync.bind(Game));
 SequelizeServiceImpl.addSync(GameData.sync.bind(GameData));
 SequelizeServiceImpl.addSync(GameEvent.sync.bind(GameEvent));
 SequelizeServiceImpl.addSync(GamePlay.sync.bind(GamePlay));
+SequelizeServiceImpl.addSync(GamePlayStateLog.sync.bind(GamePlayStateLog));
 SequelizeServiceImpl.addSync(GameItem.sync.bind(GameItem));
 SequelizeServiceImpl.addSync(GameInventoryItem.sync.bind(GameInventoryItem));
 SequelizeServiceImpl.addSync(TaskCategory.sync.bind(TaskCategory));

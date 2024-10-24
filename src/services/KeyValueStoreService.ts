@@ -27,7 +27,7 @@ export class KeyValueStoreService {
 
   async syncGameMetadata(data: RecordVersionInfo[]) {
     const existingMetadata = await this.getMetadata();
-    const recordVersions = existingMetadata.recordVersions || {};
+    const recordVersions = existingMetadata?.recordVersions || {};
     const metadata = {
       ...existingMetadata,
       recordVersions: {
