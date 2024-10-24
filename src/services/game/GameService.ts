@@ -231,7 +231,7 @@ export class GameService {
       token: v4(),
     };
 
-    const adapter = gameAdapters[game.gameType];
+    const adapter= gameAdapters[game.gameType];
     if (adapter) {
       createData = await adapter.onNewGamePlay(createData);
     }
@@ -290,7 +290,7 @@ export class GameService {
       stateTimestamp: timestamp,
       stateCount: newStateCount,
       endTime: new Date(),
-      point: 0,
+      point: gamePlay.point,
       success: isSignatureValid,
     });
 
