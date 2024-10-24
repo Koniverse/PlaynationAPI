@@ -141,14 +141,11 @@ export class MythicalGameCardAdapter extends GameAdapter {
   }
 
   async onSubmitState(gamePlay:GamePlay, data: StateData): Promise<MythicalCardGameData> {
-    console.log('Create new Data');
     const gamePlayData: MythicalCardGameData  = tryToParseJSON<MythicalCardGameData>(gamePlay.state);
     const secretData = gamePlay.secretData as RoundSecret[];
     const { tossUpBonus } = await quickGetService.requireGameEvent(gamePlay.gameEventId);
     let currentRound = gamePlayData.currentRound;
     const { rounds } = gamePlayData;
-
-    console.log('LOG: Submit state', data.action, gamePlayData.state, currentRound);
 
     if (data.action === 'start') {
       if (gamePlayData.state !== MythicalGameState.NOT_STARTED && currentRound === 0) {
@@ -158,7 +155,6 @@ export class MythicalGameCardAdapter extends GameAdapter {
       gamePlayData.state = MythicalGameState.START;
       gamePlayData.rounds[0].state = 'ready';
     } else if (data.action === 'play') {
-      console.log('LOG: Play game', gamePlayData.state);
       if(!(gamePlayData.state === MythicalGameState.START || gamePlayData.state === MythicalGameState.PLAYING)) {
         throw new Error('Game not started');
       }
@@ -176,7 +172,6 @@ export class MythicalGameCardAdapter extends GameAdapter {
 
       let round: RoundInfo = {...rounds[currentRound - 1]};
 
-      console.log(round, gamePlayData.state);
       if (round.state !== 'ready') {
         throw new Error('Round not ready');
       }
@@ -341,15 +336,12 @@ export class MythicalGameCardAdapter extends GameAdapter {
     const cardOpponentRandomInEachRound: string[] = [];
     const rounds: RoundInfo[] = [];
     const roundsSecret: RoundSecret[] = [];
-    console.log('LOG: Creat stat of each round,  Rounds');
-
     if (statsOfEvent.length === 0) {
       throw new Error('Stats of event is empty');
     }
 
     for(let round = 1; round <= roundEvent; round++){
       const randomStats: CardStat[] = [];
-      console.log('run add stat....');
       if (round <= 2) {
         randomStats.push(statsOfEvent[Math.floor(Math.random() * statsOfEvent.length)]);
       } else {
@@ -370,7 +362,6 @@ export class MythicalGameCardAdapter extends GameAdapter {
         }
       }
 
-      console.log('LOG: Random stat of round', randomStats, remainingStatsToShow);
 
       const difficultyOfRound = difficulty + (roundEvent - round) * 0.5;
       const rangeStat = this.rangeStatGamePlay(randomStats, cardsPlayer);
@@ -383,7 +374,6 @@ export class MythicalGameCardAdapter extends GameAdapter {
       let cardPlayerCanBeat: CardInfo | undefined = undefined;
       let toleranceRange = INITIAL_TOLERANCE_RANGE;
       while (!cardPlayerCanBeat) {
-        console.log('rerun', toleranceRange);
         cardOpponent = this.selectCardOpponentForEachRound(
           cardOpponents,
           randomStats,
@@ -402,7 +392,6 @@ export class MythicalGameCardAdapter extends GameAdapter {
         ++toleranceRange;
       }
 
-      console.log('LOG: Card opponent and card player can beat', cardOpponent, cardPlayerCanBeat);
 
       roundsSecret.push({stats: randomStats, cardPlayerCanBeat});
 
@@ -416,7 +405,6 @@ export class MythicalGameCardAdapter extends GameAdapter {
         cardOpponent });
     }
 
-    console.log('LOG: Finish create round of game', rounds, roundsSecret);
 
     return  {rounds, secret: roundsSecret};
   }
@@ -488,7 +476,6 @@ export class MythicalGameCardAdapter extends GameAdapter {
     let isWin = false;
     let score = 0;
     if (round.state === 'active' && round.cardPlayer && round.cardOpponent) {
-      console.log('LOG: Compare card player with opponent', round.roundNumber);
       const cardPlayerStatPoint = stats.reduce(
         (acc, stat) => round.cardPlayer ? acc + (round.cardPlayer[stat] || 0) : acc,
         0);
@@ -497,11 +484,9 @@ export class MythicalGameCardAdapter extends GameAdapter {
         0);
 
       if ( cardPlayerStatPoint >= cardOpponentStatPoint) {
-        console.log('LOG: Player win round ', round.roundNumber);
         isWin = true;
         score = cardPlayerStatPoint;
       } else {
-        console.log('LOG: Player lose');
         isWin = false;
       }
     }

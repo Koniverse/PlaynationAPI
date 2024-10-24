@@ -283,9 +283,7 @@ export class GameService {
     const adapter = gameAdapters[game.gameType];
 
     if (adapter) {
-      console.log('2131212312', adapter);
       finalData = await adapter.onSubmitState(gamePlay, stateData.data);
-      console.log('Adapter Data', finalData);
     }
 
     await gamePlay.update({

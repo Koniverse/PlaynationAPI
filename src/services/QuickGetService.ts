@@ -62,9 +62,9 @@ export class QuickGetService {
   }
 
   async findAllGameByGameEventId (gameEventId: number) {
-    const gameEventMap = await this.getGameEventMap();
+    const gameDataMap = await this.getGameMap();
 
-    return Object.values(gameEventMap).filter((gameEvent) => gameEvent.id === gameEventId);
+    return Object.values(gameDataMap).filter((gameEvent) => gameEvent.id === gameEventId);
   }
 
   async buildGameEventMap() {

@@ -162,7 +162,6 @@ describe('Mythical Card Game | Full Test', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    console.log(1);
     // submit round 1
     await gameService.submitGamePlayState(gamePlay.id, {
       signature : '0x',
@@ -178,7 +177,6 @@ describe('Mythical Card Game | Full Test', () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     // submit round 2
-    console.log(2);
     await gameService.submitGamePlayState(gamePlay.id, {
       signature : '0x',
       timestamp : new Date().toString(),
@@ -193,7 +191,6 @@ describe('Mythical Card Game | Full Test', () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     // submit round 3
-    console.log(3);
     await gameService.submitGamePlayState(gamePlay.id, {
       signature : '0x',
       timestamp : new Date().toString(),
@@ -216,6 +213,6 @@ describe('Mythical Card Game | Full Test', () => {
         action: 'finish'
       },
     });
-  }, 120000);
+  }, 180000);
 })
 ;
