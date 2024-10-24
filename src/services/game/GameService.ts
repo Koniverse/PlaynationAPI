@@ -6,6 +6,7 @@ import {QuickGetService} from '@src/services/QuickGetService';
 import {tryToParseJSON, tryToStringify, validatePayload} from '@src/utils';
 import EnvVars from '@src/constants/EnvVars';
 import {Op, QueryTypes} from 'sequelize';
+import logger, { jetLogger } from 'jet-logger';
 import {GameState} from '@playnation/game-sdk';
 import {AchievementService, AchievementType} from '@src/services/AchievementService';
 import {GameAdapter} from '@src/services/game/GameAdapter';
@@ -254,7 +255,7 @@ export class GameService {
   }
 
   async submitGamePlayState(gamePlayId: number, stateData: GameState<unknown>) {
-    console.log('Submit Data', stateData);
+    logger.info('submitGamePlayState');
     const gamePlay = await quickGetService.requireGamePlay(gamePlayId);
     const game = await quickGetService.findGame(gamePlay.gameId);
     this.checkGameActive(game);
@@ -395,7 +396,7 @@ export class GameService {
 
     if (success) {
       await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, point, pointRate);
-      AchievementService.instance.triggerAchievement(gamePlay.accountId, AchievementType.GAME).catch(console.error);
+      AchievementService.instance.triggerAchievement(gamePlay.accountId, AchievementType.GAME).catch(logger.err);
     }
 
     return gamePlay;

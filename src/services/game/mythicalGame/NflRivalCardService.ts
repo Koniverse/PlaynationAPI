@@ -2,6 +2,7 @@ import {GRPCService} from '@src/services/GRPCService';
 import {CardInfo__Output} from '@koniverse/telegram-bot-grpc';
 import {createPromise} from '@src/utils';
 import {QuickGetService} from '@src/services/QuickGetService';
+import logger from 'jet-logger';
 
 const grpcService = GRPCService.instance;
 const quickGetService = QuickGetService.instance;
@@ -16,7 +17,7 @@ export class NflRivalCardService {
         this.cardMap = response.cards;
         this.cardMapReady.resolve();
       },
-    ).catch(console.error);
+    ).catch(logger.err);
   }
 
   async getCardMap() {

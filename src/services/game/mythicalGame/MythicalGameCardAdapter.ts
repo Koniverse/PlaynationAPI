@@ -7,8 +7,7 @@ import { QuickGetService } from '@src/services/QuickGetService';
 import { GameEventService } from '@src/services/game/GameEventService';
 import { NflRivalCardService } from '@src/services/game/mythicalGame/NflRivalCardService';
 import { createPromise, isSameObject, shuffleArray, tryToParseJSON, tryToStringify } from '@src/utils';
-import { Secret } from 'jsonwebtoken';
-import * as console from 'node:console';
+import gamePlay from '@src/models/GamePlay';
 
 
 interface StateData {
