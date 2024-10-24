@@ -43,7 +43,7 @@ Game.init({
     autoIncrement: true,
   },
   gameType: {
-    type: DataTypes.ENUM(GameType.CASUAL, GameType.FARMING),
+    type: DataTypes.ENUM(GameType.CASUAL, GameType.FARMING, GameType.MYTHICAL_CARD),
   },
   contentId: {
     type: DataTypes.INTEGER,

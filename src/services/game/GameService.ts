@@ -75,6 +75,7 @@ const quickGetService = QuickGetService.instance;
 export interface GameContentCms {
   id: number;
   name: string;
+  gameType: GameType;
   documentId: string;
   description: string;
   url: string;
@@ -253,6 +254,7 @@ export class GameService {
   }
 
   async submitGamePlayState(gamePlayId: number, stateData: GameState<unknown>) {
+    console.log('Submit Data', stateData);
     const gamePlay = await quickGetService.requireGamePlay(gamePlayId);
     const game = await quickGetService.findGame(gamePlay.gameId);
     this.checkGameActive(game);
@@ -277,11 +279,13 @@ export class GameService {
     const newStateCount = (gamePlay.stateCount || 0) + 1;
 
     // Adapter trigger
-    let finalData = data;
+    let finalData: unknown = data;
     const adapter = gameAdapters[game.gameType];
+
     if (adapter) {
-      // @ts-ignore
+      console.log('2131212312', adapter);
       finalData = await adapter.onSubmitState(gamePlay, stateData.data);
+      console.log('Adapter Data', finalData);
     }
 
     await gamePlay.update({

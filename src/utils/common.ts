@@ -5,3 +5,7 @@ export function shuffleArray<T>(array: T[]): T[] {
   }
   return array;
 }
+
+export function isSameObject<T>(a: T, b: T): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}

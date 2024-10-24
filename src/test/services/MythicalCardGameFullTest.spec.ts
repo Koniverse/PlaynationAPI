@@ -1,15 +1,18 @@
 import { AccountService } from '@src/services/AccountService';
-import { Account } from '@src/models';
+import { Account, GameType } from '@src/models';
 import { GameService } from '@src/services/game/GameService';
 import { QuickGetService } from '@src/services/QuickGetService';
+import { NflRivalCardService } from '@src/services/game/mythicalGame/NflRivalCardService';
 import { GameEventContentCMS, GameEventService } from '@src/services/game/GameEventService';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import { CardStat } from '@src/services/game/mythicalGame/MythicalGameCardAdapter';
+import { CardInfo } from '@koniverse/telegram-bot-grpc';
 
 const accountService = AccountService.instance;
 const gameService = GameService.instance;
 const quickGetService = QuickGetService.instance;
 const gameEventService = GameEventService.instance;
+const cardService = NflRivalCardService.instance;
 
 const ACCOUNT_LIST = [{
   address: '5Eo5BJntLSFRYGjzEedEguxVjH7dxo1iEXUCgXJEP2bFNHSo',
@@ -48,6 +51,7 @@ const nextYearDate = new Date((new Date()).setFullYear(currentDate.getFullYear()
 const GAME_DATA = [{
   id: 1,
   name: 'NFL Rival Game',
+  gameType: GameType.MYTHICAL_CARD,
   documentId: 'game_01',
   description: 'Demo Game',
   url: '',
@@ -75,11 +79,11 @@ const GAME_EVENTS: GameEventContentCMS[] = [{
   icon: '',
   description: '',
   start_time: yesterdayDate,
-  end_time: currentDate,
+  end_time: nextYearDate,
   toss_up_info: {
     stats: [CardStat.ACC, CardStat.PRE, CardStat.JMP, CardStat.POW],
     opponent_teams: [],
-    round: 5,
+    round: 3,
     difficulty: 6,
     play_duration: 180,
     gameplay_per_event: 2,
@@ -132,6 +136,7 @@ describe('Mythical Card Game | Full Test', () => {
     const gameMap = Object.fromEntries(games.map((game) => [game.documentId, game]));
     const events = await quickGetService.listGameEvent();
     const eventMap = Object.fromEntries(events.map((event) => [event.documentId, event]));
+    const cardsPlayer = await cardService.getUserCard(accountList[0].id);
     
     // Todo: Issue-22 | Customize Init Data
     
@@ -139,37 +144,78 @@ describe('Mythical Card Game | Full Test', () => {
       accountId: accountList[0].id,
       gameId: gameMap[GAME_DATA[0].documentId].id,
       gameEventId: eventMap[GAME_EVENTS[0].documentId].id,
-      gameInitData: {},
+      gameInitData: {
+        userCardsSelected: cardsPlayer.cards.slice(0, 4),
+      },
     });
     
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // Todo: Issue-22 | Customize Init Data
+    // Start round
     await gameService.submitGamePlayState(gamePlay.id, {
       signature : '0x',
       timestamp : new Date().toString(),
-      data: {},
+      data: {
+        action: 'start'
+      },
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // Todo: Issue-22 | Submit rounds
+    console.log(1);
+    // submit round 1
     await gameService.submitGamePlayState(gamePlay.id, {
       signature : '0x',
       timestamp : new Date().toString(),
-      data: {},
+      data: {
+        action: 'play',
+        roundData: {
+          cardPlayer: cardsPlayer.cards[0],
+        }
+      },
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // Todo: Finish Game
+    // submit round 2
+    console.log(2);
     await gameService.submitGamePlayState(gamePlay.id, {
       signature : '0x',
       timestamp : new Date().toString(),
-      data: {},
+      data: {
+        action: 'play',
+        roundData: {
+          cardPlayer: cardsPlayer.cards[1],
+        }
+      },
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // submit round 3
+    console.log(3);
+    await gameService.submitGamePlayState(gamePlay.id, {
+      signature : '0x',
+      timestamp : new Date().toString(),
+      data: {
+        action: 'play',
+        roundData: {
+          cardPlayer: cardsPlayer.cards[2],
+        },
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+
+    // submit finish
+    await gameService.submitGamePlayState(gamePlay.id, {
+      signature : '0x',
+      timestamp : new Date().toString(),
+      data: {
+        action: 'finish'
+      },
+    });
+  }, 120000);
 })
 ;

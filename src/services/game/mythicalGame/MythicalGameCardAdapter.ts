@@ -6,13 +6,14 @@ import { CardInfo, CardInfo__Output } from '@koniverse/telegram-bot-grpc';
 import { QuickGetService } from '@src/services/QuickGetService';
 import { GameEventService } from '@src/services/game/GameEventService';
 import { NflRivalCardService } from '@src/services/game/mythicalGame/NflRivalCardService';
-import { createPromise, shuffleArray, tryToParseJSON, tryToStringify } from '@src/utils';
+import { createPromise, isSameObject, shuffleArray, tryToParseJSON, tryToStringify } from '@src/utils';
 import { Secret } from 'jsonwebtoken';
+import * as console from 'node:console';
 
 
-interface Statedata {
+interface StateData {
   action: 'start' | 'play' | 'finish';
-  roundData: {
+  roundData?: {
     cardPlayer: CardInfo
   }
 }
@@ -81,8 +82,32 @@ export class MythicalGameCardAdapter extends GameAdapter {
   async onNewGamePlay(data: CreationAttributes<GamePlay>): Promise<CreationAttributes<GamePlay>> {
     const { gameEventId, accountId } = data;
     const { userCardsSelected } = data.initState as MythicalCardGameDataInit;
-    const { tossUpInfo, tossUpBonus} = await quickGetService.requireGameEvent(gameEventId as number);
+    const { tossUpInfo, tossUpBonus, endTime, startTime} = await quickGetService.requireGameEvent(gameEventId as number);
+
+    if (endTime.getTime() < Date.now()) {
+      throw new Error('Game event is expired');
+    }
+
+    if (startTime.getTime() > Date.now()) {
+      throw new Error('Game event is not started');
+    }
+
+    if(tossUpInfo.stats.length === 0) {
+      throw new Error('Stats of event is empty');
+    }
+
+    const statSet = new Set(tossUpInfo.stats);
+
+    if(statSet.size !== 4){
+      throw new Error('Stats of event must have 4 unique stats');
+    }
+
     const gameOfEventStored = await quickGetService.findAllGameByGameEventId(gameEventId as number);
+    await cardService.cardMapReady.promise;
+
+    if (!userCardsSelected || userCardsSelected.length !== tossUpInfo.round + 1) {
+      throw new Error('Invalid card selected');
+    }
 
     if(gameOfEventStored.length + 1 > tossUpInfo.gameplayPerEvent) {
       throw new Error('Game event is full');
@@ -115,12 +140,15 @@ export class MythicalGameCardAdapter extends GameAdapter {
     // Do nothing
   }
 
-  async onSubmitState(gamePlay:GamePlay, data: Statedata): Promise<MythicalCardGameData> {
-    const gamePlayData  = gamePlay.stateData as MythicalCardGameData;
+  async onSubmitState(gamePlay:GamePlay, data: StateData): Promise<MythicalCardGameData> {
+    console.log('Create new Data');
+    const gamePlayData: MythicalCardGameData  = tryToParseJSON<MythicalCardGameData>(gamePlay.state);
     const secretData = gamePlay.secretData as RoundSecret[];
     const { tossUpBonus } = await quickGetService.requireGameEvent(gamePlay.gameEventId);
     let currentRound = gamePlayData.currentRound;
     const { rounds } = gamePlayData;
+
+    console.log('LOG: Submit state', data.action, gamePlayData.state, currentRound);
 
     if (data.action === 'start') {
       if (gamePlayData.state !== MythicalGameState.NOT_STARTED && currentRound === 0) {
@@ -130,6 +158,11 @@ export class MythicalGameCardAdapter extends GameAdapter {
       gamePlayData.state = MythicalGameState.START;
       gamePlayData.rounds[0].state = 'ready';
     } else if (data.action === 'play') {
+      console.log('LOG: Play game', gamePlayData.state);
+      if(!(gamePlayData.state === MythicalGameState.START || gamePlayData.state === MythicalGameState.PLAYING)) {
+        throw new Error('Game not started');
+      }
+
       gamePlayData.state = MythicalGameState.PLAYING;
       ++currentRound;
 
@@ -137,7 +170,13 @@ export class MythicalGameCardAdapter extends GameAdapter {
         throw new Error('Game already finished');
       }
 
+      if (!data.roundData?.cardPlayer){
+        throw new Error('Card player is required');
+      }
+
       let round: RoundInfo = {...rounds[currentRound - 1]};
+
+      console.log(round, gamePlayData.state);
       if (round.state !== 'ready') {
         throw new Error('Round not ready');
       }
@@ -151,7 +190,7 @@ export class MythicalGameCardAdapter extends GameAdapter {
         let bonusPoint = 0;
         tossUpBonus.forEach((b) => {
           let isBonusRound = false;
-          if( 'team' in b ){
+          if('team' in b){
             isBonusRound = b.team === round.cardPlayer?.team;
           } else if ('position' in b) {
             isBonusRound = round.cardPlayer?.position === b.position ;
@@ -160,7 +199,7 @@ export class MythicalGameCardAdapter extends GameAdapter {
           }
 
           if (isBonusRound) {
-            bonusPoint += b.bonus * round.score;
+            bonusPoint += b.bonus / 100 * round.score;
           }
         });
         round.score += bonusPoint;
@@ -204,10 +243,11 @@ export class MythicalGameCardAdapter extends GameAdapter {
     accountId: number,
     cardsUser?: CardInfo[],
     round?: number): Promise<boolean> {
+    await cardService.cardMapReady.promise;
     const { cards: userCards} = await cardService.getUserCard(accountId);
 
     const isValid =
-      cardSelected.every(card => (cardsUser || userCards).includes(card as CardInfo__Output))
+      cardSelected.every(card => (cardsUser || userCards).find((card_) => isSameObject<CardInfo>(card_, card)))
       && (!round || cardSelected.length === round + 1);
 
     if(!isValid) {
@@ -288,7 +328,8 @@ export class MythicalGameCardAdapter extends GameAdapter {
     }, {});
 
     return [...cardsStore.filter(
-      card => !cardsPlayerRecord[card.defId || ''] && (!opponentTeam || opponentTeam.includes(card.team || '')))];
+      card => !cardsPlayerRecord[card.defId || '']
+        && ((!opponentTeam || opponentTeam.length === 0 )|| opponentTeam.includes(card.team || '')))];
   }
 
   private createRoundsOfGameMiddleware (
@@ -308,6 +349,7 @@ export class MythicalGameCardAdapter extends GameAdapter {
 
     for(let round = 1; round <= roundEvent; round++){
       const randomStats: CardStat[] = [];
+      console.log('run add stat....');
       if (round <= 2) {
         randomStats.push(statsOfEvent[Math.floor(Math.random() * statsOfEvent.length)]);
       } else {
@@ -328,6 +370,8 @@ export class MythicalGameCardAdapter extends GameAdapter {
         }
       }
 
+      console.log('LOG: Random stat of round', randomStats, remainingStatsToShow);
+
       const difficultyOfRound = difficulty + (roundEvent - round) * 0.5;
       const rangeStat = this.rangeStatGamePlay(randomStats, cardsPlayer);
       const idealStat = this.calculateIdealStat(randomStats, difficultyOfRound, rangeStat);
@@ -339,6 +383,7 @@ export class MythicalGameCardAdapter extends GameAdapter {
       let cardPlayerCanBeat: CardInfo | undefined = undefined;
       let toleranceRange = INITIAL_TOLERANCE_RANGE;
       while (!cardPlayerCanBeat) {
+        console.log('rerun', toleranceRange);
         cardOpponent = this.selectCardOpponentForEachRound(
           cardOpponents,
           randomStats,
@@ -357,6 +402,8 @@ export class MythicalGameCardAdapter extends GameAdapter {
         ++toleranceRange;
       }
 
+      console.log('LOG: Card opponent and card player can beat', cardOpponent, cardPlayerCanBeat);
+
       roundsSecret.push({stats: randomStats, cardPlayerCanBeat});
 
       rounds.push({
@@ -368,6 +415,8 @@ export class MythicalGameCardAdapter extends GameAdapter {
         score: 0,
         cardOpponent });
     }
+
+    console.log('LOG: Finish create round of game', rounds, roundsSecret);
 
     return  {rounds, secret: roundsSecret};
   }
