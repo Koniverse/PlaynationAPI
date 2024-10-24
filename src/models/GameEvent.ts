@@ -2,9 +2,10 @@ import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, M
 import SequelizeServiceImpl from '@src/services/SequelizeService';
 import Account from '@src/models/Account';
 import Game from '@src/models/Game';
+import { CardStat } from '@src/services/game/mythicalGame/MythicalGameCardAdapter';
 
 export interface TossUpInfo {
-  stats: string[]; // Assuming STATS_LIST contains strings
+  stats: CardStat[]; // Assuming STATS_LIST contains strings
   opponentTeams: string[]; // Assuming TEAM_LIST contains strings
   round: number;
   difficulty: number;

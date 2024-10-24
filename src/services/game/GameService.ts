@@ -6,6 +6,7 @@ import {QuickGetService} from '@src/services/QuickGetService';
 import {tryToParseJSON, tryToStringify, validatePayload} from '@src/utils';
 import EnvVars from '@src/constants/EnvVars';
 import {Op, QueryTypes} from 'sequelize';
+import logger, { jetLogger } from 'jet-logger';
 import {GameState} from '@playnation/game-sdk';
 import {AchievementService, AchievementType} from '@src/services/AchievementService';
 import {GameAdapter} from '@src/services/game/GameAdapter';
@@ -75,6 +76,7 @@ const quickGetService = QuickGetService.instance;
 export interface GameContentCms {
   id: number;
   name: string;
+  gameType: GameType;
   documentId: string;
   description: string;
   url: string;
@@ -232,7 +234,7 @@ export class GameService {
       token: v4(),
     };
 
-    const adapter = gameAdapters[game.gameType];
+    const adapter= gameAdapters[game.gameType];
     if (adapter) {
       createData = await adapter.onNewGamePlay(createData);
     }
@@ -253,6 +255,7 @@ export class GameService {
   }
 
   async submitGamePlayState(gamePlayId: number, stateData: GameState<unknown>) {
+    logger.info('submitGamePlayState');
     const gamePlay = await quickGetService.requireGamePlay(gamePlayId);
     const game = await quickGetService.findGame(gamePlay.gameId);
     this.checkGameActive(game);
@@ -277,10 +280,10 @@ export class GameService {
     const newStateCount = (gamePlay.stateCount || 0) + 1;
 
     // Adapter trigger
-    let finalData = data;
+    let finalData: unknown = data;
     const adapter = gameAdapters[game.gameType];
+
     if (adapter) {
-      // @ts-ignore
       finalData = await adapter.onSubmitState(gamePlay, stateData.data);
     }
 
@@ -291,7 +294,7 @@ export class GameService {
       stateTimestamp: timestamp,
       stateCount: newStateCount,
       endTime: new Date(),
-      point: 0,
+      point: gamePlay.point,
       success: isSignatureValid,
     });
 
@@ -393,7 +396,7 @@ export class GameService {
 
     if (success) {
       await this.addGameDataPoint(gamePlay.accountId, gamePlay.gameId, point, pointRate);
-      AchievementService.instance.triggerAchievement(gamePlay.accountId, AchievementType.GAME).catch(console.error);
+      AchievementService.instance.triggerAchievement(gamePlay.accountId, AchievementType.GAME).catch(logger.err);
     }
 
     return gamePlay;

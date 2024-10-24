@@ -17,7 +17,7 @@ export function tryToParseJSON<T>(jsonString: unknown) {
       return JSON.parse(jsonString) as T;
     }
   } catch (e) { /* empty */ }
-  return jsonString;
+  return jsonString as T;
 }
 
 export function tryToStringify(jsonString: unknown) {

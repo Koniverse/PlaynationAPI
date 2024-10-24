@@ -59,7 +59,9 @@ export class SequelizeService {
   public async syncWithOptions(options?: SyncOptions): Promise<void> {
     await this.sequelize.transaction(async (transaction: Transaction) => {
       for (const sync of this.syncList) {
-        await sync(options);
+        await sync({
+          alter: true,
+        });
       }
     });
   }

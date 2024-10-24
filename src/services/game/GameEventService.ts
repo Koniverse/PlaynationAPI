@@ -2,6 +2,7 @@ import SequelizeServiceImpl, {SequelizeService} from '@src/services/SequelizeSer
 import {Game, GameEvent, TossUpBonus, TossUpInfo} from '@src/models';
 import {AccountService} from '@src/services/AccountService';
 import {QuickGetService} from '@src/services/QuickGetService';
+import { CardStat } from '@src/services/game/mythicalGame/MythicalGameCardAdapter';
 
 const accountService = AccountService.instance;
 const quickGetService = QuickGetService.instance;
@@ -19,7 +20,7 @@ export interface GameEventContentCMS {
   start_time: Date;
   end_time: Date;
   toss_up_info: {
-    stats: string[];
+    stats: CardStat[];
     opponent_teams: string[];
     round: number;
     difficulty: number;
