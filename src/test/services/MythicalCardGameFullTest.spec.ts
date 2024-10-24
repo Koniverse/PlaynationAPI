@@ -1,9 +1,10 @@
-import {AccountService} from '@src/services/AccountService';
-import {Account, Game, GameEvent} from '@src/models';
-import {GameService} from '@src/services/game/GameService';
-import {QuickGetService} from '@src/services/QuickGetService';
-import {GameEventContentCMS, GameEventService} from '@src/services/game/GameEventService';
+import { AccountService } from '@src/services/AccountService';
+import { Account } from '@src/models';
+import { GameService } from '@src/services/game/GameService';
+import { QuickGetService } from '@src/services/QuickGetService';
+import { GameEventContentCMS, GameEventService } from '@src/services/game/GameEventService';
 import SequelizeServiceImpl from '@src/services/SequelizeService';
+import { CardStat } from '@src/services/game/mythicalGame/MythicalGameCardAdapter';
 
 const accountService = AccountService.instance;
 const gameService = GameService.instance;
@@ -76,7 +77,7 @@ const GAME_EVENTS: GameEventContentCMS[] = [{
   start_time: yesterdayDate,
   end_time: currentDate,
   toss_up_info: {
-    stats: ['quickness', 'acceleration', 'presence', 'endurance'],
+    stats: [CardStat.ACC, CardStat.PRE, CardStat.JMP, CardStat.POW],
     opponent_teams: [],
     round: 5,
     difficulty: 6,
