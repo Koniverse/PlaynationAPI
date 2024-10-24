@@ -159,7 +159,7 @@ export class MythicalGameCardAdapter extends GameAdapter {
       }
 
       gamePlayData.state = MythicalGameState.PLAYING;
-      ++currentRound;
+      currentRound++;
 
       if (currentRound > rounds.length) {
         throw new Error('Game already finished');
